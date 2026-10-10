@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Stoga.study</title>
+    <meta name="description" content="Free, calm study help from your own notes." />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F4F4F5" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#140D0F" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="icon" type="image/png" href="/icons/seal.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <script>
+      // Apply a saved Light/Dark choice and text size before first paint.
+      try {
+        var t = localStorage.getItem("stoga-theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+        var s = localStorage.getItem("stoga-text-size");
+        if (s === "large" || s === "largest") document.documentElement.setAttribute("data-text", s);
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>Stoga.study needs JavaScript to run.</noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
