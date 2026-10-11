@@ -6,7 +6,6 @@ import { useRegisterSW } from "virtual:pwa-register/react";
 export function UpdatePrompt() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
-    offlineReady: [offlineReady, setOfflineReady],
     updateServiceWorker,
   } = useRegisterSW();
 
@@ -19,12 +18,6 @@ export function UpdatePrompt() {
       cancel: { label: "Later", onClick: () => setNeedRefresh(false) },
     });
   }, [needRefresh, setNeedRefresh, updateServiceWorker]);
-
-  useEffect(() => {
-    if (!offlineReady) return;
-    toast("Stoga.study is ready to use offline. Saved cards and notes will work without a connection.", { id: "sw-offline" });
-    setOfflineReady(false);
-  }, [offlineReady, setOfflineReady]);
 
   return null;
 }

@@ -1,4 +1,8 @@
+import { LogOut } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth/session";
+import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/cn";
 import { TEXT_LABEL, THEME_LABEL, useTextSize, useTheme, type TextSize, type ThemeChoice } from "@/lib/preferences";
 
@@ -28,6 +32,7 @@ function Segmented<T extends string>({ label, value, options, labels, onChange }
 export default function Settings() {
   const [theme, setTheme] = useTheme();
   const [size, setSize] = useTextSize();
+  const { session } = useAuth();
   return (
     <>
       <PageHeader title="Settings" />
@@ -42,6 +47,15 @@ export default function Settings() {
           <Segmented<TextSize> label="Text size" value={size} options={["standard", "large", "largest"]} labels={TEXT_LABEL} onChange={setSize} />
           <p className="field-hint">Layouts reflow at every size. These settings stay on this device.</p>
         </div>
+      </section>
+
+      <section className="card mt-4 flex flex-col gap-3 p-6" aria-labelledby="account-title">
+        <h2 id="account-title" className="text-[1.375rem]">Account</h2>
+        <p className="text-muted">Signed in as <b className="break-all text-ink">{session?.user.email}</b></p>
+        <p className="field-hint">You stay signed in on this device until you sign out. To sign back in, we email you a new link.</p>
+        <Button variant="secondary" className="self-start" onClick={() => supabase.auth.signOut()}>
+          <LogOut /> Sign out
+        </Button>
       </section>
     </>
   );

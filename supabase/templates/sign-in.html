@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#F4F4F5;font-family:'Atkinson Hyperlegible',Arial,sans-serif;color:#1F1B1C;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F5;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#FFFFFF;border:2px solid #E4E4E7;border-radius:24px;">
+            <tr>
+              <td style="padding:32px 28px;">
+                <p style="margin:0 0 4px;font-size:22px;font-weight:700;letter-spacing:-0.5px;">Stoga.study</p>
+                <p style="margin:0 0 24px;font-size:15px;color:#636363;">Free, calm study help from your own notes.</p>
+                <p style="margin:0 0 20px;font-size:17px;line-height:1.5;">Here is your sign-in link. It works once and expires in an hour.</p>
+                <p style="margin:0 0 28px;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#720D19;color:#FFFFFF;text-decoration:none;font-weight:700;font-size:16px;padding:16px 28px;border-radius:999px;">Sign in to Stoga.study</a>
+                </p>
+                <p style="margin:0 0 8px;font-size:15px;color:#636363;">Using the app from your home screen? Enter this code instead:</p>
+                <p style="margin:0 0 28px;font-size:34px;font-weight:700;letter-spacing:8px;color:#720D19;">{{ .Token }}</p>
+                <p style="margin:0;font-size:14px;color:#636363;line-height:1.5;">If you did not ask to sign in, you can ignore this email. Nobody can sign in without this link or code.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

@@ -10,6 +10,7 @@ import { createRoot } from "react-dom/client";
 import { RouterProvider } from "react-router";
 import { Toaster } from "sonner";
 import { UpdatePrompt } from "./components/UpdatePrompt";
+import { AuthProvider } from "./lib/auth/session";
 import { router } from "./router";
 
 const queryClient = new QueryClient({
@@ -19,7 +20,9 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
       <Toaster
         position="bottom-center"
         mobileOffset={{ bottom: "calc(5.75rem + env(safe-area-inset-bottom))" }}
