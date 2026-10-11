@@ -56,3 +56,12 @@ python3 scripts/showcase/make_demo_pdfs.py /tmp/showcase
 SUPABASE_SECRET_KEY=... node scripts/showcase/capture.mjs /tmp/showcase
 node scripts/showcase/compose.mjs /tmp/showcase
 ```
+
+### Promo video
+
+`marketing/video/stoga-promo.mp4` is a 30 s, 720 × 1560 loop (under 1 MB, no audio). The scenes live in `scripts/showcase/video/promo.html` and use the app's own compiled CSS. They're rendered frame by frame:
+
+```bash
+npm run build
+node scripts/showcase/video/render.mjs        # needs ffmpeg and Chrome
+```

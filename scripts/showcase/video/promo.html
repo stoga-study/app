@@ -1,0 +1,333 @@
+<!doctype html>
+<!--
+  Stoga.study promo, 30 s, loopable. Rendered frame by frame by render.mjs: it calls render(t) for
+  each frame, so motion is exact and the last frame matches the first.
+  UI scenes use the app's own compiled CSS (dark theme), so they look exactly like the app.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" id="appcss">
+<style>
+  html, body { margin: 0; width: 720px; height: 1560px; overflow: hidden; background: #000; }
+  #stage { position: absolute; left: 0; top: 0; width: 430px; height: 932px; transform: scale(1.67442); transform-origin: 0 0; overflow: hidden; background: var(--bg); font-family: var(--font-body); }
+  .scene { position: absolute; inset: 0; overflow: hidden; visibility: hidden; will-change: transform; background: var(--bg); }
+  .fill { display: flex; flex-direction: column; justify-content: center; padding: 0 30px; }
+  .slam { font-family: var(--font-display); font-weight: 800; text-transform: uppercase; letter-spacing: -0.035em; line-height: .9; }
+  .slam span { display: block; }
+  .status { position: absolute; top: 0; left: 0; right: 0; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 6px 30px 0 44px; font: 600 17px -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif; color: var(--ink); z-index: 100; }
+  .status .icons { display: flex; gap: 6px; align-items: center; }
+  .island { position: absolute; left: 50%; top: 11px; width: 126px; height: 37px; transform: translateX(-50%); background: #000; border-radius: 20px; z-index: 101; }
+  .ui { position: absolute; inset: 0; padding: 66px 20px 0; }
+  .appbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: -0.02em; }
+  .tap { position: absolute; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: rgba(255,255,255,.35); pointer-events: none; z-index: 102; opacity: 0; }
+  .row { display: flex; align-items: center; gap: 12px; }
+  .step { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+  .dot { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line-strong); display: grid; place-items: center; flex: none; }
+  .dot.done { background: var(--primary); border-color: var(--primary); }
+  .tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 78px; display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--line); background: var(--card); padding-top: 8px; font-size: 12px; color: var(--muted); text-align: center; }
+  .tabs b { color: var(--brand); }
+  .digit { width: 52px; height: 64px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 30px; }
+  .digit.on { border-color: var(--hot); }
+  svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1. Logo (also the final frame, so the loop is seamless) -->
+  <section class="scene" id="s-logo" style="background:#720D19">
+    <div style="position:absolute;inset:0;display:grid;place-items:center">
+      <div id="logo-mark" style="display:flex;flex-direction:column;align-items:center;gap:22px">
+        <div style="width:150px;height:150px;border-radius:44px;background:#fff;display:grid;place-items:center;box-shadow:0 8px 0 #4A0810;transform:rotate(-6deg)">
+          <img src="SEAL" style="width:118px;height:118px;border-radius:50%">
+        </div>
+        <div class="slam" style="color:#fff;font-size:44px;text-transform:none;letter-spacing:-0.04em">Stoga.study</div>
+      </div>
+    </div>
+    <div class="circle" style="position:absolute;width:420px;height:420px;border-radius:50%;background:#9C103D;right:-190px;top:-170px"></div>
+    <div class="circle" style="position:absolute;width:56px;height:56px;border-radius:50%;background:#BA0846;left:46px;bottom:170px"></div>
+  </section>
+
+  <!-- 2. Study from your own notes -->
+  <section class="scene fill" id="s-study" style="background:#1E070B;color:#fff">
+    <div class="circle" style="position:absolute;width:380px;height:380px;border-radius:50%;background:#720D19;right:-170px;top:-130px"></div>
+    <div class="circle" style="position:absolute;width:64px;height:64px;border-radius:50%;background:#BA0846;right:56px;bottom:200px"></div>
+    <div class="slam" style="font-size:66px;position:relative">
+      <span data-w="0">Study</span><span data-w="1">from your</span><span data-w="2" style="color:#F2A8BA">own notes.</span>
+    </div>
+  </section>
+
+  <!-- 3. Upload -->
+  <section class="scene" id="s-upload">
+    <div class="ui">
+      <div class="appbar"><div class="brand"><img src="SEAL" width="30" height="30" style="border-radius:50%">Stoga.study</div></div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:30px;letter-spacing:-0.025em">Add to AP Statistics</div>
+      <div style="color:var(--muted);font-size:15px;margin-top:6px">4 of 10 uploads used this month. Reviewing never counts.</div>
+      <div id="drop" style="margin-top:22px;border:2px dashed var(--tint-line);background:var(--tint);border-radius:24px;padding:44px 16px;text-align:center">
+        <svg class="i" viewBox="0 0 24 24" style="width:34px;height:34px;color:var(--brand)"><path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4.5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:22px;margin-top:8px">Choose or drop a file</div>
+        <div style="color:var(--muted);font-size:14px;margin-top:4px">PDF, Word (.docx) or text. Up to 25 MB.</div>
+      </div>
+      <div id="up-work" style="position:absolute;left:20px;right:20px;top:228px;opacity:0">
+        <div id="file" class="card row" style="padding:14px">
+          <span class="tile soft"><svg class="i" viewBox="0 0 24 24"><path d="M14 3.5H7A1.5 1.5 0 0 0 5.5 5v14A1.5 1.5 0 0 0 7 20.5h10a1.5 1.5 0 0 0 1.5-1.5V8z"/><path d="M14 3.5V8h4.5"/></svg></span>
+          <div><div style="font-weight:700">Week 5 Sampling.pdf</div><div style="color:var(--muted);font-size:14px">3.2 MB</div></div>
+        </div>
+        <div class="bar" style="height:12px;margin-top:22px"><span id="up-bar" style="width:0%"></span></div>
+        <div class="card" style="margin-top:18px;padding:2px 16px">
+          <div class="step" style="border-bottom:1px solid var(--line)"><span class="dot" id="d1"></span><span id="l1" style="font-weight:700">Reading pages</span><span id="c1" class="tabular" style="margin-left:auto;color:var(--muted);font-size:14px">Opening</span></div>
+          <div class="step"><span class="dot" id="d2"></span><span id="l2" style="color:var(--muted)">Saving to your account</span><span id="c2" style="margin-left:auto;color:var(--muted);font-size:14px">Waiting</span></div>
+        </div>
+      </div>
+      <div id="up-done" class="ink-panel" style="position:absolute;left:20px;right:20px;top:228px;padding:24px;opacity:0">
+        <div class="circle circle-big" style="width:230px;height:230px;right:-70px;top:-90px"></div>
+        <div class="circle circle-hot" style="width:34px;height:34px;right:30px;bottom:26px"></div>
+        <div class="ink-muted" style="font-size:15px">Added and read.</div>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:26px;margin-top:4px">Week 5 Sampling.pdf</div>
+        <div class="big-num" style="font-size:84px;margin-top:16px"><span id="pages-n">24</span><span style="font-family:var(--font-body);font-size:18px;letter-spacing:0;margin-left:8px">pages read</span></div>
+      </div>
+    </div>
+    <div class="tabs"><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>Home</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--brand);font-weight:700"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4.5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>Upload</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4.5 19.5l1.3-4.1A7.5 7.5 0 1 1 20 11.5z"/></svg>Tutor</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>Review</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="M5 20V12"/><path d="M10 20V6"/><path d="M15 20v-9"/><path d="M20 20V4"/></svg>Progress</span></div>
+  </section>
+
+  <!-- 4. Every page, in order -->
+  <section class="scene fill" id="s-pages" style="background:#F7EAEC;color:#720D19">
+    <div class="circle" style="position:absolute;width:420px;height:420px;border-radius:50%;background:#E8C9CF;left:-200px;top:-160px"></div>
+    <div class="slam" style="font-size:64px;position:relative">
+      <span data-w="0">Every page,</span><span data-w="1">read and</span><span data-w="2" style="color:#BA0846">kept.</span>
+    </div>
+  </section>
+
+  <!-- 5. Grade and classes -->
+  <section class="scene" id="s-classes">
+    <div class="ui" id="grade-ui">
+      <div class="segments" style="margin-bottom:22px"><span class="done"></span><span class="now"></span><span></span></div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:32px;letter-spacing:-0.025em">What grade are you in?</div>
+      <div style="color:var(--muted);font-size:15px;margin:8px 0 18px">We show the classes Conestoga offers for your grade.</div>
+      <div id="grades" style="display:grid;gap:12px"></div>
+    </div>
+    <div class="ui" id="class-ui" style="opacity:0">
+      <div class="segments" style="margin-bottom:22px"><span class="done"></span><span class="done"></span><span class="now"></span></div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:32px;letter-spacing:-0.025em">Which classes are you taking?</div>
+      <div class="eyebrow" style="margin:18px 0 10px">Mathematics</div>
+      <div style="display:grid;gap:8px">
+        <div class="card row" style="padding:14px;box-shadow:none"><span class="dot"></span><div><b>Geometry</b><div style="color:var(--muted);font-size:13px">Year · 1 credit · Prerequisite: Algebra 1</div></div></div>
+        <div class="card" id="alg" style="box-shadow:none;overflow:hidden">
+          <div class="row" style="padding:14px"><span class="dot" id="alg-dot"></span><div><b id="alg-title">Algebra 2</b><div style="color:var(--muted);font-size:13px">Year · 1 credit · Prerequisite: Geometry</div></div></div>
+          <div id="versions" style="height:0;overflow:hidden;background:var(--soft);border-top:1px solid var(--line)">
+            <div style="padding:12px 14px;display:grid;gap:8px">
+              <div style="font-size:13px;font-weight:700;color:var(--brand)">Which version are you in?</div>
+              <div class="row ver" id="v-bc" style="border:2px solid var(--line);border-radius:14px;padding:10px;background:var(--card)"><span class="dot" style="width:20px;height:20px"></span><div style="flex:1"><b>Algebra 2 BC</b> <span style="color:var(--muted)">· Honors (AP weight)</span><div style="color:var(--muted);font-size:12px">Compacted track toward AP Calculus BC</div></div><span class="tabular" style="font-size:12px;color:var(--muted)">2050</span></div>
+              <div class="row ver" style="border:2px solid var(--line);border-radius:14px;padding:10px;background:var(--card)"><span class="dot" style="width:20px;height:20px"></span><div style="flex:1"><b>Algebra 2 AB</b> <span style="color:var(--muted)">· Honors</span><div style="color:var(--muted);font-size:12px">Toward Calculus (H) or AP Calculus AB</div></div><span class="tabular" style="font-size:12px;color:var(--muted)">2150</span></div>
+              <div class="row ver" style="border:2px solid var(--line);border-radius:14px;padding:10px;background:var(--card)"><span class="dot" style="width:20px;height:20px"></span><div style="flex:1"><b>Algebra 2</b> <span style="color:var(--muted)">· Accelerated</span></div><span class="tabular" style="font-size:12px;color:var(--muted)">2051</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="card row" style="padding:14px;box-shadow:none"><span class="dot"></span><div><b>Math Analysis</b><div style="color:var(--muted);font-size:13px">Year · 1 credit · Prerequisite: Algebra 2</div></div></div>
+        <div class="card row" style="padding:14px;box-shadow:none"><span class="dot"></span><div><b>AP Statistics</b><div style="color:var(--muted);font-size:13px">Year · 1 credit · Prerequisite: Algebra 2</div></div></div>
+      </div>
+      <div style="position:absolute;left:20px;right:20px;bottom:36px"><button class="btn btn-primary btn-block" id="cont">Continue with 5 classes</button></div>
+    </div>
+  </section>
+
+  <!-- 6. Stats from the real catalog -->
+  <section class="scene fill" id="s-stat1" style="background:#BA0846;color:#fff">
+    <div class="circle" style="position:absolute;width:360px;height:360px;border-radius:50%;background:#9C103D;right:-150px;bottom:-120px"></div>
+    <div class="slam" style="position:relative"><span id="stat1" style="font-size:150px">63</span><span style="font-size:58px">core classes</span></div>
+  </section>
+  <section class="scene fill" id="s-stat2" style="background:#1E070B;color:#fff">
+    <div class="circle" style="position:absolute;width:360px;height:360px;border-radius:50%;background:#720D19;left:-160px;top:-120px"></div>
+    <div class="slam" style="position:relative"><span style="font-size:150px;color:#F2A8BA">9–12</span><span style="font-size:58px">every grade,<br>every level</span></div>
+  </section>
+
+  <!-- 7. Home -->
+  <section class="scene" id="s-home">
+    <div class="ui">
+      <div class="appbar"><div class="brand"><img src="SEAL" width="30" height="30" style="border-radius:50%">Stoga.study</div>
+        <span style="width:44px;height:44px;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg></span></div>
+      <div style="color:var(--muted);font-size:15px">Sunday, October 11</div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:38px;letter-spacing:-0.03em;margin:2px 0 16px">Today, Aarav</div>
+      <div class="ink-panel burgundy" style="padding:22px">
+        <div class="circle circle-big" style="width:220px;height:220px;right:-70px;top:-80px"></div>
+        <div style="font-size:15px;color:#F7EAEC">Flashcards due today</div>
+        <div class="row" style="align-items:flex-end;gap:18px;margin-top:4px">
+          <div class="big-num" id="due" style="font-size:96px">0</div>
+          <div id="due-copy" style="font-size:15px;color:#F7EAEC;padding-bottom:10px;opacity:0;max-width:200px">About 15 minutes across AP Statistics and Chemistry 1.</div>
+        </div>
+        <button class="btn btn-inverse btn-block" id="start" style="margin-top:16px">Start review</button>
+      </div>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:22px;margin:24px 0 10px">Your classes</div>
+      <div class="card row" style="padding:14px"><span class="tile t3" style="width:42px;height:42px;border-radius:13px"><svg class="i" viewBox="0 0 24 24" style="color:#fff"><path d="M5 4.5h9.5A3.5 3.5 0 0 1 18 8v11.5H8.5A3.5 3.5 0 0 1 5 16z"/><path d="M5 16a3 3 0 0 1 3-3h10"/></svg></span><div><div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--brand)">MATHEMATICS</div><b>AP Statistics</b><div style="color:var(--muted);font-size:13px">AP · 1 source</div></div></div>
+      <div class="card row" style="padding:14px;margin-top:10px"><span class="tile t4" style="width:42px;height:42px;border-radius:13px"><svg class="i" viewBox="0 0 24 24" style="color:#fff"><path d="M5 4.5h9.5A3.5 3.5 0 0 1 18 8v11.5H8.5A3.5 3.5 0 0 1 5 16z"/><path d="M5 16a3 3 0 0 1 3-3h10"/></svg></span><div><div style="font-size:12px;font-weight:700;letter-spacing:.05em;color:var(--brand)">SCIENCE</div><b>Chemistry 1</b><div style="color:var(--muted);font-size:13px">Honors · 1 source</div></div></div>
+    </div>
+    <div class="tabs"><span style="display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--brand);font-weight:700"><svg class="i" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z"/></svg>Home</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4.5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>Upload</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-11 6.6L4.5 19.5l1.3-4.1A7.5 7.5 0 1 1 20 11.5z"/></svg>Tutor</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>Review</span><span style="display:flex;flex-direction:column;align-items:center;gap:3px;"><svg class="i" viewBox="0 0 24 24"><path d="M5 20V12"/><path d="M10 20V6"/><path d="M15 20v-9"/><path d="M20 20V4"/></svg>Progress</span></div>
+  </section>
+
+  <!-- 8. Sign in -->
+  <section class="scene" id="s-signin">
+    <div class="ui">
+      <span class="tile soft" style="margin-top:6px"><svg class="i" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></svg></span>
+      <div style="font-family:var(--font-display);font-weight:700;font-size:34px;letter-spacing:-0.025em;margin-top:16px">Check your email</div>
+      <div style="color:var(--ink-2);margin-top:8px;font-size:16px">We sent a link to <b>aarav@stoga.study</b>. Tap it to sign in, or enter the 6-digit code here.</div>
+      <div style="display:flex;gap:9px;margin-top:26px" id="digits"></div>
+      <button class="btn btn-primary btn-block" id="signbtn" style="margin-top:26px" disabled>Sign in</button>
+      <div id="signed" class="callout" style="margin-top:18px;opacity:0;align-items:center"><svg class="i" viewBox="0 0 24 24" style="color:var(--brand)"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg><span><b>You are in.</b> No password needed, ever.</span></div>
+    </div>
+  </section>
+
+  <!-- 9. Free for every student -->
+  <section class="scene fill" id="s-free" style="background:#720D19;color:#fff">
+    <div class="circle" style="position:absolute;width:420px;height:420px;border-radius:50%;background:#9C103D;right:-200px;bottom:-140px"></div>
+    <div style="position:relative">
+      <span class="sticker" id="free-sticker" style="font-size:18px;margin-bottom:26px">Built for Conestoga</span>
+      <div class="slam" style="font-size:72px"><span data-w="0">Free for</span><span data-w="1">every</span><span data-w="2" style="color:#F2A8BA">student.</span></div>
+    </div>
+  </section>
+
+  <div class="status" id="status"><span>9:41</span><span class="icons">
+    <svg width="18" height="12" viewBox="0 0 58 36" fill="currentColor"><rect x="0" y="24" width="10" height="12" rx="2"/><rect x="16" y="16" width="10" height="20" rx="2"/><rect x="32" y="8" width="10" height="28" rx="2"/><rect x="48" y="0" width="10" height="36" rx="2"/></svg>
+    <svg width="16" height="12" viewBox="0 0 52 38" fill="currentColor"><path d="M26 38 18 29a12 12 0 0 1 16 0zM10 21a23 23 0 0 1 32 0l-5 5a16 16 0 0 0-22 0zM2 13a35 35 0 0 1 48 0l-5 5a28 28 0 0 0-38 0z"/></svg>
+    <svg width="27" height="13" viewBox="0 0 92 42"><rect x="2" y="2" width="78" height="38" rx="12" fill="none" stroke="currentColor" stroke-width="4" opacity=".45"/><rect x="8" y="8" width="62" height="26" rx="7" fill="currentColor"/><rect x="84" y="14" width="6" height="14" rx="3" fill="currentColor" opacity=".45"/></svg>
+  </span></div>
+  <div class="island"></div>
+  <div class="tap" id="tap"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const outCubic = (p) => 1 - Math.pow(1 - p, 3);
+const outBack = (p) => { const c = 1.6; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
+const prog = (t, s, d) => clamp((t - s) / d);
+
+// Scene start times (seconds). The logo returns at the end; at t = 30 it matches t = 0.
+const SCENES = [
+  ["s-logo", -1], ["s-study", 1.6], ["s-upload", 4.0], ["s-pages", 9.0], ["s-classes", 11.0],
+  ["s-stat1", 15.6], ["s-stat2", 16.8], ["s-home", 18.0], ["s-signin", 22.2], ["s-free", 25.8], ["s-logo2", 28.4],
+];
+const DARK_UI = new Set(["s-upload", "s-classes", "s-home", "s-signin"]);
+
+// The closing logo is a clone of the opening one, so the loop point is identical.
+const logo2 = $("s-logo").cloneNode(true); logo2.id = "s-logo2"; logo2.querySelector("#logo-mark").id = "logo-mark2";
+$("s-logo").after(logo2); $("stage").appendChild($("status")); $("stage").appendChild(document.querySelector(".island")); $("stage").appendChild($("tap"));
+
+// Grade cards and code digits.
+$("grades").innerHTML = [[9, "Freshman", 2030], [10, "Sophomore", 2029], [11, "Junior", 2028], [12, "Senior", 2027]]
+  .map(([g, n, y]) => `<div class="card row grade" data-g="${g}" style="padding:14px 16px"><span class="big-num" style="font-size:40px;width:58px;text-align:center;color:var(--brand)">${g}</span><div style="flex:1"><div style="font-family:var(--font-display);font-weight:700;font-size:20px">${n}</div><div style="color:var(--muted);font-size:14px">Class of ${y}</div></div><span class="ck" style="opacity:0;color:var(--brand);font-size:22px">✓</span></div>`).join("");
+$("digits").innerHTML = Array.from({ length: 6 }, () => `<div class="digit"></div>`).join("");
+
+function words(sceneId, t, start) {
+  document.querySelectorAll(`#${sceneId} [data-w]`).forEach((el) => {
+    const p = outBack(prog(t, start + 0.18 + Number(el.dataset.w) * 0.22, 0.32));
+    el.style.opacity = clamp(p * 3);
+    el.style.transform = `translateY(${(1 - p) * 60}px) scale(${0.85 + 0.15 * p})`;
+  });
+}
+function tap(t, at, x, y) {
+  const p = prog(t, at, 0.45);
+  if (p > 0 && p < 1) { const el = $("tap"); el.style.left = x + "px"; el.style.top = y + "px"; el.style.opacity = 0.9 * (1 - p); el.style.transform = `scale(${0.4 + p})`; return true; }
+  return false;
+}
+function press(el, t, at) { el.style.transform = t > at && t < at + 0.18 ? "translateY(2px)" : ""; el.style.boxShadow = t > at && t < at + 0.18 ? "0 2px 0 var(--primary-deep)" : ""; }
+
+window.render = (t) => {
+  $("tap").style.opacity = 0;
+  // Scene entry: slide up and settle; earlier scenes stay underneath until covered.
+  let top = null;
+  SCENES.forEach(([id, s], i) => {
+    const el = $(id), next = SCENES[i + 1];
+    const visible = t >= s && !(next && t >= next[1] + 0.4);
+    el.style.visibility = visible ? "visible" : "hidden";
+    el.style.zIndex = i + 1;
+    const p = outCubic(prog(t, s, 0.4));
+    el.style.transform = p >= 1 ? "" : `translateY(${(1 - p) * 100}%)`;
+    if (visible) top = id;
+  });
+  $("status").style.color = DARK_UI.has(top) || top?.startsWith("s-stat2") || top === "s-study" || top === "s-free" || top?.startsWith("s-logo") || top === "s-stat1" ? "#F6EFF1" : "#1F1B1C";
+  if (top === "s-pages") $("status").style.color = "#1F1B1C";
+
+  // Logos: gentle pop for the closing one; the opening one is already settled at t = 0.
+  const lp = outBack(prog(t, 28.6, 0.6));
+  // Once settled, no transform at all, so the last frames match the first exactly.
+  $("logo-mark2").style.transform = lp >= 1 ? "" : `scale(${0.7 + 0.3 * lp})`;
+  $("logo-mark2").style.opacity = lp >= 1 ? "" : clamp(lp * 2);
+
+  words("s-study", t, 1.6); words("s-pages", t, 9.0); words("s-free", t, 25.8);
+  const sp = outBack(prog(t, 26.6, 0.4));
+  $("free-sticker").style.transform = `rotate(-3deg) scale(${sp})`;
+
+  // Upload
+  tap(t, 4.7, 215, 330);
+  $("drop").style.opacity = 1 - prog(t, 4.95, 0.15);
+  const pick = prog(t, 5.1, 0.3);
+  $("up-work").style.transform = `translateY(${(1 - outCubic(pick)) * 40}px)`;
+  const read = prog(t, 5.3, 1.8);
+  const pages = Math.max(1, Math.round(read * 24));
+  $("c1").textContent = read <= 0 ? "Opening" : read < 1 ? `${pages} of 24` : "24 pages";
+  $("d1").className = read >= 1 ? "dot done" : "dot";
+  $("d1").innerHTML = read >= 1 ? '<svg class="i" viewBox="0 0 24 24" style="color:#fff;width:14px;height:14px"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>' : "";
+  const save = prog(t, 7.1, 0.8);
+  $("l2").style.color = save > 0 ? "var(--ink)" : "var(--muted)"; $("l2").style.fontWeight = save > 0 ? 700 : 400;
+  $("c2").textContent = save <= 0 ? "Waiting" : save < 1 ? "Working" : "Done";
+  $("d2").className = save >= 1 ? "dot done" : "dot";
+  $("up-bar").style.width = `${read * 60 + save * 40}%`;
+  $("up-work").style.opacity = pick * (1 - prog(t, 7.95, 0.15));
+  const done = prog(t, 8.1, 0.4);
+  $("up-done").style.opacity = done;
+  $("up-done").style.transform = `scale(${0.9 + 0.1 * outBack(done)})`;
+  $("up-work").style.visibility = done >= 1 ? "hidden" : "visible";
+
+  // Grade then classes
+  const gTap = 11.9;
+  tap(t, gTap, 215, 330);
+  document.querySelectorAll(".grade").forEach((el, i) => {
+    const on = el.dataset.g === "10" && t >= gTap + 0.1;
+    el.style.borderColor = on ? "var(--primary)" : ""; el.style.background = on ? "var(--tint)" : ""; el.style.boxShadow = on ? "0 4px 0 var(--primary)" : "";
+    el.querySelector(".ck").style.opacity = on ? 1 : 0;
+    const e = outCubic(prog(t, 11.1 + i * 0.08, 0.35));
+    el.style.opacity = e; el.style.transform = `translateX(${(1 - e) * 40}px)`;
+  });
+  const sw = prog(t, 12.6, 0.3);
+  $("grade-ui").style.opacity = 1 - sw; $("class-ui").style.opacity = sw;
+  $("class-ui").style.transform = `translateX(${(1 - outCubic(sw)) * 60}px)`;
+  const algTap = 13.2; tap(t, algTap, 200, 260);
+  const algOn = t >= algTap + 0.1;
+  $("alg").style.borderColor = algOn ? "var(--primary)" : "";
+  $("alg-dot").className = algOn ? "dot done" : "dot";
+  $("versions").style.height = `${outCubic(prog(t, algTap + 0.15, 0.4)) * 262}px`;
+  const bcTap = 14.1; tap(t, bcTap, 215, 365);
+  const bcOn = t >= bcTap + 0.1;
+  const bc = $("v-bc"); bc.style.borderColor = bcOn ? "var(--primary)" : "var(--line)"; bc.style.background = bcOn ? "var(--tint)" : "var(--card)";
+  bc.querySelector(".dot").className = bcOn ? "dot done" : "dot";
+  $("alg-title").textContent = bcOn ? "Algebra 2 BC" : "Algebra 2";
+  tap(t, 14.9, 215, 868); press($("cont"), t, 14.95);
+
+  // Stat count-up
+  $("stat1").textContent = Math.round(outCubic(prog(t, 15.75, 0.7)) * 63);
+
+  // Home: count up to the real due number
+  $("due").textContent = Math.round(outCubic(prog(t, 18.5, 1.0)) * 36);
+  $("due-copy").style.opacity = prog(t, 19.4, 0.4);
+  tap(t, 21.1, 215, 397); press($("start"), t, 21.15);
+  $("start").style.boxShadow = t > 21.15 && t < 21.33 ? "0 2px 0 #E8C9CF" : "";
+
+  // Sign in: the code types itself
+  const code = "482913";
+  document.querySelectorAll("#digits .digit").forEach((d, i) => {
+    const at = 22.8 + i * 0.2;
+    d.textContent = t >= at ? code[i] : "";
+    d.className = "digit" + (t >= at - 0.2 && t < at + 0.05 ? " on" : "");
+    d.style.transform = t >= at ? `scale(${0.9 + 0.1 * outBack(prog(t, at, 0.25))})` : "";
+  });
+  const ready = t >= 24.0;
+  $("signbtn").disabled = !ready;
+  tap(t, 24.3, 215, 400); press($("signbtn"), t, 24.35);
+  const ok = prog(t, 24.6, 0.35);
+  $("signed").style.opacity = ok; $("signed").style.transform = `translateY(${(1 - outCubic(ok)) * 16}px)`;
+};
+window.ready = document.fonts.ready.then(() => true);
+</script>
+</body>
+</html>
