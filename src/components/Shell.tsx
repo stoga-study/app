@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Heart, Home, Layers, MessageCircle, Settings, Upload } from "lucide-react";
+import { BarChart3, BookOpen, Heart, Home, Layers, MessageCircle, MessageSquare, Settings, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
@@ -19,6 +19,7 @@ const TABS = MAIN.filter((i) => i.to !== "/subjects");
 
 const SECONDARY: Item[] = [
   { to: "/plans", label: "Plans and funding", icon: <Heart /> },
+  { to: "/feedback", label: "Send feedback", icon: <MessageSquare /> },
   { to: "/settings", label: "Settings", icon: <Settings /> },
 ];
 

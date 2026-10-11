@@ -2,6 +2,8 @@ import { createBrowserRouter } from "react-router";
 import { Shell } from "./components/Shell";
 import { RedirectIfSignedIn, RequireAuth, RequireOnboarded } from "./lib/auth/RequireAuth";
 import Classes from "./routes/Classes";
+import Feedback from "./routes/Feedback";
+import Plans from "./routes/Plans";
 import Mistakes from "./routes/Mistakes";
 import Progress from "./routes/Progress";
 import Quiz from "./routes/Quiz";
@@ -10,7 +12,6 @@ import ReviewSession from "./routes/ReviewSession";
 import Home from "./routes/Home";
 import NotFound from "./routes/NotFound";
 import Onboarding from "./routes/Onboarding";
-import Placeholder from "./routes/Placeholder";
 import Settings from "./routes/Settings";
 import SourcePage from "./routes/Source";
 import Subject from "./routes/Subject";
@@ -51,7 +52,8 @@ export const router = createBrowserRouter([
           { path: "quiz/:id", element: <Quiz /> },
           { path: "mistakes", element: <Mistakes /> },
           { path: "progress", element: <Progress /> },
-          { path: "plans", element: <Placeholder title="Plans and funding" milestone="milestone 8" /> },
+          { path: "plans", element: <Plans /> },
+          { path: "feedback", element: <Feedback /> },
           { path: "settings", element: <Settings /> },
           { path: "*", element: <NotFound /> },
         ],
