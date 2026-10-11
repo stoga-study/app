@@ -1,59 +1,45 @@
 // The Stoga.study tutor: hint-first answers grounded in the student's own pages, streamed as SSE.
 //
 // POST { subject_id, question, hint_level: 1|2|3, thread_id?, followup? }  → text/event-stream
-//   events: meta { thread_id, sources, uncovered } · delta { text } · done { message_id, content, citations } · error { error }
+//   events: meta { thread_id, sources, uncovered } · mode { mode } · delta { text } · done { message_id, content, citations, mode } · error { error }
+//   Each new message is routed to a mode first (chat, explain, hint or check); ladder buttons are always "hint".
 // POST { mode: "card", message_id }  → { card }   turn a tutor answer into a flashcard
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { GROQ_MODEL, groqJson } from "../_lib/groq.ts";
-import { cleanText, plainMath } from "../_lib/study.ts";
+import { GROQ_FAST_MODEL, GROQ_MODEL, groqJson } from "../_lib/groq.ts";
+import { cleanText } from "../_lib/study.ts";
+import { checkCitations, guessMode, ROUTER_SCHEMA, routerMessages, searchTerms, systemPrompt, userTurn, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const MAX_Q = 2000;
-const STOP = new Set("a an and are as at be but by can do does for from how i in is it of on or so that the this to was what when where which who why with you your me my explain".split(" "));
+const MAX_PAGES = 6;
 
-const LEVELS: Record<number, string> = {
-  1: `This is HINT 1 of 3. Write 2 or 3 short sentences, under 50 words in total. Point to the idea or the part of their notes that holds the answer, then ask ONE guiding question. Do NOT explain the reasoning, do NOT state how things change or why, and do NOT give the answer. The student should still have to think.`,
-  2: `This is HINT 2 of 3. Under 90 words. Name the rule, formula or definition that applies and set up the first step, then stop and let the student finish. Do not state the conclusion or the final answer.`,
-  3: `This is the FULL EXPLANATION. Under 220 words: the idea in plain words, one short worked example when it helps, and the answer. Use short paragraphs.`,
-};
-
-function system(level: number, hasSources: boolean) {
-  return `You are the Stoga.study tutor for a high school student. You help them learn, not just finish.
-${LEVELS[level] ?? LEVELS[1]}
-Rules:
-- Ground everything in the student's sources below. When sources are given, cite at least one marker, exactly as written, like [S1 p.12], right after the sentence it supports. Only use markers that appear in the sources. Never invent a citation.
-- ${hasSources ? "If the sources do not cover the question, begin with exactly: \"Your sources don't cover this. Here's general knowledge:\" and then answer briefly without citations." : "There are no matching sources. Begin with exactly: \"Your sources don't cover this. Here's general knowledge:\" and answer briefly without citations."}
-- If you are not sure, say so and suggest where in their notes to check.
-- Academic integrity: never write graded work for them (essays, answers to submit, take-home tests). Offer an outline, a hint or feedback on their own attempt instead.
-- Plain, warm, direct sentences. No hype, no exclamation marks, no emoji. You may use **bold** and "- " bullets.
-- Math is written inline in plain text with Unicode, for example: SE = σ/√n, so with σ = 12 and n = 36, SE = 12/6 = 2. Never use LaTeX, backslashes, dollar signs or equations on their own lines.`;
-}
-
-type Src = { key: string; source_id: string; filename: string; kind: string; pages: number[] };
-
-/** Rank the subject's pages for the question (any of its words), as the student, so RLS applies. */
-async function retrieve(db: ReturnType<typeof createClient>, subjectId: string, question: string) {
-  const words = [...new Set(question.toLowerCase().match(/[a-z0-9]{3,}/g) ?? [])].filter((w) => !STOP.has(w)).slice(0, 12);
+/** Rank the subject's pages for these words (any of them), as the student, so RLS applies. */
+async function retrieve(db: ReturnType<typeof createClient>, subjectId: string, words: string[]) {
   if (!words.length) return [];
-  const { data, error } = await db.rpc("search_pages", { p_subject: subjectId, p_query: words.join(" or "), p_limit: 6 });
+  const { data, error } = await db.rpc("search_pages", { p_subject: subjectId, p_query: words.join(" or "), p_limit: MAX_PAGES });
   if (error) throw error;
   return (data ?? []) as { source_id: string; filename: string; page_no: number; text: string; rank: number }[];
 }
 
-/** Keep only citations that point at pages the model was given; drop the rest. */
-function checkCitations(text: string, sources: Src[]) {
-  const used: { key: string; source_id: string; filename: string; kind: string; page: number }[] = [];
-  const cleaned = text.replace(/\s*\[S(\d+)\s*(?:p\.?|pp\.?|page|part)?\s*(\d+)\]/gi, (m, s, p) => {
-    const src = sources.find((x) => x.key === `S${s}`);
-    const page = Number(p);
-    if (!src || !src.pages.includes(page)) return "";
-    if (!used.some((u) => u.source_id === src.source_id && u.page === page)) used.push({ key: src.key, source_id: src.source_id, filename: src.filename, kind: src.kind, page });
-    return m;
-  });
-  const tidy = plainMath(cleaned).replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  return { cleaned: tidy, used };
+/** Section titles from the subject's study sets, so the tutor knows what the student has uploaded. */
+async function noteTopics(db: ReturnType<typeof createClient>, subjectId: string) {
+  const { data: srcs } = await db.from("sources").select("id").eq("subject_id", subjectId).eq("status", "ready").order("created_at", { ascending: false }).limit(10);
+  if (!srcs?.length) return [];
+  const { data } = await db.from("notes_sections").select("title").in("source_id", srcs.map((s) => s.id)).order("position").limit(40);
+  return [...new Set((data ?? []).map((n) => String(n.title).trim()))].slice(0, 25);
+}
+
+/** Pick the reply mode with the fast model; fall back to rules if it fails or is slow. */
+async function route(history: Turn[], message: string, apiKey?: string): Promise<Mode> {
+  try {
+    const out = await groqJson<{ mode: Mode }>({ model: GROQ_FAST_MODEL, schemaName: "route", schema: ROUTER_SCHEMA, messages: routerMessages(history, message), effort: "low", maxTokens: 400, timeoutMs: 6000, apiKey, noRetry: true });
+    if (["chat", "explain", "hint", "check"].includes(out.mode)) return out.mode;
+  } catch (e) {
+    console.error("tutor route", e instanceof Error ? e.message.slice(0, 200) : e);
+  }
+  return guessMode(message, [...history].reverse().find((t) => t.role === "assistant")?.mode);
 }
 
 async function makeCard(req: Request, student: { db: ReturnType<typeof createClient>; userId: string }, messageId: string) {
@@ -129,11 +115,16 @@ Deno.serve(async (req) => {
       if (error) throw error;
       threadId = t.id;
     }
-    const { data: history } = await student.db.from("chat_messages").select("role, content").eq("thread_id", threadId).order("created_at", { ascending: false }).limit(8);
-    if (!body.followup) await student.db.from("chat_messages").insert({ thread_id: threadId, role: "user", content: question, hint_level: level });
+    const { data: recent } = await student.db.from("chat_messages").select("role, content, mode").eq("thread_id", threadId).order("created_at", { ascending: false }).limit(10);
+    const history = ((recent ?? []) as Turn[]).reverse();
 
     // Sources.
-    const hits = await retrieve(student.db, subject.id, question);
+    const previous = [...history].reverse().find((m) => m.role === "user" && m.content !== question)?.content ?? null;
+    const [hits, topics, mode] = await Promise.all([
+      retrieve(student.db, subject.id, searchTerms(question, previous)),
+      noteTopics(student.db, subject.id),
+      body.followup ? Promise.resolve<Mode>("hint") : route(history, question, apiKey),
+    ]);
     const sources: Src[] = [];
     const blocks: string[] = [];
     for (const h of hits) {
@@ -151,21 +142,28 @@ Deno.serve(async (req) => {
     }
 
     const messages = [
-      { role: "system", content: system(level, sources.length > 0) },
-      ...((history ?? []).reverse().map((m) => ({ role: m.role as "user" | "assistant", content: m.content }))),
-      { role: "user", content: `Class: ${subject.name}\n\nSources:\n${blocks.join("\n\n") || "(none)"}\n\nQuestion: ${question}${body.followup ? `\n\n(The student asked for ${level === 3 ? "the full explanation" : `hint ${level}`}.)` : ""}` },
+      { role: "system", content: systemPrompt({ mode, level, className: subject.name, hasSources: sources.length > 0, topics }) },
+      // Earlier citation markers are dropped: S1 may mean a different file in this turn.
+      ...history.map((m) => ({ role: m.role, content: m.content.replace(/\s*(\[S\d+[^\]]*\]|【[^】]*】)/g, "") })),
+      { role: "user", content: userTurn(blocks, question, body.followup ? (level === 3 ? 3 : 2) : false) },
     ];
 
     const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey ?? Deno.env.get("GROQ_API_KEY")}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: GROQ_MODEL, messages, stream: true, reasoning_effort: level === 3 ? "medium" : "low", include_reasoning: false, temperature: 0.3, max_completion_tokens: 2048 }),
+      body: JSON.stringify({ model: GROQ_MODEL, messages, stream: true, reasoning_effort: mode === "chat" ? "low" : "medium", include_reasoning: false, temperature: 0.3, max_completion_tokens: 4096 }),
       signal: AbortSignal.timeout(60_000),
     });
     if (!res.ok || !res.body) {
       await refund();
       const ra = Number(res.headers.get("retry-after"));
       return json(req, { error: res.status === 401 ? "key_invalid" : res.status === 429 ? "busy" : "unavailable", retry_after: Number.isFinite(ra) ? ra : undefined }, res.status === 429 ? 503 : 502);
+    }
+    // Saved only once the answer is on its way, so a retry after "busy" does not repeat the question.
+    let askedId: string | null = null;
+    if (!body.followup) {
+      const { data: asked } = await student.db.from("chat_messages").insert({ thread_id: threadId, role: "user", content: question }).select("id").single();
+      askedId = asked?.id ?? null;
     }
 
     const enc = new TextEncoder();
@@ -174,6 +172,7 @@ Deno.serve(async (req) => {
     const stream = new ReadableStream({
       async start(controller) {
         send(controller, "meta", { thread_id: threadId, sources: publicSources, uncovered: sources.length === 0 });
+        send(controller, "mode", { mode });
         let full = "";
         try {
           const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
@@ -190,22 +189,22 @@ Deno.serve(async (req) => {
               const payload = line.slice(5).trim();
               if (payload === "[DONE]") continue;
               const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content;
-              if (typeof delta === "string" && delta) {
-                full += delta;
-                send(controller, "delta", { text: delta });
-              }
+              if (typeof delta !== "string" || !delta) continue;
+              full += delta;
+              send(controller, "delta", { text: delta });
             }
           }
           const { cleaned, used } = checkCitations(full, sources);
           if (!cleaned) throw new Error("empty answer");
           const { data: saved, error } = await student.db.from("chat_messages")
-            .insert({ thread_id: threadId, role: "assistant", content: cleaned, hint_level: level, citations: used }).select("id").single();
+            .insert({ thread_id: threadId, role: "assistant", content: cleaned, mode, hint_level: mode === "hint" || mode === "check" ? level : null, citations: used }).select("id").single();
           if (error) throw error;
           await student.db.from("chat_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
-          send(controller, "done", { message_id: saved.id, content: cleaned, citations: used });
+          send(controller, "done", { message_id: saved.id, content: cleaned, citations: used, mode });
         } catch (e) {
           console.error("tutor stream", e instanceof Error ? e.message : e);
           await refund();
+          if (askedId) await student.db.from("chat_messages").delete().eq("id", askedId);
           send(controller, "error", { error: "interrupted" });
         } finally {
           controller.close();

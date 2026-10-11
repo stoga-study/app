@@ -51,6 +51,17 @@ npx supabase@2.120.0 functions deploy tutor --use-api
 npx supabase@2.120.0 functions deploy account --use-api
 ```
 
+## Tutor quality tests
+
+`scripts/tutor-eval/` plays tricky conversations against the deployed tutor as a throwaway student: greetings, vague messages, concept questions, the hint ladder, checking attempts, multiple choice, questions the notes do not cover, requests for graded work, instructions hidden in notes, and a stressed student. Each answer is checked automatically, and the full transcript is saved for reading.
+
+```bash
+SUPABASE_SECRET_KEY=sb_secret_… node scripts/tutor-eval/run.mjs report.md            # all cases
+SUPABASE_SECRET_KEY=sb_secret_… node scripts/tutor-eval/run.mjs report.md --only hint # some
+```
+
+Run it after every prompt change. A full run makes about 20 tutor calls on the platform Groq key.
+
 ## Design
 
 Tokens and components follow the Stoga.study Brand Guidelines v1.0 and match the landing page (`stoga-study/landing`). Colours live in `src/styles/index.css` as CSS variables, and components never hard-code a hex.

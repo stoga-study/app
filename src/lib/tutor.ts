@@ -4,12 +4,14 @@ import { supabase } from "./supabase";
 
 export type Citation = { key: string; source_id: string; filename: string; kind: string; page: number };
 export type SourceRef = { key: string; source_id: string; filename: string; kind: string; pages: number[] };
-export type TutorMessage = { id: string; role: "user" | "assistant"; content: string; hint_level: number | null; citations: Citation[]; created_at: string };
+export type TutorMode = "chat" | "explain" | "hint" | "check";
+export type TutorMessage = { id: string; role: "user" | "assistant"; content: string; hint_level: number | null; mode: TutorMode | null; citations: Citation[]; created_at: string };
 
 export type TutorEvent =
   | { type: "meta"; thread_id: string; sources: SourceRef[]; uncovered: boolean }
+  | { type: "mode"; mode: TutorMode }
   | { type: "delta"; text: string }
-  | { type: "done"; message_id: string; content: string; citations: Citation[] }
+  | { type: "done"; message_id: string; content: string; citations: Citation[]; mode: TutorMode }
   | { type: "error"; error: string; resets_at?: string; used?: number; limit?: number; retry_after?: number };
 
 /** Ask the tutor and stream its answer. Errors before the stream starts arrive as an "error" event too. */
@@ -80,7 +82,7 @@ export function useThreadMessages(threadId: string | null) {
     queryKey: ["thread", threadId],
     enabled: !!threadId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("chat_messages").select("id, role, content, hint_level, citations, created_at").eq("thread_id", threadId!).order("created_at");
+      const { data, error } = await supabase.from("chat_messages").select("id, role, content, hint_level, mode, citations, created_at").eq("thread_id", threadId!).order("created_at");
       if (error) throw error;
       return data as unknown as TutorMessage[];
     },
@@ -88,3 +90,13 @@ export function useThreadMessages(threadId: string | null) {
 }
 
 export const HINT_LABEL: Record<number, string> = { 1: "Hint 1 of 3", 2: "Hint 2 of 3", 3: "Full explanation" };
+
+/** Answers from before modes existed were all hints. */
+export const modeOf = (m: { mode: TutorMode | null }): TutorMode => m.mode ?? "hint";
+
+/** While streaming, the model may write citations as 【S1 p.7】; show them as [S1 p.7] and hide a half-written one. */
+export const displayText = (content: string) =>
+  content.replace(/【\s*(S\d+)\s*[†:,\s]*\s*(?:p\.?|pp\.?|page|part)?\s*(\d+)[^】]*】/gi, "[$1 p.$2]").replace(/【[^】]*】/g, "").replace(/【[^】]*$/, "");
+
+/** Whether an answer cites the student's pages; answers without a citation came from general knowledge. */
+export const citesNotes = (content: string) => /\[S\d+\s*(?:p\.?|pp\.?|page|part)?\s*\d+\]/i.test(displayText(content));

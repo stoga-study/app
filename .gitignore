@@ -11,3 +11,4 @@ supabase/.branches
 __pycache__/
 *.pyc
 .wrangler/
+tutor-eval-report.md

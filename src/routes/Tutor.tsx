@@ -9,7 +9,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useSubjects } from "@/lib/queries/profile";
 import { useAllowance } from "@/lib/queries/sources";
-import { askTutor, HINT_LABEL, makeCardFromAnswer, useThreadMessages, useThreads, type Citation, type SourceRef, type TutorMessage } from "@/lib/tutor";
+import { askTutor, citesNotes, displayText, HINT_LABEL, makeCardFromAnswer, modeOf, useThreadMessages, useThreads, type Citation, type SourceRef, type TutorMessage, type TutorMode } from "@/lib/tutor";
 import { useOnline } from "@/lib/useOnline";
 
 const fmtWhen = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
@@ -68,19 +68,27 @@ function CiteChip({ c }: { c: Pick<Citation, "source_id" | "page" | "kind" | "fi
   );
 }
 
-function Answer({ m, live }: { m: { content: string; hint_level: number | null; citations: Citation[] }; live?: SourceRef[] }) {
+function labelFor(mode: TutorMode, level: number | null, fromNotes: boolean) {
+  if (mode === "chat") return null;
+  if (mode === "explain") return fromNotes ? "From your notes" : "General knowledge";
+  const step = mode === "check" ? "Checking your answer" : HINT_LABEL[level ?? 1];
+  return fromNotes ? step : `${step}, general knowledge`;
+}
+
+function Answer({ m, live }: { m: { content: string; hint_level: number | null; mode: TutorMode | null; citations: Citation[] }; live?: SourceRef[] }) {
   const lookup = (key: string, page: number) => {
     const c = m.citations.find((x) => x.key === key && x.page === page);
     if (c) return c;
     const s = live?.find((x) => x.key === key);
     return s && s.pages.includes(page) ? { source_id: s.source_id, page, kind: s.kind, filename: s.filename } : null;
   };
-  const full = m.hint_level === 3;
-  const general = m.content.startsWith("Your sources don't cover this");
+  const mode = modeOf(m);
+  const full = mode === "hint" && m.hint_level === 3;
+  const label = labelFor(mode, m.hint_level, citesNotes(m.content));
   return (
     <div className={`max-w-[94%] rounded-[1.25rem] rounded-bl-md p-4 ${full ? "bg-ink-panel text-white" : "bg-tint"}`}>
-      <p className={`text-[0.8125rem] font-bold ${full ? "text-[#F2A8BA]" : "text-brand"}`}>{general ? "General knowledge" : HINT_LABEL[m.hint_level ?? 1]}</p>
-      <Markdown text={m.content} className="text-[0.9875rem] leading-relaxed" cite={(key, page, i) => { const c = lookup(key, page); return c ? <CiteChip key={i} c={c} /> : null; }} />
+      {label && <p className={`text-[0.8125rem] font-bold ${full ? "text-[#F2A8BA]" : "text-brand"}`}>{label}</p>}
+      <Markdown text={displayText(m.content)} className="text-[0.9875rem] leading-relaxed" cite={(key, page, i) => { const c = lookup(key, page); return c ? <CiteChip key={i} c={c} /> : null; }} />
     </div>
   );
 }
@@ -98,7 +106,7 @@ export default function Tutor() {
   const threadId = params.get("thread");
   const history = useThreadMessages(threadId);
   const [draft, setDraft] = useState("");
-  const [live, setLive] = useState<{ question: string; level: 1 | 2 | 3; text: string; sources: SourceRef[] } | null>(null);
+  const [live, setLive] = useState<{ question: string; level: 1 | 2 | 3; mode: TutorMode | null; text: string; sources: SourceRef[] } | null>(null);
   const [limit, setLimit] = useState<{ resets_at?: string; used?: number; limit?: number } | null>(null);
   const [carded, setCarded] = useState<Record<string, boolean>>({});
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -117,13 +125,14 @@ export default function Tutor() {
 
   async function ask(question: string, level: 1 | 2 | 3, followup: boolean) {
     if (live) return;
-    setLive({ question: followup ? "" : question, level, text: "", sources: [] });
+    setLive({ question: followup ? "" : question, level, mode: null, text: "", sources: [] });
     let thread = threadId;
     await askTutor({ subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup }, (e) => {
       if (e.type === "meta") {
         thread = e.thread_id;
         setLive((l) => (l ? { ...l, sources: e.sources } : l));
-      } else if (e.type === "delta") setLive((l) => (l ? { ...l, text: l.text + e.text } : l));
+      } else if (e.type === "mode") setLive((l) => (l ? { ...l, mode: e.mode } : l));
+      else if (e.type === "delta") setLive((l) => (l ? { ...l, text: l.text + e.text } : l));
       else if (e.type === "error") {
         if (e.error === "limit") setLimit({ resets_at: e.resets_at, used: e.used, limit: e.limit });
         else toast(e.error === "busy" ? "Stoga.study is busy right now. Try again in a minute. That did not count." : e.error === "offline" ? "You are offline. The tutor needs a connection." : e.error === "key_invalid" ? "Your own key did not work. Update it in Settings." : "The answer was cut off. Try again; that did not count.");
@@ -172,7 +181,7 @@ export default function Tutor() {
           <h1 className="truncate text-[1.375rem]">AI tutor</h1>
           <p className="truncate text-[0.875rem] text-muted">{subject.name}, using your notes</p>
         </div>
-        <span className="chip">Hints first</span>
+        <span className="chip">Learn, not copy</span>
         {threadId && <Button variant="ghost" size="sm" aria-label="New question" onClick={() => setParams({}, { replace: true })}><Plus /></Button>}
       </div>
 
@@ -180,7 +189,7 @@ export default function Tutor() {
         {!threadId && !live && (
           <div className="card card-dashed p-5">
             <p className="font-display text-[1.25rem] font-bold">What are you stuck on?</p>
-            <p className="mt-1 text-muted">Answers come from your {subject.name} notes, with page links. You get a hint first, then a closer hint, then the full explanation if you want it.</p>
+            <p className="mt-1 text-muted">Ask about an idea and get a straight answer from your {subject.name} notes, with page links. Stuck on a problem? You get a hint first, then a closer hint, then the full explanation if you want it.</p>
           </div>
         )}
         {history.isPending && threadId && <div className="skeleton h-24 rounded-[1.25rem]" />}
@@ -194,17 +203,17 @@ export default function Tutor() {
         {live && (
           <>
             {live.question && <div className="max-w-[88%] self-end rounded-[1.25rem] rounded-br-md border-2 border-line bg-card p-3">{live.question}</div>}
-            {live.text ? <Answer m={{ content: live.text, hint_level: live.level, citations: [] }} live={live.sources} /> : <div className="skeleton h-16 w-2/3 rounded-[1.25rem]" aria-label="The tutor is writing" />}
+            {live.text && live.mode ? <Answer m={{ content: live.text, hint_level: live.level, mode: live.mode, citations: [] }} live={live.sources} /> : <div className="skeleton h-16 w-2/3 rounded-[1.25rem]" aria-label="The tutor is writing" />}
           </>
         )}
-        {!live && lastAnswer && lastUser && (
+        {!live && lastAnswer && lastUser && modeOf(lastAnswer) !== "chat" && (
           <div className="flex flex-wrap gap-2">
-            {(lastAnswer.hint_level ?? 1) < 3 && (
-              <Button size="sm" onClick={() => ask(lastUser.content, ((lastAnswer.hint_level ?? 1) + 1) as 2 | 3, true)} disabled={!online}>
-                {(lastAnswer.hint_level ?? 1) === 1 ? "Show hint 2" : "Show full explanation"}
+            {(modeOf(lastAnswer) === "hint" || modeOf(lastAnswer) === "check") && (lastAnswer.hint_level ?? 1) < 3 && (
+              <Button size="sm" onClick={() => ask(lastUser.content, (modeOf(lastAnswer) === "check" ? 3 : (lastAnswer.hint_level ?? 1) + 1) as 2 | 3, true)} disabled={!online}>
+                {modeOf(lastAnswer) === "hint" && (lastAnswer.hint_level ?? 1) === 1 ? "Show hint 2" : "Show full explanation"}
               </Button>
             )}
-            <Button size="sm" variant="secondary" onClick={() => inputRef.current?.focus()}>Let me try</Button>
+            {modeOf(lastAnswer) === "hint" && (lastAnswer.hint_level ?? 1) < 3 && <Button size="sm" variant="secondary" onClick={() => inputRef.current?.focus()}>Let me try</Button>}
             <Button
               size="sm"
               variant="secondary"
