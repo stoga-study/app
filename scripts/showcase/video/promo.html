@@ -30,6 +30,15 @@
   .tabs b { color: var(--brand); }
   .digit { width: 52px; height: 64px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); display: grid; place-items: center; font-family: var(--font-display); font-weight: 800; font-size: 30px; }
   .digit.on { border-color: var(--hot); }
+  /* Lines rise out of a mask and unskew, like a printed headline settling. */
+  [data-w] { display: block; overflow: hidden; padding-bottom: .1em; margin-bottom: -.1em; }
+  [data-w] > i { display: block; font-style: normal; will-change: transform; }
+  .tap { border: 3px solid #FF8FAE; background: rgba(255,255,255,.16); }
+  .phone { position: absolute; left: 0; top: 0; width: 430px; height: 932px; transform-origin: 0 0; overflow: hidden; background: var(--bg); z-index: 3; }
+  .flip-wrap { perspective: 900px; }
+  .flip-tile { width: 168px; height: 168px; border-radius: 46px; background: #fff; color: #720D19; display: grid; place-items: center; box-shadow: 0 10px 0 rgba(0,0,0,.28); transform-style: preserve-3d; }
+  .flip-tile svg { width: 84px; height: 84px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .cap { position: absolute; left: 30px; right: 30px; top: 610px; }
   svg.i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 </style>
 </head>
@@ -50,13 +59,19 @@
     <div class="circle" style="position:absolute;width:56px;height:56px;border-radius:50%;background:#BA0846;left:46px;bottom:170px"></div>
   </section>
 
-  <!-- 2. Study from your own notes -->
-  <section class="scene fill" id="s-study" style="background:#1E070B;color:#fff">
-    <div class="circle" style="position:absolute;width:380px;height:380px;border-radius:50%;background:#720D19;right:-170px;top:-130px"></div>
-    <div class="circle" style="position:absolute;width:64px;height:64px;border-radius:50%;background:#BA0846;right:56px;bottom:200px"></div>
-    <div class="slam" style="font-size:66px;position:relative">
-      <span data-w="0">Study</span><span data-w="1">from your</span><span data-w="2" style="color:#F2A8BA">own notes.</span>
+  <!-- 2. Landing hero: sticker, headline, the demo phone rising, then we zoom into it -->
+  <section class="scene" id="s-hero" style="background:#1E070B;color:#fff">
+    <div class="circle" style="position:absolute;width:420px;height:420px;border-radius:50%;background:#720D19;right:-180px;top:-170px"></div>
+    <div class="circle" style="position:absolute;width:48px;height:48px;border-radius:50%;background:#BA0846;right:44px;top:240px"></div>
+    <div class="circle" style="position:absolute;width:26px;height:26px;border-radius:50%;background:#9C103D;left:40px;top:470px"></div>
+    <div id="hero-copy" style="position:absolute;left:28px;right:28px;top:96px">
+      <span class="sticker" id="hero-sticker" style="font-size:15px">Free for every CHS student</span>
+      <div class="slam" style="font-size:52px;text-transform:none;letter-spacing:-0.04em;line-height:.95;margin-top:22px">
+        <span data-w="0">Study smarter</span><span data-w="1">from your</span><span data-w="2">own notes.</span>
+      </div>
+      <p id="hero-lede" style="color:#C7A9AF;font-size:16px;line-height:1.45;margin:16px 0 0;max-width:330px">Upload a PDF or class notes. Get cards, quizzes and a plan, all linked back to your pages.</p>
     </div>
+    <div class="phone" id="phone"></div>
   </section>
 
   <!-- 3. Upload -->
@@ -137,9 +152,16 @@
     <div class="circle" style="position:absolute;width:360px;height:360px;border-radius:50%;background:#9C103D;right:-150px;bottom:-120px"></div>
     <div class="slam" style="position:relative"><span id="stat1" style="font-size:150px">63</span><span style="font-size:58px">core classes</span></div>
   </section>
-  <section class="scene fill" id="s-stat2" style="background:#1E070B;color:#fff">
-    <div class="circle" style="position:absolute;width:360px;height:360px;border-radius:50%;background:#720D19;left:-160px;top:-120px"></div>
-    <div class="slam" style="position:relative"><span style="font-size:150px;color:#F2A8BA">9–12</span><span style="font-size:58px">every grade,<br>every level</span></div>
+  <section class="scene" id="s-flip" style="background:#1E070B;color:#fff">
+    <div class="circle" style="position:absolute;width:380px;height:380px;border-radius:50%;background:rgba(255,255,255,.07);left:-170px;top:-140px"></div>
+    <div class="circle" style="position:absolute;width:60px;height:60px;border-radius:50%;background:#BA0846;right:50px;bottom:150px"></div>
+    <div class="slam" style="position:absolute;left:30px;right:30px;top:120px;font-size:40px"><span data-w="0">With Stoga.study,</span><span data-w="1">you can…</span></div>
+    <div class="flip-wrap" style="position:absolute;left:0;right:0;top:330px;display:grid;place-items:center">
+      <div class="flip-tile" id="flip-tile"></div>
+    </div>
+    <div class="cap slam" style="font-size:52px"><span data-w="c0">Add any PDF</span></div>
+    <div class="cap slam" style="font-size:52px"><span data-w="c1">Pick your exact classes</span></div>
+    <div class="cap slam" style="font-size:52px"><span data-w="c2">Review on time</span></div>
   </section>
 
   <!-- 7. Home -->
@@ -199,133 +221,245 @@
 const $ = (id) => document.getElementById(id);
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 const outCubic = (p) => 1 - Math.pow(1 - p, 3);
+const inOutCubic = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
 const outBack = (p) => { const c = 1.6; return 1 + (c + 1) * Math.pow(p - 1, 3) + c * Math.pow(p - 1, 2); };
 const prog = (t, s, d) => clamp((t - s) / d);
+const LOOP = 30;
 
-// Scene start times (seconds). The logo returns at the end; at t = 30 it matches t = 0.
+// Scenes: start time and how they arrive. "wipe" is the brand circle growing from a point.
 const SCENES = [
-  ["s-logo", -1], ["s-study", 1.6], ["s-upload", 4.0], ["s-pages", 9.0], ["s-classes", 11.0],
-  ["s-stat1", 15.6], ["s-stat2", 16.8], ["s-home", 18.0], ["s-signin", 22.2], ["s-free", 25.8], ["s-logo2", 28.4],
+  { id: "s-logo", at: -1 },
+  { id: "s-hero", at: 1.2, how: "wipe", from: [74, 734] },
+  { id: "s-upload", at: 4.3, how: "cut" },
+  { id: "s-pages", at: 9.0, how: "wipe", from: [372, 470] },
+  { id: "s-classes", at: 11.0, how: "slide" },
+  { id: "s-stat1", at: 15.6, how: "wipe", from: [215, 880] },
+  { id: "s-flip", at: 16.8, how: "slide" },
+  { id: "s-home", at: 19.2, how: "slide" },
+  { id: "s-signin", at: 22.6, how: "slide" },
+  { id: "s-free", at: 25.8, how: "wipe", from: [215, 520] },
+  { id: "s-logo2", at: 28.4, how: "wipe", from: [360, 820] },
 ];
-const DARK_UI = new Set(["s-upload", "s-classes", "s-home", "s-signin"]);
+const UI = new Set(["s-upload", "s-classes", "s-home", "s-signin"]);
+const LIGHT_BG = new Set(["s-pages"]);
 
-// The closing logo is a clone of the opening one, so the loop point is identical.
+// Closing logo = clone of the opening one, so the loop point is identical.
 const logo2 = $("s-logo").cloneNode(true); logo2.id = "s-logo2"; logo2.querySelector("#logo-mark").id = "logo-mark2";
-$("s-logo").after(logo2); $("stage").appendChild($("status")); $("stage").appendChild(document.querySelector(".island")); $("stage").appendChild($("tap"));
+$("s-logo").after(logo2);
+for (const id of ["status", "tap"]) $("stage").appendChild($(id));
+$("stage").appendChild(document.querySelector(".island"));
+
+// The demo phone shows the upload screen exactly as the next scene starts, plus its own status bar.
+const phone = $("phone");
+for (const n of $("s-upload").children) phone.appendChild(n.cloneNode(true));
+phone.querySelectorAll("[id]").forEach((n) => n.removeAttribute("id"));
+const ps = $("status").cloneNode(true); ps.removeAttribute("id"); ps.style.color = "#F6EFF1"; phone.appendChild(ps);
+const pi = document.querySelector(".island").cloneNode(true); phone.appendChild(pi);
+
+// Masked lines.
+document.querySelectorAll("[data-w]").forEach((el) => { el.innerHTML = `<i>${el.innerHTML}</i>`; });
 
 // Grade cards and code digits.
 $("grades").innerHTML = [[9, "Freshman", 2030], [10, "Sophomore", 2029], [11, "Junior", 2028], [12, "Senior", 2027]]
   .map(([g, n, y]) => `<div class="card row grade" data-g="${g}" style="padding:14px 16px"><span class="big-num" style="font-size:40px;width:58px;text-align:center;color:var(--brand)">${g}</span><div style="flex:1"><div style="font-family:var(--font-display);font-weight:700;font-size:20px">${n}</div><div style="color:var(--muted);font-size:14px">Class of ${y}</div></div><span class="ck" style="opacity:0;color:var(--brand);font-size:22px">✓</span></div>`).join("");
 $("digits").innerHTML = Array.from({ length: 6 }, () => `<div class="digit"></div>`).join("");
 
-function words(sceneId, t, start) {
-  document.querySelectorAll(`#${sceneId} [data-w]`).forEach((el) => {
-    const p = outBack(prog(t, start + 0.18 + Number(el.dataset.w) * 0.22, 0.32));
-    el.style.opacity = clamp(p * 3);
-    el.style.transform = `translateY(${(1 - p) * 60}px) scale(${0.85 + 0.15 * p})`;
+const ICONS = {
+  upload: '<path d="M12 15V4"/><path d="m7.5 8.5 4.5-4.5 4.5 4.5"/><path d="M4.5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5V15"/>',
+  cap: '<path d="M2.5 9 12 4.5 21.5 9 12 13.5z"/><path d="M6.5 11v4.5c3 2.2 8 2.2 11 0V11"/><path d="M21.5 9v5"/>',
+  cards: '<rect x="3.5" y="7" width="13" height="12" rx="2"/><path d="M7.5 7V5.5a1.5 1.5 0 0 1 1.5-1.5h10a1.5 1.5 0 0 1 1.5 1.5V15a1.5 1.5 0 0 1-1.5 1.5h-2.5"/>',
+};
+const FACES = [["upload", "#1E070B"], ["cap", "#720D19"], ["cards", "#BA0846"]];
+const FLIP_AT = [16.8, 17.65, 18.5];
+
+// Brand circles drift slowly. Period = loop length, so frame 0 and frame 900 match.
+const circles = [...document.querySelectorAll("#stage .circle")].map((el) => {
+  const sib = [...el.parentElement.querySelectorAll(":scope > .circle")];
+  return { el, k: sib.indexOf(el) };
+});
+
+function lines(scope, t, at, gap = 0.12) {
+  scope.querySelectorAll("[data-w]").forEach((el) => {
+    const n = parseInt(el.dataset.w.replace(/\D/g, ""), 10) || 0;
+    const p = outCubic(prog(t, at + n * gap, 0.55));
+    el.firstChild.style.visibility = p <= 0 ? "hidden" : "";
+    el.firstChild.style.transform = p >= 1 ? "" : `translateY(${(1 - p) * 112}%) skewY(${(1 - p) * 9}deg)`;
   });
 }
-function tap(t, at, x, y) {
-  const p = prog(t, at, 0.45);
-  if (p > 0 && p < 1) { const el = $("tap"); el.style.left = x + "px"; el.style.top = y + "px"; el.style.opacity = 0.9 * (1 - p); el.style.transform = `scale(${0.4 + p})`; return true; }
-  return false;
+function lineOut(el, t, at) {
+  const p = inOutCubic(prog(t, at, 0.35));
+  el.firstChild.style.visibility = p >= 1 ? "hidden" : "";
+  el.firstChild.style.transform = `translateY(${-p * 112}%) skewY(${-p * 6}deg)`;
 }
-function press(el, t, at) { el.style.transform = t > at && t < at + 0.18 ? "translateY(2px)" : ""; el.style.boxShadow = t > at && t < at + 0.18 ? "0 2px 0 var(--primary-deep)" : ""; }
+function tap(t, at, x, y) {
+  const p = prog(t, at, 0.5);
+  if (p > 0 && p < 1) {
+    const el = $("tap"); el.style.left = x + "px"; el.style.top = y + "px";
+    el.style.opacity = 1 - p; el.style.transform = `scale(${0.35 + 1.2 * outCubic(p)})`;
+  }
+}
+function press(el, t, at, shadow = "var(--primary-deep)") {
+  const on = t > at && t < at + 0.2;
+  el.style.transform = on ? "translateY(2px) scale(.985)" : "";
+  el.style.boxShadow = on ? `0 2px 0 ${shadow}` : "";
+}
 
 window.render = (t) => {
   $("tap").style.opacity = 0;
-  // Scene entry: slide up and settle; earlier scenes stay underneath until covered.
+
+  // Scene arrival and stacking.
   let top = null;
-  SCENES.forEach(([id, s], i) => {
-    const el = $(id), next = SCENES[i + 1];
-    const visible = t >= s && !(next && t >= next[1] + 0.4);
+  SCENES.forEach((sc, i) => {
+    const el = $(sc.id), next = SCENES[i + 1];
+    const visible = t >= sc.at && !(next && t >= next.at + 0.7);
     el.style.visibility = visible ? "visible" : "hidden";
     el.style.zIndex = i + 1;
-    const p = outCubic(prog(t, s, 0.4));
-    el.style.transform = p >= 1 ? "" : `translateY(${(1 - p) * 100}%)`;
-    if (visible) top = id;
+    el.style.transform = ""; el.style.clipPath = "";
+    if (sc.how === "slide") {
+      const p = outCubic(prog(t, sc.at, 0.45));
+      if (p < 1) el.style.transform = `translateY(${(1 - p) * 100}%)`;
+    } else if (sc.how === "wipe") {
+      const p = inOutCubic(prog(t, sc.at, 0.6));
+      if (p < 1) el.style.clipPath = `circle(${p * 1100}px at ${sc.from[0]}px ${sc.from[1]}px)`;
+    }
+    if (visible) top = sc.id;
   });
-  $("status").style.color = DARK_UI.has(top) || top?.startsWith("s-stat2") || top === "s-study" || top === "s-free" || top?.startsWith("s-logo") || top === "s-stat1" ? "#F6EFF1" : "#1F1B1C";
-  if (top === "s-pages") $("status").style.color = "#1F1B1C";
+  $("status").style.color = LIGHT_BG.has(top) ? "#1F1B1C" : "#F6EFF1";
+  $("status").style.visibility = top === "s-hero" && t > 3.6 ? "hidden" : "visible";
 
-  // Logos: gentle pop for the closing one; the opening one is already settled at t = 0.
-  const lp = outBack(prog(t, 28.6, 0.6));
-  // Once settled, no transform at all, so the last frames match the first exactly.
-  $("logo-mark2").style.transform = lp >= 1 ? "" : `scale(${0.7 + 0.3 * lp})`;
-  $("logo-mark2").style.opacity = lp >= 1 ? "" : clamp(lp * 2);
+  // Drift.
+  const w = (2 * Math.PI * t) / LOOP;
+  for (const { el, k } of circles) {
+    const a = 10 + 4 * k;
+    el.style.transform = `translate(${Math.sin(w + k * 1.7) * a}px, ${Math.cos(w * 2 + k) * a * 0.7}px)`;
+  }
 
-  words("s-study", t, 1.6); words("s-pages", t, 9.0); words("s-free", t, 25.8);
-  const sp = outBack(prog(t, 26.6, 0.4));
-  $("free-sticker").style.transform = `rotate(-3deg) scale(${sp})`;
+  // Slow push-in on app screens.
+  for (const id of UI) {
+    const sc = SCENES.find((x) => x.id === id), nx = SCENES[SCENES.indexOf(sc) + 1];
+    const ui = $(id).querySelector(".ui");
+    ui.style.transform = `scale(${1 + 0.03 * prog(t, sc.at, nx.at - sc.at)})`;
+    ui.style.transformOrigin = "50% 30%";
+  }
 
-  // Upload
-  tap(t, 4.7, 215, 330);
-  $("drop").style.opacity = 1 - prog(t, 4.95, 0.15);
-  const pick = prog(t, 5.1, 0.3);
-  $("up-work").style.transform = `translateY(${(1 - outCubic(pick)) * 40}px)`;
-  const read = prog(t, 5.3, 1.8);
+  // Closing logo drops in; once settled it matches the opening frame exactly.
+  const tile2 = $("logo-mark2").firstElementChild, word2 = $("logo-mark2").lastElementChild;
+  const lp = prog(t, 28.6, 0.7);
+  tile2.style.transform = lp >= 1 ? "rotate(-6deg)" : `translateY(${(1 - outBack(lp)) * -140}px) rotate(${-6 - (1 - outBack(lp)) * 28}deg)`;
+  const wp = outCubic(prog(t, 28.85, 0.5));
+  word2.style.transform = wp >= 1 ? "" : `translateY(${(1 - wp) * 40}px)`;
+  word2.style.opacity = wp >= 1 ? "" : wp;
+
+  // Hero: sticker drops, headline rises, phone rises, then we zoom into the phone.
+  const sp = prog(t, 1.55, 0.55);
+  $("hero-sticker").style.transform = `rotate(${-3 - (1 - outBack(sp)) * 14}deg) scale(${0.6 + 0.4 * outBack(sp)})`;
+  $("hero-sticker").style.opacity = clamp(sp * 3);
+  lines($("s-hero"), t, 1.75);
+  $("hero-lede").style.opacity = prog(t, 2.25, 0.4);
+  const rise = outCubic(prog(t, 2.2, 0.8)), zoom = inOutCubic(prog(t, 3.55, 0.75));
+  const s0 = 0.6, x0 = (430 - 430 * s0) / 2, y0 = 932 - 430 * s0 * 1.18 + (1 - rise) * 380;
+  const sc = s0 + (1 - s0) * zoom, x = x0 * (1 - zoom), y = y0 * (1 - zoom);
+  phone.style.transform = `translate(${x}px, ${y}px) scale(${sc})`;
+  phone.style.borderRadius = `${(1 - zoom) * 64}px`;
+  phone.style.boxShadow = zoom >= 1 ? "" : `0 0 0 ${(1 - zoom) * 14 / sc}px #141012, 0 30px 60px rgba(0,0,0,.5)`;
+  $("hero-copy").style.transform = `translateY(${-zoom * 120}px)`;
+  $("hero-copy").style.opacity = clamp(1 - zoom * 2.2);
+
+  // Upload.
+  tap(t, 4.9, 215, 330);
+  $("drop").style.opacity = 1 - prog(t, 5.15, 0.15);
+  $("drop").style.transform = t > 4.95 && t < 5.15 ? "scale(.98)" : "";
+  const pick = prog(t, 5.3, 0.35);
+  $("up-work").style.transform = `translateY(${(1 - outBack(pick)) * 50}px)`;
+  const read = prog(t, 5.5, 1.8);
   const pages = Math.max(1, Math.round(read * 24));
   $("c1").textContent = read <= 0 ? "Opening" : read < 1 ? `${pages} of 24` : "24 pages";
   $("d1").className = read >= 1 ? "dot done" : "dot";
   $("d1").innerHTML = read >= 1 ? '<svg class="i" viewBox="0 0 24 24" style="color:#fff;width:14px;height:14px"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>' : "";
-  const save = prog(t, 7.1, 0.8);
+  const save = prog(t, 7.3, 0.8);
   $("l2").style.color = save > 0 ? "var(--ink)" : "var(--muted)"; $("l2").style.fontWeight = save > 0 ? 700 : 400;
   $("c2").textContent = save <= 0 ? "Waiting" : save < 1 ? "Working" : "Done";
   $("d2").className = save >= 1 ? "dot done" : "dot";
   $("up-bar").style.width = `${read * 60 + save * 40}%`;
-  $("up-work").style.opacity = pick * (1 - prog(t, 7.95, 0.15));
-  const done = prog(t, 8.1, 0.4);
-  $("up-done").style.opacity = done;
-  $("up-done").style.transform = `scale(${0.9 + 0.1 * outBack(done)})`;
+  $("up-work").style.opacity = pick * (1 - prog(t, 8.15, 0.15));
+  const done = prog(t, 8.3, 0.45);
+  $("up-done").style.opacity = clamp(done * 2);
+  $("up-done").style.transform = `scale(${0.88 + 0.12 * outBack(done)})`;
   $("up-work").style.visibility = done >= 1 ? "hidden" : "visible";
+  $("pages-n").textContent = Math.round(outCubic(prog(t, 8.35, 0.5)) * 24);
 
-  // Grade then classes
-  const gTap = 11.9;
-  tap(t, gTap, 215, 330);
+  lines($("s-pages"), t, 9.25);
+
+  // Grade, then classes.
   document.querySelectorAll(".grade").forEach((el, i) => {
-    const on = el.dataset.g === "10" && t >= gTap + 0.1;
-    el.style.borderColor = on ? "var(--primary)" : ""; el.style.background = on ? "var(--tint)" : ""; el.style.boxShadow = on ? "0 4px 0 var(--primary)" : "";
+    const on = el.dataset.g === "10" && t >= 11.95;
+    el.style.borderColor = on ? "var(--primary)" : ""; el.style.background = on ? "var(--tint)" : "";
+    el.style.boxShadow = on ? "0 4px 0 var(--primary)" : "";
     el.querySelector(".ck").style.opacity = on ? 1 : 0;
-    const e = outCubic(prog(t, 11.1 + i * 0.08, 0.35));
-    el.style.opacity = e; el.style.transform = `translateX(${(1 - e) * 40}px)`;
+    const e = outCubic(prog(t, 11.15 + i * 0.08, 0.4));
+    el.style.opacity = e;
+    el.style.transform = (on && t < 12.15 ? "translateY(2px) " : "") + `translateX(${(1 - e) * 50}px)`;
   });
-  const sw = prog(t, 12.6, 0.3);
-  $("grade-ui").style.opacity = 1 - sw; $("class-ui").style.opacity = sw;
-  $("class-ui").style.transform = `translateX(${(1 - outCubic(sw)) * 60}px)`;
-  const algTap = 13.2; tap(t, algTap, 200, 260);
-  const algOn = t >= algTap + 0.1;
+  tap(t, 11.9, 215, 330);
+  const sw = inOutCubic(prog(t, 12.6, 0.35));
+  $("grade-ui").style.opacity = 1 - sw; $("grade-ui").style.translate = `${-sw * 60}px 0`;
+  $("class-ui").style.opacity = sw; $("class-ui").style.translate = `${(1 - sw) * 60}px 0`;
+  tap(t, 13.2, 200, 260);
+  const algOn = t >= 13.3;
   $("alg").style.borderColor = algOn ? "var(--primary)" : "";
   $("alg-dot").className = algOn ? "dot done" : "dot";
-  $("versions").style.height = `${outCubic(prog(t, algTap + 0.15, 0.4)) * 262}px`;
-  const bcTap = 14.1; tap(t, bcTap, 215, 365);
-  const bcOn = t >= bcTap + 0.1;
+  $("versions").style.height = `${outCubic(prog(t, 13.35, 0.45)) * 262}px`;
+  tap(t, 14.1, 215, 365);
+  const bcOn = t >= 14.2;
   const bc = $("v-bc"); bc.style.borderColor = bcOn ? "var(--primary)" : "var(--line)"; bc.style.background = bcOn ? "var(--tint)" : "var(--card)";
   bc.querySelector(".dot").className = bcOn ? "dot done" : "dot";
   $("alg-title").textContent = bcOn ? "Algebra 2 BC" : "Algebra 2";
   tap(t, 14.9, 215, 868); press($("cont"), t, 14.95);
 
-  // Stat count-up
-  $("stat1").textContent = Math.round(outCubic(prog(t, 15.75, 0.7)) * 63);
+  // Catalog stat.
+  $("stat1").textContent = Math.round(outCubic(prog(t, 15.85, 0.8)) * 63);
 
-  // Home: count up to the real due number
-  $("due").textContent = Math.round(outCubic(prog(t, 18.5, 1.0)) * 36);
-  $("due-copy").style.opacity = prog(t, 19.4, 0.4);
-  tap(t, 21.1, 215, 397); press($("start"), t, 21.15);
-  $("start").style.boxShadow = t > 21.15 && t < 21.33 ? "0 2px 0 #E8C9CF" : "";
+  // "With Stoga.study, you can…": the tile flips between faces while the field changes colour.
+  lines($("s-flip"), t, 16.95, 0.1);
+  let face = 0;
+  FLIP_AT.forEach((at, i) => { if (t >= at) face = i; });
+  const fp = face > 0 ? prog(t, FLIP_AT[face] - 0.2, 0.45) : 1;
+  const angle = face > 0 ? (1 - inOutCubic(fp)) * -180 : (1 - outBack(prog(t, 17.0, 0.5))) * 90;
+  const shown = face > 0 && fp < 0.5 ? face - 1 : face;
+  $("flip-tile").innerHTML = `<svg viewBox="0 0 24 24">${ICONS[FACES[shown][0]]}</svg>`;
+  $("flip-tile").style.transform = `rotateY(${angle}deg) rotate(-6deg)`;
+  $("s-flip").style.background = FACES[shown][1];
+  FACES.forEach((_, i) => {
+    const capEl = $("s-flip").querySelectorAll(".cap [data-w]")[i];
+    const inAt = i === 0 ? 17.1 : FLIP_AT[i] + 0.05, outAt = FLIP_AT[i + 1] ? FLIP_AT[i + 1] - 0.25 : 99;
+    if (t < outAt) { const p = outCubic(prog(t, inAt, 0.5)); capEl.firstChild.style.visibility = p <= 0 ? "hidden" : ""; capEl.firstChild.style.transform = p >= 1 ? "" : `translateY(${(1 - p) * 112}%) skewY(${(1 - p) * 9}deg)`; }
+    else lineOut(capEl, t, outAt);
+  });
 
-  // Sign in: the code types itself
+  // Home: the real due number counts up.
+  $("due").textContent = Math.round(outCubic(prog(t, 19.7, 1.0)) * 36);
+  $("due-copy").style.opacity = prog(t, 20.6, 0.4);
+  $("due-copy").style.translate = `0 ${(1 - outCubic(prog(t, 20.6, 0.4))) * 10}px`;
+  tap(t, 22.0, 215, 397); press($("start"), t, 22.05, "#E8C9CF");
+
+  // Sign in: the code types itself.
   const code = "482913";
   document.querySelectorAll("#digits .digit").forEach((d, i) => {
-    const at = 22.8 + i * 0.2;
+    const at = 23.2 + i * 0.2;
     d.textContent = t >= at ? code[i] : "";
     d.className = "digit" + (t >= at - 0.2 && t < at + 0.05 ? " on" : "");
-    d.style.transform = t >= at ? `scale(${0.9 + 0.1 * outBack(prog(t, at, 0.25))})` : "";
+    d.style.transform = t >= at ? `scale(${0.85 + 0.15 * outBack(prog(t, at, 0.3))})` : "";
   });
-  const ready = t >= 24.0;
-  $("signbtn").disabled = !ready;
-  tap(t, 24.3, 215, 400); press($("signbtn"), t, 24.35);
-  const ok = prog(t, 24.6, 0.35);
-  $("signed").style.opacity = ok; $("signed").style.transform = `translateY(${(1 - outCubic(ok)) * 16}px)`;
+  $("signbtn").disabled = t < 24.4;
+  tap(t, 24.7, 215, 400); press($("signbtn"), t, 24.75);
+  const ok = prog(t, 25.0, 0.35);
+  $("signed").style.opacity = ok; $("signed").style.translate = `0 ${(1 - outCubic(ok)) * 16}px`;
+
+  // Free for every student.
+  lines($("s-free"), t, 26.0);
+  const fs = prog(t, 26.7, 0.5);
+  $("free-sticker").style.transform = `rotate(${-3 - (1 - outBack(fs)) * 14}deg) scale(${0.6 + 0.4 * outBack(fs)})`;
+  $("free-sticker").style.opacity = clamp(fs * 3);
 };
 window.ready = document.fonts.ready.then(() => true);
 </script>
