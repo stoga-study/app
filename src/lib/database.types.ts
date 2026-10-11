@@ -829,6 +829,16 @@ export type Database = {
           used: number
         }[]
       }
+      begin_upload: {
+        Args: {
+          p_bytes: number
+          p_filename: string
+          p_kind: string
+          p_subject: string
+        }
+        Returns: string
+      }
+      cancel_upload: { Args: { p_source: string }; Returns: undefined }
       consume_allowance: {
         Args: {
           p_byok?: boolean

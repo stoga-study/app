@@ -6,6 +6,8 @@ import { LEVEL_LABEL, type Level } from "@/lib/catalog";
 import { describeGrade } from "@/lib/grade";
 import { currentSchoolYear } from "@/lib/catalog";
 import { lastYearClasses, useAllSubjects, useProfile, useSubjects } from "@/lib/queries/profile";
+import { useSources } from "@/lib/queries/sources";
+import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
 
 function today() {
@@ -17,6 +19,9 @@ export default function Home() {
   const subjects = useSubjects();
   const all = useAllSubjects();
   const newYear = lastYearClasses(all.data).length > 0;
+  const sources = useSources();
+  const counts = new Map<string, number>();
+  for (const s of sources.data ?? []) counts.set(s.subject_id, (counts.get(s.subject_id) ?? 0) + 1);
   const name = profile.data?.first_name;
 
   return (
@@ -55,15 +60,17 @@ export default function Home() {
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {subjects.data?.map((s) => (
-              <li key={s.id} className="card flex items-center gap-4 p-4">
+              <li key={s.id}>
+                <Link to={`/subjects/${s.id}`} className="card flex h-full items-center gap-4 p-4 text-ink no-underline">
                 <span className={`tile ${SUBJECT_TILE[s.color_index] ?? ""} !size-11 !rounded-[0.8rem] [&_svg]:!size-5`}><BookOpen /></span>
                 <div className="min-w-0">
                   {s.area && <p className="text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-brand">{s.area}</p>}
                   <p className="truncate font-display text-[1.125rem] font-bold">{s.name}</p>
                   <p className="text-[0.875rem] text-muted">
-                    {s.level ? `${LEVEL_LABEL[s.level as Level]} · ` : ""}No material yet
+                    {s.level ? `${LEVEL_LABEL[s.level as Level]} · ` : ""}{sourceCount(counts.get(s.id) ?? 0)}
                   </p>
                 </div>
+                </Link>
               </li>
             ))}
           </ul>

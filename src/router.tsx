@@ -7,6 +7,10 @@ import NotFound from "./routes/NotFound";
 import Onboarding from "./routes/Onboarding";
 import Placeholder from "./routes/Placeholder";
 import Settings from "./routes/Settings";
+import SourcePage from "./routes/Source";
+import Subject from "./routes/Subject";
+import Subjects from "./routes/Subjects";
+import Upload from "./routes/Upload";
 import SignIn from "./routes/SignIn";
 import Welcome from "./routes/Welcome";
 
@@ -29,9 +33,11 @@ export const router = createBrowserRouter([
         element: <Shell />,
         children: [
           { index: true, element: <Home /> },
-          { path: "subjects", element: <Placeholder title="Subjects" milestone="milestone 6" /> },
+          { path: "subjects", element: <Subjects /> },
+          { path: "subjects/:id", element: <Subject /> },
+          { path: "sources/:id", element: <SourcePage /> },
           { path: "classes", element: <Classes /> },
-          { path: "upload", element: <Placeholder title="Add notes" milestone="milestone 4" /> },
+          { path: "upload", element: <Upload /> },
           { path: "tutor", element: <Placeholder title="AI tutor" milestone="milestone 7" /> },
           { path: "review", element: <Placeholder title="Review" milestone="milestone 6" /> },
           { path: "progress", element: <Placeholder title="Progress" milestone="milestone 6" /> },
