@@ -45,3 +45,14 @@ Run it by hand:
 pip install pymupdf==1.28.2
 python3 scripts/program-of-studies/update_catalog.py --pdf POS.pdf --source <pdf url>
 ```
+
+## App Store showcase
+
+`marketing/app-store/` has five 1290 × 2796 images built from real app screens, using a throwaway demo student. To regenerate them after new features land, edit the slides in `scripts/showcase/compose.mjs`, then run:
+
+```bash
+npm run build && npx vite preview --port 4173 &
+python3 scripts/showcase/make_demo_pdfs.py /tmp/showcase
+SUPABASE_SECRET_KEY=... node scripts/showcase/capture.mjs /tmp/showcase
+node scripts/showcase/compose.mjs /tmp/showcase
+```
