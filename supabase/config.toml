@@ -246,14 +246,14 @@ otp_expiry = 3600
 
 # Sign-in emails carry both a link and a 6-digit code. The code is for iPhone home-screen installs,
 # where links open in Safari instead of the installed app.
-# Enabled once custom SMTP is configured (free-tier projects cannot edit templates on the default sender).
-# [auth.email.template.magic_link]
-# subject = "Your Stoga.study sign-in code: {{ .Token }}"
-# content_path = "./supabase/templates/sign-in.html"
-#
-# [auth.email.template.confirmation]
-# subject = "Your Stoga.study sign-in code: {{ .Token }}"
-# content_path = "./supabase/templates/sign-in.html"
+# Custom templates need custom SMTP (Resend, configured in the dashboard; credentials are not in this file).
+[auth.email.template.magic_link]
+subject = "Your Stoga.study sign-in code: {{ .Token }}"
+content_path = "./supabase/templates/sign-in.html"
+
+[auth.email.template.confirmation]
+subject = "Your Stoga.study sign-in code: {{ .Token }}"
+content_path = "./supabase/templates/sign-in.html"
 
 # [auth.email.template.invite]
 # subject = "You have been invited"

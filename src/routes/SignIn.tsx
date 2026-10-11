@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 
 const RESEND_SECONDS = 60;
-// The 6-digit code only appears in the branded email, which needs custom SMTP. Until then the email
-// carries a link only, so the code box stays hidden. Set VITE_EMAIL_HAS_CODE=true once it is live.
-const EMAIL_HAS_CODE = import.meta.env.VITE_EMAIL_HAS_CODE === "true";
+// The 6-digit code appears in the branded email (supabase/templates/sign-in.html, which needs custom
+// SMTP). Set VITE_EMAIL_HAS_CODE=false for a project still on Supabase's default sender: that email
+// has a link only, so the code box is hidden.
+const EMAIL_HAS_CODE = import.meta.env.VITE_EMAIL_HAS_CODE !== "false";
 
 // Plain, specific messages (Brand Guidelines p. 14). Never "Something went wrong".
 function explain(error: { status?: number; code?: string; message: string }) {
