@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/session";
-import { departmentTone, findCourse, findSection, type Picks } from "../catalog";
+import { currentSchoolYear, departmentTone, findCourse, findSection, type Picks } from "../catalog";
 import type { Database } from "../database.types";
 import { supabase } from "../supabase";
 
@@ -41,9 +41,20 @@ export function useSubjects() {
   return { ...all, data: all.data?.filter((s) => !s.archived) };
 }
 
-/** Current catalog picks, for prefilling the class picker. */
-export const picksFrom = (subjects: Subject[] | undefined): Picks =>
-  Object.fromEntries((subjects ?? []).filter((s) => s.catalog_id && !s.archived).map((s) => [s.catalog_id!, s.course_code ?? ""]));
+/** This school year's catalog picks, for prefilling the class picker. A level that no longer exists is left unchosen. */
+export function picksFrom(subjects: Subject[] | undefined): Picks {
+  const picks: Picks = {};
+  for (const s of subjects ?? []) {
+    if (!s.catalog_id || s.archived || s.school_year !== currentSchoolYear) continue;
+    const course = findCourse(s.catalog_id);
+    if (course) picks[s.catalog_id] = s.course_code && findSection(course, s.course_code) ? s.course_code : "";
+  }
+  return picks;
+}
+
+/** Active classes picked in an earlier school year: the student should update their classes. */
+export const lastYearClasses = (subjects: Subject[] | undefined) =>
+  (subjects ?? []).filter((s) => s.catalog_id && !s.archived && s.school_year !== currentSchoolYear);
 
 /**
  * Bring the student's subjects in line with their picks. New classes are added, level changes
@@ -59,10 +70,13 @@ async function saveClasses(picks: Picks, existing: Subject[]) {
     const course = findCourse(courseId);
     const section = course && findSection(course, code);
     if (!course || !section) throw new Error(`Choose a level for ${course?.title ?? "every class"}.`);
-    const row = { name: section.name, area: course.department, course_code: section.code, level: section.level, archived: false };
+    const row = {
+      name: section.name, area: course.department, course_code: section.code, level: section.level,
+      archived: false, school_year: currentSchoolYear,
+    };
     const current = byCatalog.get(courseId);
     if (!current) inserts.push({ ...row, catalog_id: courseId, color_index: departmentTone(course.department) });
-    else if (current.archived || current.course_code !== row.course_code || current.name !== row.name)
+    else if (current.archived || current.course_code !== row.course_code || current.name !== row.name || current.school_year !== row.school_year)
       updates.push({ id: current.id, patch: row });
   }
   for (const s of existing)

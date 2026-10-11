@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { LEVEL_LABEL, type Level } from "@/lib/catalog";
 import { describeGrade } from "@/lib/grade";
-import { useProfile, useSubjects } from "@/lib/queries/profile";
+import { currentSchoolYear } from "@/lib/catalog";
+import { lastYearClasses, useAllSubjects, useProfile, useSubjects } from "@/lib/queries/profile";
 import { SUBJECT_TILE } from "@/lib/subjects";
 
 function today() {
@@ -14,11 +15,18 @@ function today() {
 export default function Home() {
   const profile = useProfile();
   const subjects = useSubjects();
+  const all = useAllSubjects();
+  const newYear = lastYearClasses(all.data).length > 0;
   const name = profile.data?.first_name;
 
   return (
     <>
       <PageHeader eyebrow={today()} title={name ? `Today, ${name}` : "Today"} />
+      {newYear && (
+        <Link to="/classes" className="callout mb-4 text-ink no-underline">
+          <span><b>New school year.</b> Update your classes for {currentSchoolYear}. Last year&apos;s notes and cards stay safe.</span>
+        </Link>
+      )}
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-56" aria-hidden="true" />

@@ -1,0 +1,53 @@
+name: Program of Studies
+
+# Checks the Conestoga site every Monday for a new Program of Studies. A new one becomes a pull
+# request showing exactly which classes changed; anything the parser cannot read becomes an issue.
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install pymupdf==1.28.2
+      - id: check
+        run: python scripts/program-of-studies/check_for_update.py --report report.md
+
+      - if: steps.check.outputs.status == 'new'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - if: steps.check.outputs.status == 'new'
+        run: npm ci && npm test && npm run build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+      - if: steps.check.outputs.status == 'new'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: program-of-studies/${{ steps.check.outputs.year }}
+          add-paths: src/data/catalogs/*.json
+          commit-message: "Update classes from the ${{ steps.check.outputs.year }} Program of Studies"
+          title: "Classes for ${{ steps.check.outputs.year }}: review and merge"
+          body-path: report.md
+
+      - if: steps.check.outputs.status == 'problems'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Program of Studies update needs a look"
+          if [ -z "$(gh issue list --state open --search "in:title \"$title\"" --json number --jq '.[0].number')" ]; then
+            gh issue create --title "$title" --body-file report.md
+          fi

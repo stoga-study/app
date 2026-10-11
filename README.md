@@ -30,3 +30,18 @@ The Groq API key is never shipped to the browser. It is stored as a Supabase Edg
 ## Design
 
 Tokens and components follow the Stoga.study Brand Guidelines v1.0 and match the landing page (`stoga-study/landing`). Colours live in `src/styles/index.css` as CSS variables, and components never hard-code a hex.
+
+## Classes and the Program of Studies
+
+Core classes come from the Conestoga Program of Studies, one file per school year in `src/data/catalogs/`. The app picks the file for the current school year (July to June). If the new one isn't out yet, it keeps showing last year's.
+
+**Each year:** the **Program of Studies** workflow checks the school site every Monday. When a new PDF appears, it builds the catalog and opens a pull request listing what changed: new courses, dropped courses, and changed levels, codes or grades. Read the list and merge it. Students' grades move up on their own, and in a new school year the app asks each student to update their classes. Last year's classes are archived with their notes and cards.
+
+**When the parser can't read something,** the workflow opens an issue instead, naming the course, page and line. Nothing is published. Fix the parser, or add a reviewed rule with its reason in `scripts/program-of-studies/rules.py`, then run the workflow again (Actions → Program of Studies → Run workflow).
+
+Run it by hand:
+
+```bash
+pip install pymupdf==1.28.2
+python3 scripts/program-of-studies/update_catalog.py --pdf POS.pdf --source <pdf url>
+```

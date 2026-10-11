@@ -1,5 +1,4 @@
-import data from "@/data/chs-courses.json";
-import type { Grade } from "./grade";
+import { schoolYearEnd, type Grade } from "./grade";
 
 // Core classes from the Conestoga High School Program of Studies.
 // Rebuilt with scripts/program-of-studies when a new edition comes out.
@@ -11,6 +10,8 @@ export type Section = {
   track: "AB" | "BC" | null;
   trackNote: string | null;
   name: string;
+  /** "Semester 1" when a course's sections are split by term. */
+  term: string | null;
   grades: number[];
   approvalGrades: number[];
 };
@@ -25,9 +26,27 @@ export type Course = {
   page: number;
   sections: Section[];
 };
-type Catalog = { school: string; schoolYear: string; source: string; courses: Course[] };
+export type Catalog = { school: string; schoolYear: string; source: string; courses: Course[] };
 
-export const catalog = data as Catalog;
+// One file per school year in src/data/catalogs, added by the yearly update workflow.
+const files = import.meta.glob<Catalog>("../data/catalogs/*.json", { eager: true, import: "default" });
+export const catalogs = Object.values(files).sort((a, b) => a.schoolYear.localeCompare(b.schoolYear));
+
+/** "2026-27" for dates from July 2026 to June 2027. */
+export function schoolYearLabel(now = new Date()) {
+  const end = schoolYearEnd(now);
+  return `${end - 1}-${String(end).slice(2)}`;
+}
+
+/** The catalog for a school year, or the newest earlier one if that year's is not out yet. */
+export function catalogFor(year: string): Catalog {
+  return catalogs.find((c) => c.schoolYear === year) ?? [...catalogs].reverse().find((c) => c.schoolYear < year) ?? catalogs[0];
+}
+
+export const currentSchoolYear = schoolYearLabel();
+export const catalog = catalogFor(currentSchoolYear);
+/** False while the new year's Program of Studies has not been published yet. */
+export const catalogIsCurrent = catalog.schoolYear === currentSchoolYear;
 export const DEPARTMENTS = ["English", "Social Studies", "Mathematics", "Science", "World Languages"] as const;
 
 export const LEVEL_LABEL: Record<Level, string> = {

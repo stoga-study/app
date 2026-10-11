@@ -1,6 +1,6 @@
 import { Check, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { catalog, DEPARTMENTS, LEVEL_LABEL, sectionsForGrade, type Course, type Picks, type Section } from "@/lib/catalog";
+import { catalog, catalogIsCurrent, currentSchoolYear, DEPARTMENTS, LEVEL_LABEL, sectionsForGrade, type Course, type Picks, type Section } from "@/lib/catalog";
 import type { Grade } from "@/lib/grade";
 
 function matches(course: Course, q: string) {
@@ -14,8 +14,13 @@ function meta(course: Course) {
   return [course.duration, credit].filter(Boolean).join(" · ");
 }
 
-function levelText(s: Section, grade: Grade | null) {
-  const label = s.level ? LEVEL_LABEL[s.level] : "Standard";
+function levelText(s: Section, grade: Grade | null, course?: Course, options?: Section[]) {
+  let label = s.level ? LEVEL_LABEL[s.level] : "Standard";
+  // When two options share a level, say what tells them apart: the term, or the version's name.
+  if (course && options && options.filter((o) => o.level === s.level).length > 1) {
+    const distinct = s.term ?? (s.name !== course.title ? s.name : null);
+    if (distinct) label = s.level ? `${distinct} · ${label}` : distinct;
+  }
   return grade && s.approvalGrades.includes(grade) ? `${label}, with approval` : label;
 }
 
@@ -65,6 +70,12 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
           </label>
         )}
       </div>
+
+      {!catalogIsCurrent && (
+        <p className="callout neutral">
+          The {currentSchoolYear} Program of Studies is not out yet, so these are the {catalog.schoolYear} classes. They update when the new one is published.
+        </p>
+      )}
 
       {groups.length === 0 && <p className="callout neutral">No classes match “{query}”. Try a shorter search or the course code.</p>}
 
@@ -120,13 +131,13 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
                         {options.map((s) => (
                           <button key={s.code} type="button" role="radio" aria-checked={chosen === s.code} aria-pressed={chosen === s.code} className="pill-option !min-h-10 !text-[0.875rem]" onClick={() => onChange({ ...value, [course.id]: s.code })}>
                             {chosen === s.code && <Check />}
-                            {levelText(s, shownGrade)}
+                            {levelText(s, shownGrade, course, options)}
                             <span className="font-normal text-muted tabular">{s.code}</span>
                           </button>
                         ))}
                       </div>
                       )}
-                      {new Set(options.map((s) => s.level)).size < options.length && (
+                      {options.some((s) => options.some((o) => o !== s && levelText(o, shownGrade, course, options) === levelText(s, shownGrade, course, options))) && (
                         <p className="mt-2 text-[0.8125rem] text-muted">Two sections share a level. Pick the code that is on your schedule.</p>
                       )}
                     </div>

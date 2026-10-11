@@ -13,6 +13,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: python3 -m py_compile scripts/program-of-studies/*.py
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test

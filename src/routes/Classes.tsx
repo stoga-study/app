@@ -5,9 +5,9 @@ import { GradePicker } from "@/components/GradePicker";
 import { PageHeader } from "@/components/PageHeader";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
-import { catalog, findCourse, type Picks } from "@/lib/catalog";
+import { catalog, currentSchoolYear, findCourse, type Picks } from "@/lib/catalog";
 import { describeGrade, gradeFor, graduationYearFor, type Grade } from "@/lib/grade";
-import { picksFrom, useAllSubjects, useArchiveSubject, useProfile, useSaveClasses } from "@/lib/queries/profile";
+import { lastYearClasses, picksFrom, useAllSubjects, useArchiveSubject, useProfile, useSaveClasses } from "@/lib/queries/profile";
 
 const same = (a: Picks, b: Picks) => {
   const ka = Object.keys(a), kb = Object.keys(b);
@@ -28,7 +28,7 @@ export default function Classes() {
   const savedGrade = gradeFor(profile.data?.graduation_year);
   const g = grade ?? savedGrade;
   const current = picks ?? saved;
-  const dirty = !same(current, saved) || (g !== null && g !== savedGrade);
+  const dirty = !same(current, saved) || (g !== null && g !== savedGrade) || lastYearClasses(subjects.data).length > 0;
   const missing = Object.entries(current).find(([, code]) => !code);
 
   // Warn before leaving with unsaved changes.
@@ -44,6 +44,7 @@ export default function Classes() {
     return <ErrorState title="We could not load your classes" onRetry={() => { profile.refetch(); subjects.refetch(); }}>Check your connection, then try again.</ErrorState>;
 
   const legacy = subjects.data!.filter((s) => !s.catalog_id && !s.archived);
+  const lastYear = lastYearClasses(subjects.data);
 
   async function onSave() {
     try {
@@ -73,6 +74,15 @@ export default function Classes() {
         </div>
         {(editGrade || !g) && <GradePicker value={g} onChange={(next) => { setGrade(next); setEditGrade(false); }} />}
       </section>
+
+      {lastYear.length > 0 && (
+        <div className="callout mb-6">
+          <span>
+            <b>New school year.</b> Pick your {currentSchoolYear} classes. Last year&apos;s ({lastYear.map((s) => s.name).join(", ")}) are
+            archived with their notes and cards when you save, unless you pick them again.
+          </span>
+        </div>
+      )}
 
       <ClassPicker grade={g} value={current} onChange={setPicks} />
 
