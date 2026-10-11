@@ -84,6 +84,8 @@ export async function saveUpload(opts: {
   userId: string;
   subjectId: string;
   filename: string;
+  /** The file's real name, kept for reference; `filename` is the readable title shown in the app. */
+  originalName?: string;
   extracted: Extracted;
   file?: File;
   onSaving?: (done: number, total: number) => void;
@@ -114,7 +116,7 @@ export async function saveUpload(opts: {
     }
     const { error: sErr } = await supabase
       .from("sources")
-      .update({ status: "ready_text", page_count: extracted.totalPages, storage_path: storagePath })
+      .update({ status: "ready_text", page_count: extracted.totalPages, storage_path: storagePath, original_filename: (opts.originalName ?? filename).slice(0, 255) })
       .eq("id", id);
     if (sErr) throw sErr;
     return id;
@@ -123,6 +125,30 @@ export async function saveUpload(opts: {
     await supabase.rpc("cancel_upload", { p_source: id });
     throw e;
   }
+}
+
+/** Ask the server for a smarter title (Groq reads the first page). Never throws: the cleaned title stays. */
+export async function suggestTitle(sourceId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.functions.invoke<{ title: string; changed: boolean }>("title-source", { body: { source_id: sourceId } });
+    return !error && data?.changed ? data.title : null;
+  } catch {
+    return null;
+  }
+}
+
+export function useRenameSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const { error } = await supabase.from("sources").update({ filename: title }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["source", v.id] });
+      qc.invalidateQueries({ queryKey: ["sources"] });
+    },
+  });
 }
 
 export function useDeleteSource() {

@@ -694,6 +694,7 @@ export type Database = {
           filename: string
           id: string
           kind: string
+          original_filename: string | null
           page_count: number
           status: Database["public"]["Enums"]["source_status"]
           steps: Json
@@ -709,6 +710,7 @@ export type Database = {
           filename: string
           id?: string
           kind: string
+          original_filename?: string | null
           page_count?: number
           status?: Database["public"]["Enums"]["source_status"]
           steps?: Json
@@ -724,6 +726,7 @@ export type Database = {
           filename?: string
           id?: string
           kind?: string
+          original_filename?: string | null
           page_count?: number
           status?: Database["public"]["Enums"]["source_status"]
           steps?: Json

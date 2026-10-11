@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
 import { ExtractError, extractFile, extractPasted, MAX_BYTES, type ExtractErrorCode, type Extracted } from "@/lib/extract";
 import { useSubjects } from "@/lib/queries/profile";
-import { pageWord, saveUpload, UploadLimitError, useAllowance } from "@/lib/queries/sources";
+import { prettyFilename } from "@/lib/extract/filename";
+import { pageWord, saveUpload, suggestTitle, UploadLimitError, useAllowance } from "@/lib/queries/sources";
 
 type Phase =
   | { step: "choose" }
@@ -88,18 +89,27 @@ export default function Upload() {
     );
 
   async function save(name: string, extracted: Extracted, file?: File, size?: number) {
-    setPhase({ step: "saving", name, size, extracted, done: 0, total: extracted.pages.length });
+    const title = file ? prettyFilename(file.name) : name;
+    setPhase({ step: "saving", name: title, size, extracted, done: 0, total: extracted.pages.length });
     try {
       const id = await saveUpload({
         userId: session!.user.id,
         subjectId: subject!.id,
-        filename: name,
+        filename: title,
+        originalName: name,
         extracted,
         file,
-        onSaving: (done, total) => setPhase({ step: "saving", name, size, extracted, done, total }),
+        onSaving: (done, total) => setPhase({ step: "saving", name: title, size, extracted, done, total }),
       });
       qc.invalidateQueries({ queryKey: ["sources"] });
       qc.invalidateQueries({ queryKey: ["allowance"] });
+      // A smarter title arrives a moment later for files; pasted notes keep the title the student typed.
+      if (file)
+        suggestTitle(id).then((better) => {
+          if (!better) return;
+          qc.invalidateQueries({ queryKey: ["source", id] });
+          qc.invalidateQueries({ queryKey: ["sources"] });
+        });
       navigate(`/sources/${id}`, { replace: true, state: { justUploaded: true } });
     } catch (e) {
       qc.invalidateQueries({ queryKey: ["allowance"] });
@@ -109,9 +119,10 @@ export default function Upload() {
 
   async function onFile(file: File | undefined) {
     if (!file) return;
-    setPhase({ step: "reading", name: file.name, size: file.size, done: 0, total: 0 });
+    const title = prettyFilename(file.name);
+    setPhase({ step: "reading", name: title, size: file.size, done: 0, total: 0 });
     try {
-      const extracted = await extractFile(file, (done, total) => setPhase({ step: "reading", name: file.name, size: file.size, done, total }));
+      const extracted = await extractFile(file, (done, total) => setPhase({ step: "reading", name: title, size: file.size, done, total }));
       await save(file.name, extracted, file, file.size);
     } catch (e) {
       setPhase({ step: "error", name: file.name, code: e instanceof ExtractError ? e.code : "damaged" });

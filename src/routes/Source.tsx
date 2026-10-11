@@ -1,11 +1,11 @@
-import { ArrowLeft, ExternalLink, FileText, Sparkles, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, FileText, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useSubjects } from "@/lib/queries/profile";
-import { openOriginal, pageWord, useDeleteSource, useSource, useSourcePages } from "@/lib/queries/sources";
+import { openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages } from "@/lib/queries/sources";
 
 export default function SourcePage() {
   const { id } = useParams();
@@ -16,6 +16,8 @@ export default function SourcePage() {
   const subjects = useSubjects();
   const del = useDeleteSource();
   const [confirming, setConfirming] = useState(false);
+  const rename = useRenameSource();
+  const [editing, setEditing] = useState<string | null>(null);
 
   if (source.isPending) return <PageSkeleton label="Opening your file." />;
   if (source.isError) return <ErrorState title="We could not open this file" onRetry={() => source.refetch()}>Check your connection, then try again.</ErrorState>;
@@ -37,7 +39,31 @@ export default function SourcePage() {
         <span className="circle circle-big right-[-5rem] top-[-6rem] size-60" aria-hidden="true" />
         <span className="circle circle-hot bottom-6 right-8 size-9" aria-hidden="true" />
         <p className="ink-muted text-[0.9375rem]">{justUploaded ? "Added and read." : "Source"}</p>
-        <h1 id="source-title" className="mt-1 max-w-[30rem] break-words text-[1.75rem]">{s.filename}</h1>
+        {editing === null ? (
+          <div className="mt-1 flex items-start gap-2">
+            <h1 id="source-title" className="max-w-[30rem] break-words text-[1.75rem]">{s.filename}</h1>
+            <button type="button" onClick={() => setEditing(s.filename)} aria-label="Rename" className="mt-1 grid size-10 flex-none place-items-center rounded-full text-[#F7EAEC] hover:bg-white/10">
+              <Pencil className="size-5" />
+            </button>
+          </div>
+        ) : (
+          <form
+            className="mt-2 flex max-w-[30rem] gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const t = editing.replace(/\s+/g, " ").trim().slice(0, 120);
+              if (!t) return;
+              rename.mutate({ id: s.id, title: t }, { onSuccess: () => setEditing(null), onError: () => toast("We could not rename it. Check your connection, then try again.") });
+            }}
+          >
+            <label htmlFor="rename" className="sr-only">Title</label>
+            <input id="rename" autoFocus className="input !min-h-11 flex-1 !bg-white/10 !text-white" value={editing} maxLength={120} onChange={(e) => setEditing(e.target.value)} />
+            <Button type="submit" variant="inverse" size="sm" aria-label="Save title" disabled={rename.isPending}><Check /></Button>
+          </form>
+        )}
+        {s.original_filename && s.original_filename !== s.filename && (
+          <p className="ink-muted mt-1 max-w-[30rem] truncate text-[0.8125rem]" title={s.original_filename}>Original file: {s.original_filename}</p>
+        )}
         <p className="big-num mt-4 text-[4.5rem]">
           {s.page_count}
           <span className="ml-2 font-body text-[1.125rem] tracking-normal">{word} read</span>
