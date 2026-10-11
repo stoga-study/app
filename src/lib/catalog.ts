@@ -4,7 +4,16 @@ import type { Grade } from "./grade";
 // Core classes from the Conestoga High School Program of Studies.
 // Rebuilt with scripts/program-of-studies when a new edition comes out.
 export type Level = "AP" | "H*" | "H" | "X" | "A";
-export type Section = { code: string; level: Level | null; name: string; grades: number[]; approvalGrades: number[] };
+export type Section = {
+  code: string;
+  level: Level | null;
+  /** Math track ("AB" or "BC"): a different version of the course, not just a level. */
+  track: "AB" | "BC" | null;
+  trackNote: string | null;
+  name: string;
+  grades: number[];
+  approvalGrades: number[];
+};
 export type Course = {
   id: string;
   title: string;

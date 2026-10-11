@@ -95,7 +95,7 @@ export default function Classes() {
         {dirty && (
           <div className="card sheet-in flex flex-wrap items-center gap-3 p-3">
             <p className="flex-1 pl-2 text-[0.9375rem] font-bold">
-              {missing ? `Choose a level for ${findCourse(missing[0])?.title}.` : "You have unsaved changes."}
+              {missing ? `Choose a ${findCourse(missing[0])?.sections.some((s) => s.track) ? "version" : "level"} for ${findCourse(missing[0])?.title}.` : "You have unsaved changes."}
             </p>
             <Button variant="secondary" size="sm" onClick={() => { setPicks(null); setGrade(null); }}>Undo</Button>
             <Button size="sm" disabled={!!missing || !g || save.isPending} onClick={onSave}>{save.isPending ? "Saving…" : "Save changes"}</Button>

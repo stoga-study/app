@@ -50,6 +50,7 @@ export default function Onboarding() {
   const num = { name: 1, grade: returning ? 1 : 2, classes: returning ? 2 : 3, done: total } as const;
   const pickCount = Object.keys(chosen).length;
   const missingLevel = Object.entries(chosen).find(([, code]) => !code);
+  const missingWord = missingLevel && findCourse(missingLevel[0])?.sections.some((s) => s.track) ? "version" : "level";
 
   async function finish() {
     await save.mutateAsync({ picks: chosen, graduationYear: graduationYearFor(g!), firstName: name, finishOnboarding: true });
@@ -97,7 +98,7 @@ export default function Onboarding() {
           <ClassPicker grade={g} value={chosen} onChange={setPicks} />
           <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-bg px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             {save.isError && <p role="alert" className="callout">We could not save your classes. Check your connection, then try again. Nothing was lost.</p>}
-            {missingLevel && <p className="text-center text-[0.875rem] font-bold text-brand">Choose a level for {findCourse(missingLevel[0])?.title}.</p>}
+            {missingLevel && <p className="text-center text-[0.875rem] font-bold text-brand">Choose a {missingWord} for {findCourse(missingLevel[0])?.title}.</p>}
             <Button block disabled={pickCount === 0 || !!missingLevel || save.isPending} onClick={finish}>
               {save.isPending ? "Saving…" : pickCount === 0 ? "Pick at least one class" : `Continue with ${pickCount} ${pickCount === 1 ? "class" : "classes"}`}
             </Button>

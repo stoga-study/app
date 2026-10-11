@@ -19,6 +19,14 @@ CORE_AREAS = {"LF", "LC", "AV", "EN", "UH", "WH", "GV", "MA", "BI", "SC", "WL"}
 TITLE_FIXES = {"Economics": "US Government and Politics / Economics"}
 SECTION_NAME_FIXES = {"1700": "AP US Government and Politics"}
 
+# Math tracks, summarised from the Algebra 2 and Math Analysis course descriptions.
+TRACK_NOTES = {
+    ("Algebra 2", "BC"): "Compacted track toward AP Calculus BC",
+    ("Algebra 2", "AB"): "Toward Calculus (H) or AP Calculus AB",
+    ("Math Analysis", "BC"): "Compacted track toward AP Calculus BC",
+    ("Math Analysis", "AB"): "Toward Calculus (H) or AP Calculus AB",
+}
+
 
 def slug(s):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
@@ -65,7 +73,11 @@ for c in courses:
         name = SECTION_NAME_FIXES.get(s["code"]) or (
             f"AP {title}" if level == "AP" and not title.startswith("AP ") else title
         )
-        sections.append({"code": s["code"], "level": level, "name": name,
+        track = s.get("track")
+        if track:
+            name = f"{title} {track}"  # "Algebra 2 BC": a separate track, not just a level
+        sections.append({"code": s["code"], "level": level, "name": name, "track": track,
+                         "trackNote": TRACK_NOTES.get((c["title"], track)),
                          "grades": s["grades"], "approvalGrades": s["approvalGrades"]})
     out.append({
         "id": slug(title), "title": title, "department": c["department"],

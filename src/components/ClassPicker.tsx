@@ -79,6 +79,7 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
               if (chosen && !options.some((s) => s.code === chosen)) options = [...options, ...course.sections.filter((s) => s.code === chosen)];
               if (options.length === 0) options = course.sections;
               const needsLevel = picked && !chosen;
+              const hasTracks = options.some((s) => s.track);
               return (
                 <li key={course.id} className={`card overflow-hidden !shadow-none ${picked ? "!border-primary" : ""}`}>
                   <button type="button" aria-pressed={picked} onClick={() => toggle(course, options)} className="flex w-full items-start gap-3 p-4 text-left">
@@ -86,15 +87,35 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
                       {picked && <Check className="size-3.5" />}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block font-bold">{course.title}</span>
+                      <span className="block font-bold">{(chosen && course.sections.find((s) => s.code === chosen)?.track && course.sections.find((s) => s.code === chosen)?.name) || course.title}</span>
                       <span className="block text-[0.875rem] text-muted">{meta(course)}{course.prerequisite ? ` · Prerequisite: ${course.prerequisite}` : ""}</span>
                     </span>
                   </button>
                   {picked && options.length > 1 && (
                     <div className="border-t border-line bg-soft px-4 py-3">
                       <p id={`lvl-${course.id}`} className={`mb-2 text-[0.875rem] font-bold ${needsLevel ? "text-brand" : "text-muted"}`}>
-                        {needsLevel ? "Which level are you in?" : "Level"}
+                        {needsLevel ? (hasTracks ? "Which version are you in?" : "Which level are you in?") : hasTracks ? "Version" : "Level"}
                       </p>
+                      {hasTracks ? (
+                        <div role="radiogroup" aria-labelledby={`lvl-${course.id}`} className="flex flex-col gap-2">
+                          {options.map((s) => {
+                            const on = chosen === s.code;
+                            return (
+                              <button key={s.code} type="button" role="radio" aria-checked={on} onClick={() => onChange({ ...value, [course.id]: s.code })}
+                                className={`flex items-center gap-3 rounded-[0.875rem] border-2 bg-card px-3 py-2.5 text-left ${on ? "border-primary bg-tint" : "border-line"}`}>
+                                <span className={`grid size-5 flex-none place-items-center rounded-full border-2 ${on ? "border-primary bg-primary text-white" : "border-line-strong"}`}>
+                                  {on && <Check className="size-3" />}
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className="block font-bold">{s.name} <span className="font-normal text-muted">· {levelText(s, shownGrade)}</span></span>
+                                  {s.trackNote && <span className="block text-[0.8125rem] text-muted">{s.trackNote}</span>}
+                                </span>
+                                <span className="tabular text-[0.8125rem] text-muted">{s.code}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
                       <div role="radiogroup" aria-labelledby={`lvl-${course.id}`} className="flex flex-wrap gap-2">
                         {options.map((s) => (
                           <button key={s.code} type="button" role="radio" aria-checked={chosen === s.code} aria-pressed={chosen === s.code} className="pill-option !min-h-10 !text-[0.875rem]" onClick={() => onChange({ ...value, [course.id]: s.code })}>
@@ -104,6 +125,7 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
                           </button>
                         ))}
                       </div>
+                      )}
                       {new Set(options.map((s) => s.level)).size < options.length && (
                         <p className="mt-2 text-[0.8125rem] text-muted">Two sections share a level. Pick the code that is on your schedule.</p>
                       )}

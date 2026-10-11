@@ -54,15 +54,18 @@ for pno in sorted(pages):
         window = " ".join(nz[title_j + 1:k] + [nz[k]] + after)
         dur = re.search(r"\b(Year|Semester|Quarter)\b", window)
         cred = re.search(r"(\d*\.?\d+)\s*credits?", window, re.I)
+        track = None
         if code_before:
             m = CODE_LINE.match(code_before); codes = [(m.group(1), m.group(2))]
+            tm = re.search(r"\(Pre-(AB|BC) Calculus\)", code_before)
+            track = tm.group(1) if tm else None
         else:
             codes = CODE_ANY.findall(" ".join(after[:4]))
             if not codes:
                 codes = [(CODE_LINE.match(l).group(1), CODE_LINE.match(l).group(2)) for l in after[:4] if is_code(l)][:1]
         area_src = " ".join([code_before or ""] + [l for l in after[:4] if is_code(l) or re.fullmatch(r"\*?[A-Z]{2}(\s*,\s*\*?[A-Z]{2})*", l)])
         areas = sorted({a for a in re.findall(r"\b([A-Z]{2})\b", area_src) if a in AREAS})
-        sections = [{"code": c, "level": (lv or None), "grades": grades, "approvalGrades": approval} for c, lv in codes] or \
+        sections = [{"code": c, "level": (lv or None), "track": track, "grades": grades, "approvalGrades": approval} for c, lv in codes] or \
                    [{"code": None, "level": None, "grades": grades, "approvalGrades": approval}]
         sec_meta = {"duration": dur.group(1) if dur else None, "credits": float(cred.group(1)) if cred else None}
         if continuation:
