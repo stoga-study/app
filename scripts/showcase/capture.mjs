@@ -76,8 +76,15 @@ try {
 
   await p.goto("http://localhost:4173/classes", { waitUntil: "networkidle" });
   await p.getByRole("button", { name: "Change grade" }).click();
-  await clear();
-  await p.getByRole("radio", { name: /Sophomore/ }).screenshot({ path: `${R}/el-grade.png`, omitBackground: true });
+  // Capture the card with padding so its hard bottom edge survives, with neighbours hidden and
+  // every background behind it cleared so its rounded corners stay transparent.
+  const grade = p.getByRole("radio", { name: /Sophomore/ });
+  await grade.evaluate((node) => {
+    for (const sib of node.parentElement.children) if (sib !== node) sib.style.visibility = "hidden";
+    for (let a = node.parentElement; a; a = a.parentElement) { a.style.background = "transparent"; a.style.boxShadow = "none"; a.style.borderColor = "transparent"; }
+  });
+  const gb = await grade.boundingBox();
+  await p.screenshot({ path: `${R}/el-grade.png`, omitBackground: true, clip: { x: gb.x - 10, y: gb.y - 10, width: gb.width + 20, height: gb.height + 20 } });
   await p.reload({ waitUntil: "networkidle" });
   await p.getByRole("button", { name: "Change grade" }).click();
   await p.getByRole("radio", { name: /Sophomore/ }).click();
