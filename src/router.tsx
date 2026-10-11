@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { Shell } from "./components/Shell";
 import { RedirectIfSignedIn, RequireAuth, RequireOnboarded } from "./lib/auth/RequireAuth";
+import Classes from "./routes/Classes";
 import Home from "./routes/Home";
 import NotFound from "./routes/NotFound";
 import Onboarding from "./routes/Onboarding";
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Home /> },
           { path: "subjects", element: <Placeholder title="Subjects" milestone="milestone 6" /> },
+          { path: "classes", element: <Classes /> },
           { path: "upload", element: <Placeholder title="Add notes" milestone="milestone 4" /> },
           { path: "tutor", element: <Placeholder title="AI tutor" milestone="milestone 7" /> },
           { path: "review", element: <Placeholder title="Review" milestone="milestone 6" /> },

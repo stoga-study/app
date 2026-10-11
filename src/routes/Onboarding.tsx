@@ -1,113 +1,129 @@
-import { ArrowLeft, Check, Plus, Upload } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { ArrowLeft, Check, Upload } from "lucide-react";
+import { useState } from "react";
 import { Link, Navigate } from "react-router";
+import { ClassPicker } from "@/components/ClassPicker";
+import { GradePicker } from "@/components/GradePicker";
 import { PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
-import { useCompleteOnboarding, useProfile } from "@/lib/queries/profile";
-import { SUBJECT_PRESETS } from "@/lib/subjects";
+import { findCourse, findSection, LEVEL_LABEL, type Picks } from "@/lib/catalog";
+import { GRADE_NAME, gradeFor, graduationYearFor, type Grade } from "@/lib/grade";
+import { picksFrom, useAllSubjects, useProfile, useSaveClasses } from "@/lib/queries/profile";
 
-type Picked = { name: string; area: string };
+type Step = "name" | "grade" | "classes" | "done";
 
-function Steps({ step }: { step: number }) {
+function Steps({ step, total, onBack }: { step: number; total: number; onBack?: () => void }) {
   return (
-    <div className="segments flex-1" role="img" aria-label={`Step ${step} of 2`}>
-      <span className={step > 1 ? "done" : "now"} />
-      <span className={step === 2 ? "now" : ""} />
+    <div className="flex items-center gap-3">
+      {onBack && (
+        <button type="button" onClick={onBack} className="grid size-11 place-items-center rounded-full" aria-label="Back">
+          <ArrowLeft className="size-5" />
+        </button>
+      )}
+      <div className="segments flex-1" role="img" aria-label={`Step ${step} of ${total}`}>
+        {Array.from({ length: total }, (_, i) => <span key={i} className={i + 1 < step ? "done" : i + 1 === step ? "now" : ""} />)}
+      </div>
     </div>
   );
 }
 
 export default function Onboarding() {
   const profile = useProfile();
-  const complete = useCompleteOnboarding();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [firstName, setFirstName] = useState("");
-  const [picked, setPicked] = useState<Picked[]>([]);
-  const [custom, setCustom] = useState("");
+  const subjects = useAllSubjects();
+  const save = useSaveClasses();
+  const [step, setStep] = useState<Step | null>(null);
+  const [firstName, setFirstName] = useState<string | null>(null);
+  const [grade, setGrade] = useState<Grade | null>(null);
+  const [picks, setPicks] = useState<Picks | null>(null);
 
-  if (profile.isPending) return <div className="mx-auto max-w-md p-6"><PageSkeleton /></div>;
-  if (profile.data?.onboarded && step !== 3) return <Navigate to="/" replace />;
+  if (profile.isPending || subjects.isPending) return <div className="mx-auto max-w-md p-6"><PageSkeleton /></div>;
+  const p = profile.data!;
+  const currentGrade = gradeFor(p.graduation_year);
+  if (p.onboarded && currentGrade && step !== "done") return <Navigate to="/" replace />;
 
-  const isPicked = (name: string) => picked.some((p) => p.name === name);
-  const toggle = (s: Picked) => setPicked((cur) => (isPicked(s.name) ? cur.filter((p) => p.name !== s.name) : [...cur, s]));
-  const extra = picked.filter((p) => !SUBJECT_PRESETS.some((s) => s.name === p.name));
-
-  function addCustom(e: FormEvent) {
-    e.preventDefault();
-    const name = custom.trim().replace(/\s+/g, " ").slice(0, 80);
-    if (name && !isPicked(name)) setPicked((cur) => [...cur, { name, area: "Other" }]);
-    setCustom("");
-  }
+  // Students who finished the old onboarding only need their grade and classes.
+  const returning = p.onboarded;
+  const stepNow: Step = step ?? (returning ? "grade" : "name");
+  const name = firstName ?? p.first_name ?? "";
+  const g = grade ?? currentGrade;
+  const chosen = picks ?? picksFrom(subjects.data);
+  const total = returning ? 2 : 3;
+  const num = { name: 1, grade: returning ? 1 : 2, classes: returning ? 2 : 3, done: total } as const;
+  const pickCount = Object.keys(chosen).length;
+  const missingLevel = Object.entries(chosen).find(([, code]) => !code);
 
   async function finish() {
-    await complete.mutateAsync({ firstName: firstName.trim().slice(0, 60), subjects: picked });
-    setStep(3);
+    await save.mutateAsync({ picks: chosen, graduationYear: graduationYearFor(g!), firstName: name, finishOnboarding: true });
+    setStep("done");
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-6 px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-8">
-      {step === 1 && (
-        <form className="flex flex-1 flex-col gap-6" onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
-          <div className="flex items-center gap-3"><Steps step={1} /></div>
+    <main className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col gap-6 px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-8">
+      {stepNow === "name" && (
+        <form className="flex flex-1 flex-col gap-6" onSubmit={(e) => { e.preventDefault(); setStep("grade"); }}>
+          <Steps step={num.name} total={total} />
           <div>
             <h1 className="text-[2rem]">What should we call you?</h1>
             <p className="mt-2 text-muted">Just a first name, so your day starts with it. You can skip this.</p>
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="first-name" className="field-label">First name</label>
-            <input id="first-name" className="input" autoComplete="given-name" value={firstName} maxLength={60} onChange={(e) => setFirstName(e.target.value)} />
+            <input id="first-name" className="input" autoComplete="given-name" value={name} maxLength={60} onChange={(e) => setFirstName(e.target.value)} />
           </div>
-          <Button type="submit" block className="mt-auto">{firstName.trim() ? "Continue" : "Skip for now"}</Button>
+          <Button type="submit" block className="mt-auto">{name.trim() ? "Continue" : "Skip for now"}</Button>
         </form>
       )}
 
-      {step === 2 && (
+      {stepNow === "grade" && (
         <div className="flex flex-1 flex-col gap-6">
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={() => setStep(1)} className="grid size-11 place-items-center rounded-full" aria-label="Back"><ArrowLeft className="size-5" /></button>
-            <Steps step={2} />
-          </div>
+          <Steps step={num.grade} total={total} onBack={returning ? undefined : () => setStep("name")} />
           <div>
-            <h1 className="text-[2rem]">Which classes are you taking?</h1>
-            <p className="mt-2 text-muted">Pick a few to start. You can add more any time.</p>
+            <h1 className="text-[2rem]">What grade are you in?</h1>
+            <p className="mt-2 text-muted">We show the classes Conestoga offers for your grade. It moves up on its own each school year.</p>
           </div>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Classes">
-            {[...SUBJECT_PRESETS, ...extra].map((s) => (
-              <button key={s.name} type="button" className="pill-option" aria-pressed={isPicked(s.name)} onClick={() => toggle(s)}>
-                {isPicked(s.name) && <Check />}
-                {s.name}
-              </button>
-            ))}
-          </div>
-          <form onSubmit={addCustom} className="flex gap-2">
-            <label htmlFor="custom-class" className="sr-only">Add another class</label>
-            <input id="custom-class" className="input" placeholder="Add another class" value={custom} maxLength={80} onChange={(e) => setCustom(e.target.value)} />
-            <Button type="submit" variant="secondary" aria-label="Add class" disabled={!custom.trim()}><Plus /></Button>
-          </form>
-          {complete.isError && (
-            <p role="alert" className="callout">We could not save your classes. Check your connection, then try again. Nothing was lost.</p>
-          )}
-          <Button block className="mt-auto" disabled={picked.length === 0 || complete.isPending} onClick={finish}>
-            {complete.isPending ? "Saving…" : picked.length === 0 ? "Pick at least one class" : `Continue with ${picked.length}`}
+          <GradePicker value={g} onChange={setGrade} />
+          <Button block className="mt-auto" disabled={!g} onClick={() => setStep("classes")}>
+            {g ? `Continue as a ${GRADE_NAME[g].toLowerCase()}` : "Choose your grade"}
           </Button>
         </div>
       )}
 
-      {step === 3 && (
+      {stepNow === "classes" && (
+        <div className="flex flex-1 flex-col gap-6">
+          <Steps step={num.classes} total={total} onBack={() => setStep("grade")} />
+          <div>
+            <h1 className="text-[2rem]">Which classes are you taking?</h1>
+            <p className="mt-2 text-muted">Core classes from the 2026–27 Program of Studies. Pick yours and their levels. You can change them any time.</p>
+          </div>
+          <ClassPicker grade={g} value={chosen} onChange={setPicks} />
+          <div className="sticky bottom-0 -mx-5 flex flex-col gap-2 border-t border-line bg-bg px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            {save.isError && <p role="alert" className="callout">We could not save your classes. Check your connection, then try again. Nothing was lost.</p>}
+            {missingLevel && <p className="text-center text-[0.875rem] font-bold text-brand">Choose a level for {findCourse(missingLevel[0])?.title}.</p>}
+            <Button block disabled={pickCount === 0 || !!missingLevel || save.isPending} onClick={finish}>
+              {save.isPending ? "Saving…" : pickCount === 0 ? "Pick at least one class" : `Continue with ${pickCount} ${pickCount === 1 ? "class" : "classes"}`}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {stepNow === "done" && (
         <div className="flex flex-1 flex-col gap-5">
-          <div className="segments" role="img" aria-label="Setup complete"><span className="done" /><span className="done" /></div>
+          <div className="segments" role="img" aria-label="Setup complete">{Array.from({ length: total }, (_, i) => <span key={i} className="done" />)}</div>
           <span className="chip self-start">Essential plan, free</span>
           <h1 className="pop text-[2rem]">
-            {firstName.trim() ? `${firstName.trim()}, you` : "You"} are set up with {picked.length} {picked.length === 1 ? "subject" : "subjects"}
+            {name.trim() ? `${name.trim()}, you` : "You"} are set up with {pickCount} {pickCount === 1 ? "class" : "classes"}
           </h1>
           <ul className="card divide-y divide-line px-4">
-            {picked.map((s) => (
-              <li key={s.name} className="flex items-center gap-3 py-3">
-                <span className="grid size-6 place-items-center rounded-full bg-primary text-white"><Check className="size-3.5" /></span>
-                {s.name}
-                <span className="ml-auto text-[0.875rem] text-muted">{s.area}</span>
-              </li>
-            ))}
+            {Object.entries(chosen).map(([id, code]) => {
+              const course = findCourse(id);
+              const s = course && findSection(course, code);
+              return (
+                <li key={id} className="flex items-center gap-3 py-3">
+                  <span className="grid size-6 flex-none place-items-center rounded-full bg-primary text-white"><Check className="size-3.5" /></span>
+                  <span className="min-w-0 flex-1">{s?.name ?? course?.title}</span>
+                  {s?.level && <span className="chip !min-h-6 !text-[0.8125rem]">{LEVEL_LABEL[s.level]}</span>}
+                </li>
+              );
+            })}
           </ul>
           <div className="card card-dashed p-4">
             <p className="font-bold">Next: add this week&apos;s notes</p>

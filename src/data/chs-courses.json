@@ -1,0 +1,2236 @@
+{
+ "school": "Conestoga High School",
+ "schoolYear": "2026-27",
+ "source": "https://resources.finalsite.net/images/v1769441643/tesdnet/nutnldvuymcp7fq1noi5/POS2627Updated.pdf",
+ "courses": [
+  {
+   "id": "literary-foundations",
+   "title": "Literary Foundations",
+   "department": "English",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "In this course, students will explore themes in literature written across genres (e.g. epic, drama, novel, poetry, short story, narrative non-fiction, informational and persuasive texts) and contexts (e.g. historical, geographical, cultural, temporal).",
+   "page": 23,
+   "sections": [
+    {
+     "code": "0300",
+     "level": "H",
+     "name": "Literary Foundations",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0301",
+     "level": "X",
+     "name": "Literary Foundations",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0311",
+     "level": "X",
+     "name": "Literary Foundations",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0312",
+     "level": "A",
+     "name": "Literary Foundations",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "language-and-composition",
+   "title": "Language and Composition",
+   "department": "English",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Language and Composition focuses primarily on the reading and writing of non-fiction from both contemporary and classical sources. Students read critically to discover the rhetorical strategies of good writers and to apply those strategies to their own writing. Students analyze audience and purpose as well as mechanics, diction, and style in the readings and in their own writing.",
+   "page": 23,
+   "sections": [
+    {
+     "code": "0050",
+     "level": "AP",
+     "name": "AP Language and Composition",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0070",
+     "level": "H",
+     "name": "Language and Composition",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0071",
+     "level": "X",
+     "name": "Language and Composition",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0072",
+     "level": "A",
+     "name": "Language and Composition",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "american-voices",
+   "title": "American Voices",
+   "department": "English",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "This course invites students to explore American literary traditions from pre-colonial oral narratives to contemporary multicultural voices. Through close reading, critical analysis, and contextual exploration, students will examine how literature reflects and shapes the evolving American identity.",
+   "page": 23,
+   "sections": [
+    {
+     "code": "0320",
+     "level": "H",
+     "name": "American Voices",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0321",
+     "level": "X",
+     "name": "American Voices",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0331",
+     "level": "X",
+     "name": "American Voices",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0332",
+     "level": "A",
+     "name": "American Voices",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "comparative-literature-mayhem",
+   "title": "Comparative Literature: Mayhem",
+   "department": "English",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "This comparative literature course dives into the thrilling, unsettling, and diverse genres of science fiction, dystopia, mystery, and horror. Students will explore how authors across cultures and time periods use imaginative storytelling to confront real-world anxieties, challenge societal norms, and speculate on the future of humanity.",
+   "page": 23,
+   "sections": [
+    {
+     "code": "0410",
+     "level": "H",
+     "name": "Comparative Literature: Mayhem",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0411",
+     "level": "X",
+     "name": "Comparative Literature: Mayhem",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "comparative-literature-mirrors",
+   "title": "Comparative Literature: Mirrors",
+   "department": "English",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "How does literature mirror the way people form and shape their identities? What role does a community play in shaping that identity? What happens when the individual comes in conflict where protagonists come of age and establish their identities. Core texts will explore the role of a community in the coming of-age story where protagonists may find themselves questioning their society.",
+   "page": 23,
+   "sections": [
+    {
+     "code": "0430",
+     "level": "H",
+     "name": "Comparative Literature: Mirrors",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0431",
+     "level": "X",
+     "name": "Comparative Literature: Mirrors",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "comparative-literature-masks",
+   "title": "Comparative Literature: Masks",
+   "department": "English",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "From the beginning of civilization, humans have turned to performance to understand themselves and the world around them. This course will focus on a variety of performances: comedies, tragedies, historical fiction, musicals, etc. This is a survey course that is meant to introduce students to a myriad of different types of performative literature.",
+   "page": 24,
+   "sections": [
+    {
+     "code": "0440",
+     "level": "H",
+     "name": "Comparative Literature: Masks",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "0441",
+     "level": "X",
+     "name": "Comparative Literature: Masks",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-literature-and-composition",
+   "title": "AP Literature and Composition",
+   "department": "English",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "AP Literature is a course for advanced readers that encourages deep exploration into both the theory and craft of literature. Drawing from many cultures and many time periods, the course features novels, short stories, plays, and poetry by such authors as William Shakespeare, Margaret Atwood, Toni Morrison, Jesmyn Ward, Flannery O'Connor, and Tommy Orange.",
+   "page": 24,
+   "sections": [
+    {
+     "code": "0040",
+     "level": "AP",
+     "name": "AP Literature and Composition",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "english-language-development",
+   "title": "English Language Development",
+   "department": "English",
+   "credits": 0.5,
+   "duration": "Semester",
+   "prerequisite": null,
+   "description": "The English Language Development course is open only to students whose native language is not English and who have met the entry criteria as stated in the District’s ELD policy. The course is designed to provide instruction in listening, speaking, reading and writing English.",
+   "page": 24,
+   "sections": [
+    {
+     "code": "0289",
+     "level": null,
+     "name": "English Language Development",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "united-states-history",
+   "title": "United States History",
+   "department": "Social Studies",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Using a chronological approach, students survey the political, economic, social, and multicultural forces present in United States history. Major areas of study include imperialism and expansion, progressivism and reform, prosperity and depression, war and foreign policy, civil rights, immigration and population growth, and present-day issues associated with a post-industrial society.",
+   "page": 27,
+   "sections": [
+    {
+     "code": "1200",
+     "level": "AP",
+     "name": "AP United States History",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1210",
+     "level": "H",
+     "name": "United States History",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1211",
+     "level": "X",
+     "name": "United States History",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1212",
+     "level": "A",
+     "name": "United States History",
+     "grades": [
+      10
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "world-history",
+   "title": "World History",
+   "department": "Social Studies",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Using a chronological approach, students survey the political, economic, social and cultural development of Africa, the Americas, Asia and Europe. Major areas of study include early world civilizations, exploration, the Renaissance, Reformation and Enlightenment in Europe, political and industrial revolutions, 19th century nationalism and imperialism, 20th Century wars, decolonization and globalization.",
+   "page": 27,
+   "sections": [
+    {
+     "code": "1000",
+     "level": "AP",
+     "name": "AP World History",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1010",
+     "level": "H",
+     "name": "World History",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1011",
+     "level": "X",
+     "name": "World History",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1012",
+     "level": "A",
+     "name": "World History",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "us-government-and-politics-economics",
+   "title": "US Government and Politics / Economics",
+   "department": "Social Studies",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "AP US Government and Politics and United States Government and Politics/Economics requires students to analyze United States government and politics and explore economic theory and practice. After examining the underpinnings of the U.S. Constitution, students will begin to interpret and apply the Constitution to governmental policy.",
+   "page": 28,
+   "sections": [
+    {
+     "code": "1700",
+     "level": "AP",
+     "name": "AP US Government and Politics",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1710",
+     "level": "H",
+     "name": "US Government and Politics / Economics",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1711",
+     "level": "X",
+     "name": "US Government and Politics / Economics",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "1712",
+     "level": "A",
+     "name": "US Government and Politics / Economics",
+     "grades": [
+      11
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "geometry",
+   "title": "Geometry",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Algebra 1",
+   "description": "This course covers all major geometric topics and theorems typically taught in a year-long geometry class, while also introducing algebra-based applications in statistics, probability, and trigonometry. The rigor and scope will vary by course level.",
+   "page": 31,
+   "sections": [
+    {
+     "code": "2080",
+     "level": "H",
+     "name": "Geometry",
+     "grades": [
+      9,
+      10,
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2081",
+     "level": "X",
+     "name": "Geometry",
+     "grades": [
+      9,
+      10,
+      11
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "algebra-1",
+   "title": "Algebra 1",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Pre-Algebra",
+   "description": "This course is designed for students ready to begin the formal study of Algebra while also preparing for the Algebra 1 Keystone Exam. Students will build a strong foundation in algebraic reasoning and problem solving while they explore linear and non-linear relationships and work with algebraic expressions, equations, and inequalities with one and two variables.",
+   "page": 31,
+   "sections": [
+    {
+     "code": "2011",
+     "level": "X",
+     "name": "Algebra 1",
+     "grades": [
+      9,
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2092",
+     "level": "A",
+     "name": "Algebra 1",
+     "grades": [
+      9,
+      10
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "pre-algebra",
+   "title": "Pre-Algebra",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "*requires administrative approval This course is intended to prepare students for Algebra 1. Number properties, operations, and applications are emphasized. The role of a variable is explored and used in multiple contexts. The properties of integers, linear equations in one variable, polynomial operations, selected geometric topics, and some algebraic-level concepts are developed.",
+   "page": 31,
+   "sections": [
+    {
+     "code": "2002",
+     "level": "A",
+     "name": "Pre-Algebra",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "algebra-2",
+   "title": "Algebra 2",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Geometry",
+   "description": "All of the traditional topics will be addressed in these Algebra 2 courses. This course extends the concepts learned in Algebra 1 to include the complex number system and functional notation.",
+   "page": 32,
+   "sections": [
+    {
+     "code": "2050",
+     "level": "H*",
+     "name": "Algebra 2",
+     "grades": [
+      9,
+      10
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2150",
+     "level": "H",
+     "name": "Algebra 2",
+     "grades": [
+      9,
+      10,
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2051",
+     "level": "X",
+     "name": "Algebra 2",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2052",
+     "level": "A",
+     "name": "Algebra 2",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "math-analysis",
+   "title": "Math Analysis",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Algebra 2",
+   "description": "These Math Analysis courses are designed to prepare students for high school or college calculus. A functional approach is used throughout to provide an extensive treatment of topics from algebra, geometry, and trigonometry.",
+   "page": 32,
+   "sections": [
+    {
+     "code": "2100",
+     "level": "H*",
+     "name": "Math Analysis",
+     "grades": [
+      9,
+      10,
+      11
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2110",
+     "level": "H",
+     "name": "Math Analysis",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2111",
+     "level": "X",
+     "name": "Math Analysis",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-calculus-bc",
+   "title": "AP Calculus BC",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Math Analysis",
+   "description": "This is a college level course that covers material equal to two semesters of college work. Although this is a rigorous course, and all definitions and theorems are precisely stated, many of the proofs are deferred to later courses. Students are required to have and use a graphing calculator which is considered an integral part of the course.",
+   "page": 33,
+   "sections": [
+    {
+     "code": "2200",
+     "level": "AP",
+     "name": "AP Calculus BC",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "calculus",
+   "title": "Calculus",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Math Analysis",
+   "description": "This high school calculus course prepares students to apply calculus in sciences, social sciences, and business, while building a strong foundation for advanced study. The course emphasizes both practical applications and the theoretical principles of calculus. Students will learn to compute derivatives of polynomial, exponential, logarithmic, and trigonometric functions.",
+   "page": 33,
+   "sections": [
+    {
+     "code": "2220",
+     "level": "H",
+     "name": "Calculus",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2221",
+     "level": "X",
+     "name": "Calculus",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-calculus-ab",
+   "title": "AP Calculus AB",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Math Analysis",
+   "description": "This is a college level course that covers material equal to 1 semester of college work. Students are required to have and use a graphing calculator, considered an integral part of the course. Students will work with functions represented in a variety of ways (graphical, numerical, analytical, and verbal) and need to apply knowledge learned in previous math courses in the context of Calculus.",
+   "page": 33,
+   "sections": [
+    {
+     "code": "2210",
+     "level": "AP",
+     "name": "AP Calculus AB",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "trigonometry-and-algebra-3",
+   "title": "Trigonometry and Algebra 3",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Algebra 2",
+   "description": "This course emphasizes the inter-relationships of algebraic and trigonometric functions. A functional approach is used throughout to provide extensive treatment of topics from algebra and trigonometry. Topics in algebra are extended to make connections and identify similarities to trigonometry.",
+   "page": 33,
+   "sections": [
+    {
+     "code": "2141",
+     "level": "X",
+     "name": "Trigonometry and Algebra 3",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": [
+      11
+     ]
+    }
+   ]
+  },
+  {
+   "id": "statistics",
+   "title": "Statistics",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "This course is designed to give students an introduction to the concepts of statistics. Descriptive statistics, sampling, experimental design, probability, and inferential statistics will be studied and applied to real-life scenarios. This course stresses the practical application of statistics to various disciplines and scenarios.",
+   "page": 33,
+   "sections": [
+    {
+     "code": "2230",
+     "level": "H",
+     "name": "Statistics",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "2231",
+     "level": "X",
+     "name": "Statistics",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-statistics",
+   "title": "AP Statistics",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Algebra 2",
+   "description": "This college-level course covers material equivalent to one semester of college statistics and is activity-driven, with applications in gaming scenarios, population growth, and sports.",
+   "page": 34,
+   "sections": [
+    {
+     "code": "2240",
+     "level": "AP",
+     "name": "AP Statistics",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "multi-variable-calculus-with-advanced-topics",
+   "title": "Multi-Variable Calculus with Advanced Topics",
+   "department": "Mathematics",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "AP Calculus BC",
+   "description": "This elective course is a continuation of the calculus sequence and is intended for students who have successfully completed AP Calculus BC. Students who successfully complete this course will earn one Conestoga math credit and should be prepared for advanced college calculus or differential equations.",
+   "page": 34,
+   "sections": [
+    {
+     "code": "2300",
+     "level": "H*",
+     "name": "Multi-Variable Calculus with Advanced Topics",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "biology",
+   "title": "Biology",
+   "department": "Science",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "The goal of all Biology courses is to establish a core of biological concepts and information that can be of value to all students. These lab-based courses are designed to teach students scientific skills and problem solving in addition to preparing students for the Keystone Exam in Biology. Biology at the AP level prepares students for success on the Advanced Placement (AP) Biology examination.",
+   "page": 35,
+   "sections": [
+    {
+     "code": "3100",
+     "level": "AP",
+     "name": "AP Biology",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3110",
+     "level": "H",
+     "name": "Biology",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3111",
+     "level": "X",
+     "name": "Biology",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3112",
+     "level": "A",
+     "name": "Biology",
+     "grades": [
+      9
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "environmental-science",
+   "title": "Environmental Science",
+   "department": "Science",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Environmental Science is a course designed for students who have an interest in biology/environmental themes. The class is an extension of environmental/ecology topics that were covered in the student’s first year Biology class. This is a multi-disciplinary science course that applies scientific concepts to real world problems and dilemmas.",
+   "page": 35,
+   "sections": [
+    {
+     "code": "3130",
+     "level": "AP",
+     "name": "AP Environmental Science",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3140",
+     "level": "H",
+     "name": "Environmental Science",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3141",
+     "level": "X",
+     "name": "Environmental Science",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3142",
+     "level": "A",
+     "name": "Environmental Science",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-chemistry",
+   "title": "AP Chemistry",
+   "department": "Science",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Chemistry 1",
+   "description": "Enrollment in AP Chemistry 2 allows students to continue the study of certain concepts from Chemistry 1 in greater depth. Considerable emphasis is placed on individual laboratory activities. This course provides a more complete background for those students interested in a science career. Students are encouraged to take the AP Chemistry Examination at the conclusion of this course. Science",
+   "page": 36,
+   "sections": [
+    {
+     "code": "3220",
+     "level": "AP",
+     "name": "AP Chemistry",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "chemistry-1",
+   "title": "Chemistry 1",
+   "department": "Science",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Chemistry 1 is a math-based, physical science course which covers basic first-year chemistry topics. Numerous hands-on laboratory experiments are included at all levels.",
+   "page": 36,
+   "sections": [
+    {
+     "code": "3200",
+     "level": "AP",
+     "name": "AP Chemistry 1",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3210",
+     "level": "H",
+     "name": "Chemistry 1",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3211",
+     "level": "X",
+     "name": "Chemistry 1",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3212",
+     "level": "A",
+     "name": "Chemistry 1",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "physics",
+   "title": "Physics",
+   "department": "Science",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "The calculus-based Advanced Placement (AP) Physics course is approximately equivalent to a one-year, college-level course in general physics for scientists and engineers. Topics include: motion, forces, vectors, momentum, and energy. This course is designed to prepare students for the calculus-based AP Physics C: Mechanics test administered annually in May.",
+   "page": 36,
+   "sections": [
+    {
+     "code": "3300",
+     "level": "AP",
+     "name": "AP Physics",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3310",
+     "level": "H",
+     "name": "Physics",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3311",
+     "level": "X",
+     "name": "Physics",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3312",
+     "level": "A",
+     "name": "Physics",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-physics-c-electricity-and-magnetism",
+   "title": "AP Physics C: Electricity and Magnetism",
+   "department": "Science",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "AP Physics C: Mechanics",
+   "description": "This calculus-based course is a continuation of AP Physics C: Mechanics. Topics include: electrostatics, electricity and circuits, field theory and electric fields, magnetism and magnetic fields, electromagnetic waves and optics.",
+   "page": 36,
+   "sections": [
+    {
+     "code": "3320",
+     "level": "AP",
+     "name": "AP Physics C: Electricity and Magnetism",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "anatomy-and-physiology",
+   "title": "Anatomy and Physiology",
+   "department": "Science",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Biology",
+   "description": "This laboratory-based course is intended for students who are interested in pursuing a science/health-related career. The class will provide an in-depth study of both anatomy – the parts of the human body, and physiology – the function of the organs within the body. Upon completion, students should be able to demonstrate a more complete understanding of organ systems and how they contribute to normal body functions.",
+   "page": 37,
+   "sections": [
+    {
+     "code": "3190",
+     "level": "H",
+     "name": "Anatomy and Physiology",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3191",
+     "level": "X",
+     "name": "Anatomy and Physiology",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "microbiology",
+   "title": "Microbiology",
+   "department": "Science",
+   "credits": 0.5,
+   "duration": "Semester",
+   "prerequisite": "Biology",
+   "description": "Microbiology is a laboratory-oriented course in which students learn about the largest group of living organisms on Earth. Students gain an appreciation for the great diversity of microorganisms through an overview of various organisms in Kingdoms Fungi and Protista.",
+   "page": 37,
+   "sections": [
+    {
+     "code": "3160",
+     "level": "H",
+     "name": "Microbiology",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3161",
+     "level": "X",
+     "name": "Microbiology",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "genetics",
+   "title": "Genetics",
+   "department": "Science",
+   "credits": 0.5,
+   "duration": "Semester",
+   "prerequisite": "Biology",
+   "description": "Genetics is a laboratory-based course designed for students who have an interest in furthering their knowledge in the field of genetics and inheritance. This course focuses on the role of chromosomes, genes, and DNA in the inheritance of human traits and disorders.",
+   "page": 37,
+   "sections": [
+    {
+     "code": "3180",
+     "level": "H",
+     "name": "Genetics",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3181",
+     "level": "X",
+     "name": "Genetics",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "fundamentals-of-organic-chemistry",
+   "title": "Fundamentals of Organic Chemistry",
+   "department": "Science",
+   "credits": 0.5,
+   "duration": "Semester",
+   "prerequisite": "Chemistry 1",
+   "description": "Fundamentals of Organic Chemistry is a research-focused, laboratory-based investigation of an important and practical domain of Chemistry. As a laboratory-based course, students will develop proficiency with a broad array of equipment, instrumentation, and analytical techniques including digital data collection technologies.",
+   "page": 37,
+   "sections": [
+    {
+     "code": "3230",
+     "level": "H",
+     "name": "Fundamentals of Organic Chemistry",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3231",
+     "level": "X",
+     "name": "Fundamentals of Organic Chemistry",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "astronomy",
+   "title": "Astronomy",
+   "department": "Science",
+   "credits": 0.5,
+   "duration": "Semester",
+   "prerequisite": "Biology",
+   "description": "Astronomy is a laboratory-based course designed for students who have an interest in furthering their knowledge of astronomy. The course focuses on the history of astronomy, the solar system, the sun and life cycles of stars, galaxies and cosmology. Laboratory activities will include: Kepler’s Laws, planetary motion, Doppler Effect, and optics.",
+   "page": 37,
+   "sections": [
+    {
+     "code": "3420",
+     "level": "H",
+     "name": "Astronomy",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3421",
+     "level": "X",
+     "name": "Astronomy",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "forensic-science",
+   "title": "Forensic Science",
+   "department": "Science",
+   "credits": 0.5,
+   "duration": "Semester",
+   "prerequisite": "Biology",
+   "description": "Forensic Science is an introduction to the analysis of crime scenes that explores the collecting and analyzing of physical evidence. This course is designed to integrate the core scientific disciplines (as outlined in the Pennsylvania Standards for grades 9-12) while giving students both theory and hands-on experience with the skills and knowledge required of a forensic crime scene investigator.",
+   "page": 37,
+   "sections": [
+    {
+     "code": "3050",
+     "level": "H",
+     "name": "Forensic Science",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "3051",
+     "level": "X",
+     "name": "Forensic Science",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "french-3",
+   "title": "French 3",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "French 2",
+   "description": "Students will continue to refine the four communicative skills learned in French 1 and 2. Thematic vocabulary and advanced grammar will be introduced, with an emphasis on the spoken language and practical interactions such as discussing school life, ordering in a restaurant, traveling, and expressing likes and dislikes.",
+   "page": 39,
+   "sections": [
+    {
+     "code": "4030",
+     "level": "H",
+     "name": "French 3",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4031",
+     "level": "X",
+     "name": "French 3",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4032",
+     "level": "A",
+     "name": "French 3",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "french-5",
+   "title": "French 5",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "French 4",
+   "description": "This course is designed for students who desire to speak the French language more naturally and effectively. Lessons are structured through cooperative learning to provide students practice in conversing about popular current event topics. In discussing contemporary issues, students gain a better understanding of French-speaking people, culture, and language.",
+   "page": 39,
+   "sections": [
+    {
+     "code": "4090",
+     "level": "H",
+     "name": "French 5",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4091",
+     "level": "X",
+     "name": "French 5",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "french-4",
+   "title": "French 4",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "French 3",
+   "description": "This course refines the four language skills learned in the first three years. The focus of the course is to provide students with the skills they need to use language for communication.",
+   "page": 39,
+   "sections": [
+    {
+     "code": "4040",
+     "level": "H",
+     "name": "French 4",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4041",
+     "level": "X",
+     "name": "French 4",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "french-2",
+   "title": "French 2",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "French 1",
+   "description": "The second year of French continues to refine and expand the skills acquired in French 1 with the goal of authentic language use. Vocabulary expansion and exposure to francophone culture includes thematic units on holidays/vacationing, art, travel, food, health, environment and daily routine with an emphasis on Parisian life.",
+   "page": 39,
+   "sections": [
+    {
+     "code": "4020",
+     "level": "H",
+     "name": "French 2",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4021",
+     "level": "X",
+     "name": "French 2",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4022",
+     "level": "A",
+     "name": "French 2",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "french-1",
+   "title": "French 1",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "French 1 is a course in which students are introduced to the four basic language skills of listening, speaking, reading and writing with a focus on interpersonal and presentational communication. Students are exposed to Francophone culture through thematic units which include greetings, leisure activities, school, food, family, professions, clothing and weather.",
+   "page": 39,
+   "sections": [
+    {
+     "code": "4010",
+     "level": "H",
+     "name": "French 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4011",
+     "level": "X",
+     "name": "French 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4012",
+     "level": "A",
+     "name": "French 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-french-language-4-5",
+   "title": "AP French Language 4 - 5",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "French 3 or French 4",
+   "description": "This nonsequential, two-year course is intended for students who wish to develop their proficiency in modern spoken French. Students who choose this course should have attained reasonable proficiency in reading, listening, speaking, and writing in their previous study of French. While students may take the AP exam after taking this course for one year, they will be best prepared after two years.",
+   "page": 40,
+   "sections": [
+    {
+     "code": "4070",
+     "level": "AP",
+     "name": "AP French Language 4 - 5",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "french-6",
+   "title": "French 6",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Pre-requisite: French 5 or AP French Language 5 This course offers a culminating experience for students studying the French language. Students will learn to utilize advanced elements of the language by further developing fluency through more complex speaking, reading, writing and listening activities.",
+   "page": 40,
+   "sections": [
+    {
+     "code": "4000",
+     "level": "H",
+     "name": "French 6",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4001",
+     "level": "X",
+     "name": "French 6",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "german-1",
+   "title": "German 1",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Through the fusion of authentic materials from contemporary German media sources and emerging technologies such as cloud-based voice mail and online videos, students will immerse themselves in the German language. Students who take this course during their 9th grade year will be able to reach the AP level by their senior year.",
+   "page": 40,
+   "sections": [
+    {
+     "code": "4110",
+     "level": "H",
+     "name": "German 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4111",
+     "level": "X",
+     "name": "German 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "german-2",
+   "title": "German 2",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "German 1",
+   "description": "German 2 continues to refine and expand the listening, speaking, reading, and writing skills with the goal of authentic language use The student will be able to: • respond in written and/or spoken German • read familiar written German aloud in a manner acceptable to a fluent speaker • demonstrate increased command of vocabulary and elements of grammar • briefly express ideas in German on a given topic, either orally…",
+   "page": 40,
+   "sections": [
+    {
+     "code": "4120",
+     "level": "H",
+     "name": "German 2",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4121",
+     "level": "X",
+     "name": "German 2",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "german-3",
+   "title": "German 3",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "German 2",
+   "description": "German 3 is an active review of German pronunciation and fundamental elements of grammar as well as oral, reading, and writing skills. Emphasis is on basic conversation and discussion skills and on improving the comprehension of German spoken at normal conversational speeds. Readings include transcribed discussions and short stories written for German young people by modern authors.",
+   "page": 40,
+   "sections": [
+    {
+     "code": "4130",
+     "level": "H",
+     "name": "German 3",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4131",
+     "level": "X",
+     "name": "German 3",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-german-language-4",
+   "title": "AP German Language 4",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "German 3",
+   "description": "This course is intended for students who wish to develop their proficiency in modern spoken German without the specific emphasis on literary analysis. Students who choose this course should have attained reasonable proficiency in reading, listening, speaking, and writing in their previous study of German.",
+   "page": 41,
+   "sections": [
+    {
+     "code": "4160",
+     "level": "AP",
+     "name": "AP German Language 4",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "italian-1",
+   "title": "Italian 1",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "In Italian 1, students will be introduced to the Italian Language through the exploration of popular songs, works of art, culture and videos of native Italian speakers. Students will begin building their ability to speak and develop skills for navigating real-world situations. Students will read authentic materials and practice attentive reading strategies: using cognates and context to decipher meaning.",
+   "page": 41,
+   "sections": [
+    {
+     "code": "4510",
+     "level": "H",
+     "name": "Italian 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4511",
+     "level": "X",
+     "name": "Italian 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "italian-2",
+   "title": "Italian 2",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Italian 1",
+   "description": "Students in Italian 2 will further develop communication skills through the exploration of authentic Italian culture. Thematic units include: talking about the past, holidays and festivals, school and youth culture, health and wellness, house and home, and the cities of Italy. Italian cultural traditions are compared with those of the United States.",
+   "page": 41,
+   "sections": [
+    {
+     "code": "4520",
+     "level": "H",
+     "name": "Italian 2",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4521",
+     "level": "X",
+     "name": "Italian 2",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "german-4",
+   "title": "German 4",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "German 3",
+   "description": "German 4 emphasizes speaking and understanding German through a variety of texts including essays, short stories, poetry, and modern media. The study of grammar in context and a general grammar review refine the students’ skills. Discussion in German of such current topics as social life, customs, and the environment is a major aspect of the course.",
+   "page": 41,
+   "sections": [
+    {
+     "code": "4140",
+     "level": "H",
+     "name": "German 4",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4141",
+     "level": "X",
+     "name": "German 4",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "italian-3",
+   "title": "Italian 3",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Italian 2",
+   "description": "Development of oral proficiency continues in Italian 3. The course emphasizes speaking and understanding through a variety of texts, short stories, music and movies. Through carefully selected classic Italian movies, students will acquire an authentic understanding of Italian culture, language, dialects and history.",
+   "page": 42,
+   "sections": [
+    {
+     "code": "4530",
+     "level": "H",
+     "name": "Italian 3",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4531",
+     "level": "X",
+     "name": "Italian 3",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "latin-1",
+   "title": "Latin 1",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "Latin 1 introduces students to the culture, language and history of Ancient Roman Civilization. Grammar, structure, linguistic roots, and vocabulary are strongly emphasized. This introduction stresses comprehension of the Latin language by reading stories centered on the town of Pompeii during the first century AD. Students will also study the relationship and enduring influence of antiquity to the modern world.",
+   "page": 42,
+   "sections": [
+    {
+     "code": "4210",
+     "level": "H",
+     "name": "Latin 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4211",
+     "level": "X",
+     "name": "Latin 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "italian-4",
+   "title": "Italian 4",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Italian 3",
+   "description": "This course is designed for both advanced placement candidates and students interested in the advanced study of Italian. Through discussions of cultural readings, analysis of short literary pieces, presentations, role-play, and collaborations with classmates, this course continues to develop communication skills and cultural awareness.",
+   "page": 42,
+   "sections": [
+    {
+     "code": "4570",
+     "level": "AP",
+     "name": "AP Italian 4",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4540",
+     "level": "H",
+     "name": "Italian 4",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4541",
+     "level": "X",
+     "name": "Italian 4",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "latin-2",
+   "title": "Latin 2",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Latin 1",
+   "description": "The development of communication skills and cultural awareness that began in Latin 1 will continue in Latin 2. Emphasis will be on translation strategies that prepare students to read and understand adapted Latin texts. Language skills are presented in the context of reading comprehension, rather than as isolated concepts.",
+   "page": 42,
+   "sections": [
+    {
+     "code": "4220",
+     "level": "H",
+     "name": "Latin 2",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4221",
+     "level": "X",
+     "name": "Latin 2",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-latin-4",
+   "title": "AP Latin 4",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Latin 3",
+   "description": "This course is designed for both Advanced Placement candidates and students interested in the advanced study of Latin literature. It places major emphasis on writing critical analyses of texts selected from the AP syllabus. Students apply the broad linguistic skills mastered in earlier courses to critically read texts of a deeper, richer complexity.",
+   "page": 43,
+   "sections": [
+    {
+     "code": "4250",
+     "level": "AP",
+     "name": "AP Latin 4",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "latin-4",
+   "title": "Latin 4",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Latin 3",
+   "description": "In Latin 4, students prepare for reading and analysis of authentic Latin prose and poetry. Students expand and refine the skills developed in Latin 3 by reading a variety of authors such as Vergil and Caesar. Recognizing grammatical structures, analyzing poetic style, extracting meaning from passages of poetry and prose, and tracing the influences of authors on later literature are main components of the course.",
+   "page": 43,
+   "sections": [
+    {
+     "code": "4240",
+     "level": "H",
+     "name": "Latin 4",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4241",
+     "level": "X",
+     "name": "Latin 4",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "latin-3",
+   "title": "Latin 3",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Latin 2",
+   "description": "Designed for advanced students demonstrating a commitment to a third year of language study and an interest in literature, this course expands proficiency in reading, speaking, and writing, as well as culture awareness. Direct emphasis will be on reading as a focus on communication with the past, using Latin texts that progress from an “adapted” format to original materials, as students gain confidence and skill.",
+   "page": 43,
+   "sections": [
+    {
+     "code": "4230",
+     "level": "H",
+     "name": "Latin 3",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4231",
+     "level": "X",
+     "name": "Latin 3",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "spanish-4",
+   "title": "Spanish 4",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "credit Prerequisite: Spanish 3 This course continues the expansion and refinement of the four basic language skills developed in Spanish 3, enhanced and supplemented by the study of Spanish art, literature, and culture. Students will participate in cooperative activities to become more proficient in the use of the Spanish language and the understanding of Spanish culture.",
+   "page": 44,
+   "sections": [
+    {
+     "code": "4340",
+     "level": "H",
+     "name": "Spanish 4",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4341",
+     "level": "X",
+     "name": "Spanish 4",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "spanish-1",
+   "title": "Spanish 1",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "credit Spanish 1 is a course in which the student is introduced to the four basic skills: listening, speaking, reading, and writing. Exposure to Spanish and Latin American cultures includes lessons on sports, pastimes, Spanish-speaking people in the United States, and careers.",
+   "page": 44,
+   "sections": [
+    {
+     "code": "4310",
+     "level": "H",
+     "name": "Spanish 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4311",
+     "level": "X",
+     "name": "Spanish 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4312",
+     "level": "A",
+     "name": "Spanish 1",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "spanish-2",
+   "title": "Spanish 2",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "credit Prerequisite: Spanish 1 The second year of Spanish continues to refine and expand the skills acquired in Spanish 1. Vocabulary expansion, grammar introduction, and exposure to Spanish-speaking cultures are accomplished by studying Spanish-speaking school life, daily routines, shopping, getting around the city and traditional lifestyles.",
+   "page": 44,
+   "sections": [
+    {
+     "code": "4320",
+     "level": "H",
+     "name": "Spanish 2",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4321",
+     "level": "X",
+     "name": "Spanish 2",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4322",
+     "level": "A",
+     "name": "Spanish 2",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "spanish-3",
+   "title": "Spanish 3",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": null,
+   "description": "credit Prerequisite: Spanish 2 This course will continue to develop and refine students’ speaking, writing, listening and reading skills learned in Spanish 1 and 2. Emphasis will be placed on navigating language skills in everyday experiences related to food, travel, emergencies, health, and pastimes. Awareness of the way of life, culture, and philosophy in Spanish-speaking countries will also be incorporated.",
+   "page": 44,
+   "sections": [
+    {
+     "code": "4330",
+     "level": "H",
+     "name": "Spanish 3",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4331",
+     "level": "X",
+     "name": "Spanish 3",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4332",
+     "level": "A",
+     "name": "Spanish 3",
+     "grades": [
+      9,
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "spanish-6",
+   "title": "Spanish 6",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Spanish 5 or AP Spanish Language 4-5",
+   "description": "This course offers a culminating experience for students studying the Spanish language. Students will learn to utilize advanced elements of the language by further developing fluency through more complex speaking, reading, writing and listening activities.",
+   "page": 45,
+   "sections": [
+    {
+     "code": "4300",
+     "level": "H",
+     "name": "Spanish 6",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4301",
+     "level": "X",
+     "name": "Spanish 6",
+     "grades": [
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "spanish-5",
+   "title": "Spanish 5",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Spanish 4",
+   "description": "This course is conducted in Spanish and engages students in conversation in a variety of formats toward the goal of further developing oral proficiency. Students will strengthen linguistic skills by increasing vocabulary and spontaneity, improving pronunciation and fluency and acquiring confidence in speaking Spanish.",
+   "page": 45,
+   "sections": [
+    {
+     "code": "4390",
+     "level": "H",
+     "name": "Spanish 5",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    },
+    {
+     "code": "4391",
+     "level": "X",
+     "name": "Spanish 5",
+     "grades": [
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  },
+  {
+   "id": "ap-spanish-language-4-5",
+   "title": "AP Spanish Language 4 - 5",
+   "department": "World Languages",
+   "credits": 1.0,
+   "duration": "Year",
+   "prerequisite": "Spanish 3 or Spanish 4",
+   "description": "Spanish 4 and 5 students are blended together in this two-year, non-sequential course that is intended for students who wish to develop proficiency in modern spoken Spanish Students who choose this course should have attained an advanced proficiency in reading, listening, writing, and speaking in their previous study of Spanish. Preparation for the Advanced Placement exam will be a key component.",
+   "page": 45,
+   "sections": [
+    {
+     "code": "4370",
+     "level": "AP",
+     "name": "AP Spanish Language 4 - 5",
+     "grades": [
+      10,
+      11,
+      12
+     ],
+     "approvalGrades": []
+    }
+   ]
+  }
+ ]
+}

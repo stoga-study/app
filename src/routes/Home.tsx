@@ -2,6 +2,8 @@ import { BookOpen, Upload } from "lucide-react";
 import { Link } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { LEVEL_LABEL, type Level } from "@/lib/catalog";
+import { describeGrade } from "@/lib/grade";
 import { useProfile, useSubjects } from "@/lib/queries/profile";
 import { SUBJECT_TILE } from "@/lib/subjects";
 
@@ -33,7 +35,13 @@ export default function Home() {
       </div>
 
       <section className="mt-8" aria-labelledby="subjects-title">
-        <h2 id="subjects-title" className="mb-3 text-[1.375rem]">Your subjects</h2>
+        <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 id="subjects-title" className="text-[1.375rem]">Your classes</h2>
+            {profile.data?.graduation_year && <p className="text-[0.9375rem] text-muted">{describeGrade(profile.data.graduation_year)}</p>}
+          </div>
+          <Button asChild variant="secondary" size="sm"><Link to="/classes">Edit classes</Link></Button>
+        </div>
         {subjects.isPending ? (
           <div className="grid gap-3 sm:grid-cols-2">{[0, 1].map((i) => <div key={i} className="skeleton h-20 rounded-[1.5rem]" />)}</div>
         ) : (
@@ -44,7 +52,9 @@ export default function Home() {
                 <div className="min-w-0">
                   {s.area && <p className="text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-brand">{s.area}</p>}
                   <p className="truncate font-display text-[1.125rem] font-bold">{s.name}</p>
-                  <p className="text-[0.875rem] text-muted">No material yet</p>
+                  <p className="text-[0.875rem] text-muted">
+                    {s.level ? `${LEVEL_LABEL[s.level as Level]} · ` : ""}No material yet
+                  </p>
                 </div>
               </li>
             ))}

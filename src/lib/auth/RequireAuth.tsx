@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router";
 import { ErrorState, PageSkeleton } from "@/components/States";
+import { gradeFor } from "@/lib/grade";
 import { useProfile } from "@/lib/queries/profile";
 import { useAuth } from "./session";
 
@@ -32,6 +33,7 @@ export function RequireOnboarded() {
         </ErrorState>
       </div>
     );
-  if (!profile.data.onboarded) return <Navigate to="/onboarding" replace />;
+  // New students, and anyone without a current grade (e.g. a new school year after graduating), set up first.
+  if (!profile.data.onboarded || !gradeFor(profile.data.graduation_year)) return <Navigate to="/onboarding" replace />;
   return <Outlet />;
 }

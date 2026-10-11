@@ -1,0 +1,120 @@
+import { Check, Search } from "lucide-react";
+import { useMemo, useState } from "react";
+import { catalog, DEPARTMENTS, LEVEL_LABEL, sectionsForGrade, type Course, type Picks, type Section } from "@/lib/catalog";
+import type { Grade } from "@/lib/grade";
+
+function matches(course: Course, q: string) {
+  if (!q) return true;
+  const hay = [course.title, ...course.sections.flatMap((s) => [s.name, s.code])].join(" ").toLowerCase();
+  return q.toLowerCase().split(/\s+/).every((w) => hay.includes(w));
+}
+
+function meta(course: Course) {
+  const credit = course.credits === null ? null : `${course.credits} credit${course.credits === 1 ? "" : "s"}`;
+  return [course.duration, credit].filter(Boolean).join(" · ");
+}
+
+function levelText(s: Section, grade: Grade | null) {
+  const label = s.level ? LEVEL_LABEL[s.level] : "Standard";
+  return grade && s.approvalGrades.includes(grade) ? `${label}, with approval` : label;
+}
+
+/** Pick core classes for a grade, one level per course. */
+export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; value: Picks; onChange: (next: Picks) => void }) {
+  const [query, setQuery] = useState("");
+  const [allGrades, setAllGrades] = useState(false);
+  const shownGrade = allGrades ? null : grade;
+
+  const groups = useMemo(
+    () =>
+      DEPARTMENTS.map((dept) => ({
+        dept,
+        courses: catalog.courses.filter(
+          (c) => c.department === dept && matches(c, query.trim()) && (c.id in value || sectionsForGrade(c, shownGrade).length > 0),
+        ),
+      })).filter((g) => g.courses.length > 0),
+    [query, shownGrade, value],
+  );
+
+  function toggle(course: Course, options: Section[]) {
+    const next = { ...value };
+    if (course.id in next) delete next[course.id];
+    else next[course.id] = options.length === 1 ? options[0].code : "";
+    onChange(next);
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
+        <div className="relative">
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted" aria-hidden="true" />
+          <label htmlFor="class-search" className="sr-only">Search classes</label>
+          <input id="class-search" className="input !pl-12" placeholder="Search, e.g. Algebra 2 or 2150" value={query} onChange={(e) => setQuery(e.target.value)} />
+        </div>
+        <nav aria-label="Departments" className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+          {groups.map((g) => (
+            <button key={g.dept} type="button" className="chip chip-neutral flex-none" onClick={() => document.getElementById(`dept-${g.dept}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              {g.dept}
+            </button>
+          ))}
+        </nav>
+        {grade && (
+          <label className="flex min-h-11 items-center gap-3 text-[0.9375rem] text-muted">
+            <input type="checkbox" className="size-5 accent-[var(--primary)]" checked={allGrades} onChange={(e) => setAllGrades(e.target.checked)} />
+            Also show classes usually taken in other grades
+          </label>
+        )}
+      </div>
+
+      {groups.length === 0 && <p className="callout neutral">No classes match “{query}”. Try a shorter search or the course code.</p>}
+
+      {groups.map((g) => (
+        <section key={g.dept} id={`dept-${g.dept}`} aria-labelledby={`dept-h-${g.dept}`} className="scroll-mt-4">
+          <h2 id={`dept-h-${g.dept}`} className="eyebrow mb-2">{g.dept}</h2>
+          <ul className="flex flex-col gap-2">
+            {g.courses.map((course) => {
+              const picked = course.id in value;
+              const chosen = value[course.id];
+              let options = sectionsForGrade(course, shownGrade);
+              if (chosen && !options.some((s) => s.code === chosen)) options = [...options, ...course.sections.filter((s) => s.code === chosen)];
+              if (options.length === 0) options = course.sections;
+              const needsLevel = picked && !chosen;
+              return (
+                <li key={course.id} className={`card overflow-hidden !shadow-none ${picked ? "!border-primary" : ""}`}>
+                  <button type="button" aria-pressed={picked} onClick={() => toggle(course, options)} className="flex w-full items-start gap-3 p-4 text-left">
+                    <span className={`mt-0.5 grid size-6 flex-none place-items-center rounded-full border-2 ${picked ? "border-primary bg-primary text-white" : "border-line-strong"}`}>
+                      {picked && <Check className="size-3.5" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold">{course.title}</span>
+                      <span className="block text-[0.875rem] text-muted">{meta(course)}{course.prerequisite ? ` · Prerequisite: ${course.prerequisite}` : ""}</span>
+                    </span>
+                  </button>
+                  {picked && options.length > 1 && (
+                    <div className="border-t border-line bg-soft px-4 py-3">
+                      <p id={`lvl-${course.id}`} className={`mb-2 text-[0.875rem] font-bold ${needsLevel ? "text-brand" : "text-muted"}`}>
+                        {needsLevel ? "Which level are you in?" : "Level"}
+                      </p>
+                      <div role="radiogroup" aria-labelledby={`lvl-${course.id}`} className="flex flex-wrap gap-2">
+                        {options.map((s) => (
+                          <button key={s.code} type="button" role="radio" aria-checked={chosen === s.code} aria-pressed={chosen === s.code} className="pill-option !min-h-10 !text-[0.875rem]" onClick={() => onChange({ ...value, [course.id]: s.code })}>
+                            {chosen === s.code && <Check />}
+                            {levelText(s, shownGrade)}
+                            <span className="font-normal text-muted tabular">{s.code}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {new Set(options.map((s) => s.level)).size < options.length && (
+                        <p className="mt-2 text-[0.8125rem] text-muted">Two sections share a level. Pick the code that is on your schedule.</p>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}

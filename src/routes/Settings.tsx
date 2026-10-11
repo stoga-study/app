@@ -1,4 +1,7 @@
-import { LogOut } from "lucide-react";
+import { ChevronRight, GraduationCap, LogOut } from "lucide-react";
+import { Link } from "react-router";
+import { describeGrade } from "@/lib/grade";
+import { useProfile } from "@/lib/queries/profile";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
@@ -33,9 +36,18 @@ export default function Settings() {
   const [theme, setTheme] = useTheme();
   const [size, setSize] = useTextSize();
   const { session } = useAuth();
+  const profile = useProfile();
   return (
     <>
       <PageHeader title="Settings" />
+      <Link to="/classes" className="card mb-4 flex items-center gap-4 p-5 text-ink no-underline">
+        <span className="tile soft"><GraduationCap /></span>
+        <span className="flex-1">
+          <span className="block font-display text-[1.25rem] font-bold">Grade and classes</span>
+          <span className="block text-muted">{profile.data?.graduation_year ? describeGrade(profile.data.graduation_year) : "Not set"}</span>
+        </span>
+        <ChevronRight className="size-5 text-muted" />
+      </Link>
       <section className="card flex flex-col gap-6 p-6" aria-labelledby="display-title">
         <h2 id="display-title" className="text-[1.375rem]">Display</h2>
         <div className="flex flex-col gap-2">

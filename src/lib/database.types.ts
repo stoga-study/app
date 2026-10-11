@@ -462,6 +462,7 @@ export type Database = {
           created_at: string
           first_name: string | null
           grade: string | null
+          graduation_year: number | null
           onboarded: boolean
           plan: Database["public"]["Enums"]["plan"]
           school: string | null
@@ -472,6 +473,7 @@ export type Database = {
           created_at?: string
           first_name?: string | null
           grade?: string | null
+          graduation_year?: number | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
           school?: string | null
@@ -482,6 +484,7 @@ export type Database = {
           created_at?: string
           first_name?: string | null
           grade?: string | null
+          graduation_year?: number | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
           school?: string | null
@@ -750,27 +753,36 @@ export type Database = {
         Row: {
           archived: boolean
           area: string | null
+          catalog_id: string | null
           color_index: number
+          course_code: string | null
           created_at: string
           id: string
+          level: string | null
           name: string
           user_id: string
         }
         Insert: {
           archived?: boolean
           area?: string | null
+          catalog_id?: string | null
           color_index?: number
+          course_code?: string | null
           created_at?: string
           id?: string
+          level?: string | null
           name: string
           user_id?: string
         }
         Update: {
           archived?: boolean
           area?: string | null
+          catalog_id?: string | null
           color_index?: number
+          course_code?: string | null
           created_at?: string
           id?: string
+          level?: string | null
           name?: string
           user_id?: string
         }
