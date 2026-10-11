@@ -58,8 +58,14 @@ export function useRemoveKey() {
 export async function deleteAccount() {
   const { error } = await supabase.functions.invoke("account", { body: { action: "delete_account", confirm: "delete" } });
   if (error) throw error;
-  // The account no longer exists on the server, so only clear this device's session.
-  await supabase.auth.signOut({ scope: "local" });
+  // The account is gone on the server, so a normal sign-out would be refused. Clear this device's
+  // saved session directly, then reload so nothing from the old account stays in memory.
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith("sb-") && k.endsWith("-auth-token")) localStorage.removeItem(k);
+  } catch {
+    /* storage blocked: the reload still drops the in-memory session */
+  }
+  window.location.replace("/welcome");
 }
 
 export function useUpdateName() {
