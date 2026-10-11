@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router";
-import { PageSkeleton } from "@/components/States";
+import { ErrorState, PageSkeleton } from "@/components/States";
+import { useProfile } from "@/lib/queries/profile";
 import { useAuth } from "./session";
 
 /** Signed-out students go to the welcome screen; the page they wanted is remembered. */
@@ -16,5 +17,21 @@ export function RedirectIfSignedIn() {
   const { session, loading } = useAuth();
   if (loading) return null;
   if (session) return <Navigate to="/" replace />;
+  return <Outlet />;
+}
+
+/** New students finish onboarding before reaching the app. */
+export function RequireOnboarded() {
+  const profile = useProfile();
+  if (profile.isPending) return <div className="mx-auto max-w-xl p-6"><PageSkeleton /></div>;
+  if (profile.isError)
+    return (
+      <div className="mx-auto max-w-xl p-6">
+        <ErrorState title="We could not load your account" onRetry={() => profile.refetch()}>
+          Check your connection, then try again. Your notes and cards are safe.
+        </ErrorState>
+      </div>
+    );
+  if (!profile.data.onboarded) return <Navigate to="/onboarding" replace />;
   return <Outlet />;
 }

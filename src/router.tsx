@@ -1,8 +1,9 @@
 import { createBrowserRouter } from "react-router";
 import { Shell } from "./components/Shell";
-import { RedirectIfSignedIn, RequireAuth } from "./lib/auth/RequireAuth";
+import { RedirectIfSignedIn, RequireAuth, RequireOnboarded } from "./lib/auth/RequireAuth";
 import Home from "./routes/Home";
 import NotFound from "./routes/NotFound";
+import Onboarding from "./routes/Onboarding";
 import Placeholder from "./routes/Placeholder";
 import Settings from "./routes/Settings";
 import SignIn from "./routes/SignIn";
@@ -19,6 +20,10 @@ export const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
+      { path: "onboarding", element: <Onboarding /> },
+      {
+        element: <RequireOnboarded />,
+        children: [
       {
         element: <Shell />,
         children: [
@@ -31,6 +36,8 @@ export const router = createBrowserRouter([
           { path: "plans", element: <Placeholder title="Plans and funding" milestone="milestone 8" /> },
           { path: "settings", element: <Settings /> },
           { path: "*", element: <NotFound /> },
+        ],
+      },
         ],
       },
     ],

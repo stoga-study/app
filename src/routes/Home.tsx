@@ -1,16 +1,22 @@
-import { Upload } from "lucide-react";
+import { BookOpen, Upload } from "lucide-react";
 import { Link } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
+import { useProfile, useSubjects } from "@/lib/queries/profile";
+import { SUBJECT_TILE } from "@/lib/subjects";
 
 function today() {
   return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date());
 }
 
 export default function Home() {
+  const profile = useProfile();
+  const subjects = useSubjects();
+  const name = profile.data?.first_name;
+
   return (
     <>
-      <PageHeader eyebrow={today()} title="Today" />
+      <PageHeader eyebrow={today()} title={name ? `Today, ${name}` : "Today"} />
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-56" aria-hidden="true" />
@@ -25,6 +31,26 @@ export default function Home() {
           <Button asChild className="self-start"><Link to="/upload"><Upload /> Add your first notes</Link></Button>
         </section>
       </div>
+
+      <section className="mt-8" aria-labelledby="subjects-title">
+        <h2 id="subjects-title" className="mb-3 text-[1.375rem]">Your subjects</h2>
+        {subjects.isPending ? (
+          <div className="grid gap-3 sm:grid-cols-2">{[0, 1].map((i) => <div key={i} className="skeleton h-20 rounded-[1.5rem]" />)}</div>
+        ) : (
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {subjects.data?.map((s) => (
+              <li key={s.id} className="card flex items-center gap-4 p-4">
+                <span className={`tile ${SUBJECT_TILE[s.color_index] ?? ""} !size-11 !rounded-[0.8rem] [&_svg]:!size-5`}><BookOpen /></span>
+                <div className="min-w-0">
+                  {s.area && <p className="text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-brand">{s.area}</p>}
+                  <p className="truncate font-display text-[1.125rem] font-bold">{s.name}</p>
+                  <p className="text-[0.875rem] text-muted">No material yet</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </>
   );
 }
