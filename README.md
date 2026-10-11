@@ -21,19 +21,34 @@ npm run dev                  # http://localhost:5173
 
 ## Deploy (Cloudflare Pages)
 
-- Build command `npm run build`, output directory `dist`.
-- Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as environment variables.
-- `public/_redirects` handles routing in the single-page app. `public/_headers` sets security headers and caching.
+1. In Cloudflare, go to **Workers & Pages → Create → Pages → Connect to Git** and pick `stoga-study/app`.
+2. Name the project **`stoga-study-app`**. The Edge Function CORS list (`supabase/functions/_lib/cors.ts`) and the Supabase auth redirect URLs (`supabase/config.toml`) allow `*.stoga-study-app.pages.dev`. If you choose another name, update both.
+3. Use framework preset **None**, build command `npm run build` and output directory `dist`. `.node-version` pins Node 22.
+4. Add the environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for Production and Preview, then deploy.
+5. Under **Custom domains**, add `app.stoga.study`. Cloudflare creates the CNAME if the domain's DNS is on Cloudflare. Otherwise, add `CNAME app → stoga-study-app.pages.dev` at your DNS provider.
 
-The Groq API key is never shipped to the browser. It is stored as a Supabase Edge Function secret (`GROQ_API_KEY`; optional `GROQ_MODEL`, default `openai/gpt-oss-120b`).
+`public/_redirects` handles routing in the single-page app. `public/_headers` sets the Content Security Policy (network calls only to `*.supabase.co`), the other security headers, and caching. Run `npx wrangler@4 pages dev dist --port 8788` after a build to try it exactly as Cloudflare serves it.
+
+The Groq API key is never shipped to the browser. It is stored as a Supabase Edge Function secret (`GROQ_API_KEY`; optional `GROQ_MODEL`, default `openai/gpt-oss-120b`). Check the Groq account's rate limits before launch, because the base tier allows only a few study sets per minute.
 
 ## Backend functions
 
-`supabase/functions/` holds the Edge Functions. `generate` builds study sets as a chain of small background jobs, and `title-source` names uploads. Deploy without Docker:
+`supabase/functions/` holds the Edge Functions:
+
+- `generate` builds study sets as a chain of small background jobs.
+- `title-source` names uploads.
+- `tutor` streams hint-first answers with page citations.
+- `account` saves a student's own key and deletes accounts.
+
+Deploy without Docker:
 
 ```bash
+npx supabase@2.120.0 db push                                               # migrations
+npx supabase@2.120.0 config push                                           # auth settings and email templates
 npx supabase@2.120.0 functions deploy generate --use-api --no-verify-jwt   # it checks auth itself
 npx supabase@2.120.0 functions deploy title-source --use-api
+npx supabase@2.120.0 functions deploy tutor --use-api
+npx supabase@2.120.0 functions deploy account --use-api
 ```
 
 ## Design

@@ -1,5 +1,6 @@
 import { AlertCircle, BookOpen, Check, FileText, Layers, ListChecks, NotebookPen, Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import { Markdown } from "@/components/Markdown";
 import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
@@ -125,7 +126,10 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-[0.875rem] text-muted">Card review and quiz practice arrive in the next update. You can read everything now.</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {d.cards.length > 0 && <Button asChild variant="secondary" size="sm"><Link to="/review"><Layers /> Review cards</Link></Button>}
+        {d.quiz && <Button asChild variant="secondary" size="sm"><Link to={`/quiz/${d.quiz.id}`}><ListChecks /> Take the quiz</Link></Button>}
+      </div>
 
       <div role="tablist" aria-label="Study set parts" className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
         {tabs.map(([key, label, icon, n]) => (

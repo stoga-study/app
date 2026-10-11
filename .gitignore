@@ -10,3 +10,4 @@ supabase/.branches
 .DS_Store
 __pycache__/
 *.pyc
+.wrangler/
