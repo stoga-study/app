@@ -6,6 +6,7 @@ import { LEVEL_LABEL, type Level } from "@/lib/catalog";
 import { describeGrade } from "@/lib/grade";
 import { currentSchoolYear } from "@/lib/catalog";
 import { lastYearClasses, useAllSubjects, useProfile, useSubjects } from "@/lib/queries/profile";
+import { joinNames, reviewMinutes, useDueCards } from "@/lib/queries/cards";
 import { useSources } from "@/lib/queries/sources";
 import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
@@ -23,6 +24,15 @@ export default function Home() {
   const counts = new Map<string, number>();
   for (const s of sources.data ?? []) counts.set(s.subject_id, (counts.get(s.subject_id) ?? 0) + 1);
   const name = profile.data?.first_name;
+  const due = useDueCards();
+  const dueNames = [...(due.data?.bySubject ?? new Map<string, number>())]
+    .sort((a, b) => b[1] - a[1])
+    .map(([id]) => subjects.data?.find((s) => s.id === id)?.name)
+    .filter((n): n is string => !!n);
+  const sourceTotal = sources.data?.length ?? 0;
+  const nextDue = due.data?.nextDue
+    ? new Intl.DateTimeFormat("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" }).format(new Date(due.data.nextDue))
+    : null;
 
   return (
     <>
@@ -36,12 +46,21 @@ export default function Home() {
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-56" aria-hidden="true" />
           <p id="due-title" className="text-[0.9375rem] text-[#F7EAEC]">Flashcards due today</p>
-          <p className="big-num mt-1 text-[6rem]">0</p>
-          <p className="mt-2 max-w-[22rem] text-[0.9375rem] text-[#F7EAEC]">
-            {(sources.data?.length ?? 0) > 0
-              ? `${sources.data!.length} ${sources.data!.length === 1 ? "source is" : "sources are"} saved. Cards from them arrive in the next update.`
-              : "Add notes and your first cards will appear here."}
-          </p>
+          <div className="mt-1 flex flex-wrap items-end gap-x-5 gap-y-2">
+            <p className="big-num text-[6rem]">{due.isPending ? "–" : due.data?.count ?? 0}</p>
+            <p className="max-w-[16rem] pb-2 text-[0.9375rem] text-[#F7EAEC]">
+              {due.data && due.data.count > 0
+                ? `${reviewMinutes(due.data.count)} across ${joinNames(dueNames)}.`
+                : due.data && due.data.total > 0
+                  ? `All caught up.${nextDue ? ` Next cards are due ${nextDue}.` : ""}`
+                  : sourceTotal > 0
+                    ? `${sourceTotal} ${sourceTotal === 1 ? "source is" : "sources are"} saved. Cards from them arrive in the next update.`
+                    : "Add notes and your first cards will appear here."}
+            </p>
+          </div>
+          {due.data && due.data.count > 0 && (
+            <Button asChild variant="inverse" block className="mt-4"><Link to="/review">Start review</Link></Button>
+          )}
         </section>
         <section className="card card-dashed flex flex-col justify-center gap-3 p-6">
           <span className="tile soft"><Upload /></span>
