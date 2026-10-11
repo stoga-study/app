@@ -7,9 +7,12 @@ export const GROQ_MODEL = Deno.env.get("GROQ_MODEL") ?? "openai/gpt-oss-120b";
 type Message = { role: "system" | "user" | "assistant"; content: string };
 
 export class GroqError extends Error {
-  constructor(public status: number, message: string) {
+  /** Seconds Groq asked us to wait (rate limits), when it said. */
+  retryAfter?: number;
+  constructor(public status: number, message: string, retryAfter?: number) {
     super(message);
     this.name = "GroqError";
+    this.retryAfter = retryAfter;
   }
 }
 
@@ -50,10 +53,13 @@ export async function groqJson<T>(opts: {
     const text = (await res.text()).slice(0, 500);
     // Retry rate limits and server errors once, and an occasional empty structured output twice.
     const retriable = res.status === 429 || res.status >= 500 || (res.status === 400 && text.includes("json_validate_failed"));
-    if (retriable && attempt < (res.status === 400 ? 2 : 1)) {
-      await new Promise((r) => setTimeout(r, res.status === 400 ? 200 : Number(res.headers.get("retry-after") ?? 1) * 1000));
+    // A long rate-limit wait is left to the caller (the generation chain waits between jobs).
+    const wait = res.status === 400 ? 0.2 : Number(res.headers.get("retry-after") ?? 1);
+    if (retriable && wait <= 5 && attempt < (res.status === 400 ? 2 : 1)) {
+      await new Promise((r) => setTimeout(r, wait * 1000));
       continue;
     }
-    throw new GroqError(res.status, text);
+    const ra = Number(res.headers.get("retry-after"));
+    throw new GroqError(res.status, text, Number.isFinite(ra) && ra > 0 ? ra : undefined);
   }
 }

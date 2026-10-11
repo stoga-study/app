@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Pencil } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
@@ -181,8 +182,8 @@ export default function ReviewSession() {
           className={`card flex min-h-64 w-full flex-col gap-3 p-6 text-left ${flipped ? "!border-tint-line !bg-tint" : ""}`}
         >
           <span className="chip self-start !text-[0.8125rem]">{flipped ? "Answer" : "Question"}</span>
-          <span className={flipped ? "text-[1.125rem] text-ink" : "font-display text-[1.5rem] font-bold leading-tight"}>{flipped ? card.back : card.front}</span>
-          {flipped && <span className="text-[0.9375rem] text-muted">{card.front}</span>}
+          <span className={flipped ? "text-[1.125rem] text-ink" : "font-display text-[1.5rem] font-bold leading-tight"}>{flipped ? <MathText text={card.back} /> : <MathText text={card.front} />}</span>
+          {flipped && <span className="text-[0.9375rem] text-muted"><MathText text={card.front} /></span>}
           <span className="mt-auto"><PageChips pages={card.pages} kind={kind} /></span>
         </button>
       )}

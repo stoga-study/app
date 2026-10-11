@@ -195,3 +195,8 @@ html[data-text="largest"] { font-size: 125%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* x̄ and p̂ drawn with CSS (see MathText.tsx), because fonts misplace the combining marks. */
+.math-bar, .math-hat { position: relative; display: inline-block; }
+.math-bar::after { content: ""; position: absolute; left: 0.06em; right: 0.06em; top: 0.17em; border-top: 0.075em solid currentColor; }
+.math-hat::after { content: "ˆ"; position: absolute; left: 50%; top: -0.02em; transform: translateX(-50%); font-weight: 400; line-height: 1; }

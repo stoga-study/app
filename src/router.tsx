@@ -15,6 +15,7 @@ import Settings from "./routes/Settings";
 import SourcePage from "./routes/Source";
 import Subject from "./routes/Subject";
 import Subjects from "./routes/Subjects";
+import Tutor, { TutorHome } from "./routes/Tutor";
 import Upload from "./routes/Upload";
 import SignIn from "./routes/SignIn";
 import Welcome from "./routes/Welcome";
@@ -43,7 +44,8 @@ export const router = createBrowserRouter([
           { path: "sources/:id", element: <SourcePage /> },
           { path: "classes", element: <Classes /> },
           { path: "upload", element: <Upload /> },
-          { path: "tutor", element: <Placeholder title="AI tutor" milestone="milestone 7" /> },
+          { path: "tutor", element: <TutorHome /> },
+          { path: "tutor/:subjectId", element: <Tutor /> },
           { path: "review", element: <Review /> },
           { path: "review/session", element: <ReviewSession /> },
           { path: "quiz/:id", element: <Quiz /> },

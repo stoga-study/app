@@ -21,6 +21,8 @@ const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin = createClient(URL_, SERVICE_KEY, { auth: { persistSession: false } });
 const MAX_ATTEMPTS = 4;
+// Groq's per-minute token budget is small, so rate limits get patient retries that honour retry-after.
+const MAX_RATE_LIMIT_ATTEMPTS = 10;
 
 type Task = { kind: "notes" | "cards"; part: number } | { kind: "quiz" | "guide" };
 type Progress = { done: number; total: number };
@@ -146,8 +148,10 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
   } catch (e) {
     const status = e instanceof GroqError ? e.status : 0;
     console.error("generate", sourceId, task.kind, attempt, status, e instanceof Error ? e.message : e);
-    if (attempt + 1 < MAX_ATTEMPTS && status !== 401) {
-      await new Promise((r) => setTimeout(r, [3, 8, 15][attempt] * 1000));
+    const limited = status === 429;
+    if (attempt + 1 < (limited ? MAX_RATE_LIMIT_ATTEMPTS : MAX_ATTEMPTS) && status !== 401) {
+      const wait = limited ? Math.min(60, Math.max(5, (e as GroqError).retryAfter ?? 15)) : [3, 8, 15][Math.min(attempt, 2)];
+      await new Promise((r) => setTimeout(r, wait * 1000));
       await dispatch({ source_id: sourceId, user_id: userId, task: index, attempt: attempt + 1 });
       return;
     }

@@ -162,21 +162,58 @@ Write a study guide from the notes below (each note lists its ${word}s): 3 to 8 
 const MAXLEN = { title: 120, bullet: 400, front: 300, back: 600, prompt: 600, option: 200, hint: 300, explanation: 600, topic: 40, body: 4000 };
 
 // Safety net if LaTeX slips through: the app shows plain text, so turn common commands into symbols.
-const LATEX: [RegExp, string | ((...m: string[]) => string)][] = [
-  [/\\[()\[\]]/g, ""], [/\$\$?/g, ""],
-  [/\\hat\s*\{?\s*p\s*\}?/g, "p̂"], [/\\bar\s*\{?\s*x\s*\}?/g, "x̄"], [/\\bar\s*\{?\s*y\s*\}?/g, "ȳ"],
-  [/\\sqrt\s*\{([^{}]*)\}/g, "√($1)"], [/\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}/g, (_m: string, a: string, b: string) => `${/^\w+$/.test(a) ? a : `(${a})`}/${/^\w+$/.test(b) ? b : `(${b})`}`],
-  [/\\(ge|geq)\b/g, "≥"], [/\\(le|leq)\b/g, "≤"], [/\\neq?\b/g, "≠"], [/\\times\b/g, "×"], [/\\div\b/g, "÷"],
-  [/\\cdot\b/g, "·"], [/\\pm\b/g, "±"], [/\\approx\b/g, "≈"], [/\\infty\b/g, "∞"], [/\\to\b|\\rightarrow\b/g, "→"],
-  [/\\(alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|rho|Delta|Sigma)\b/g, "§$1"],
-  [/\^\{?2\}?/g, "²"], [/\^\{?3\}?/g, "³"], [/\\(text|mathrm|mathbf)\s*\{([^{}]*)\}/g, "$2"], [/[{}]/g, ""],
-];
 const GREEK: Record<string, string> = { alpha: "α", beta: "β", gamma: "γ", delta: "δ", theta: "θ", lambda: "λ", mu: "μ", pi: "π", sigma: "σ", rho: "ρ", Delta: "Δ", Sigma: "Σ" };
+const SYMBOLS: [RegExp, string][] = [
+  [/\\(ge|geq)\b/g, "≥"], [/\\(le|leq)\b/g, "≤"], [/\\neq?\b/g, "≠"], [/\\times\b/g, "×"], [/\\div\b/g, "÷"],
+  [/\\cdot\b/g, "·"], [/\\pm\b/g, "±"], [/\\approx\b/g, "≈"], [/\\infty\b/g, "∞"], [/\\(to|rightarrow)\b/g, "→"],
+];
+const atom = (x: string) => (/^[\p{L}\p{N}.√²³\u0302\u0304]+$/u.test(x) || /^√\(.*\)$/.test(x) || /^\([^()]*\)$/.test(x) ? x : `(${x})`);
+
+/** Read one {...} group starting at i (which points at "{"), honouring nesting. */
+function group(s: string, i: number): [string, number] | null {
+  if (s[i] !== "{") return null;
+  let depth = 0;
+  for (let j = i; j < s.length; j++) {
+    if (s[j] === "{") depth++;
+    else if (s[j] === "}" && --depth === 0) return [s.slice(i + 1, j), j + 1];
+  }
+  return null;
+}
+
+/** Turn LaTeX into readable Unicode math, structurally, so nested fractions and roots stay correct. */
+function convert(s: string): string {
+  let out = "";
+  for (let i = 0; i < s.length; ) {
+    const m = /^\\(frac|dfrac|tfrac|sqrt|hat|bar|text|mathrm|mathbf|left|right)/.exec(s.slice(i));
+    if (!m) { out += s[i++]; continue; }
+    let j = i + m[0].length;
+    while (s[j] === " ") j++;
+    const cmd = m[1];
+    if (cmd === "left" || cmd === "right") { i = j; continue; }
+    const a = group(s, j);
+    if (!a) { out += m[0]; i = j; continue; }
+    if (cmd.endsWith("frac")) {
+      const b = group(s, a[1]);
+      if (!b) { out += m[0]; i = j; continue; }
+      out += `${atom(convert(a[0]))}/${atom(convert(b[0]))}`;
+      i = b[1];
+    } else if (cmd === "sqrt") { const r = convert(a[0]); out += /^[\p{L}\p{N}]+$/u.test(r) ? `√${r}` : `√(${r})`; i = a[1]; }
+    else if (cmd === "hat") { out += convert(a[0]) + "\u0302"; i = a[1]; }
+    else if (cmd === "bar") { out += convert(a[0]) + "\u0304"; i = a[1]; }
+    else { out += convert(a[0]); i = a[1]; }
+  }
+  return out;
+}
+
 export function plainMath(s: string): string {
   if (!/[\\$]/.test(s)) return s;
-  let out = s;
-  for (const [re, to] of LATEX) out = out.replace(re, to as string);
-  return out.replace(/§(\w+)/g, (_, g) => GREEK[g] ?? g).replace(/\\/g, "");
+  let out = s.replace(/\\[()\[\]]/g, "").replace(/\$\$?/g, "");
+  out = out.replace(/\\(hat|bar)\s*([A-Za-z])\b/g, "\\$1{$2}");
+  for (const [re, to] of SYMBOLS) out = out.replace(re, to);
+  out = out.replace(/\\(alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|rho|Delta|Sigma)\b/g, (_, g) => GREEK[g]);
+  out = convert(out);
+  out = out.replace(/\^\{?2\}?/g, "²").replace(/\^\{?3\}?/g, "³").replace(/_\{([^{}]*)\}/g, "_$1").replace(/[{}]/g, "").replace(/\\/g, "");
+  return out.normalize("NFC");
 }
 
 export function cleanText(s: unknown, max: number): string {

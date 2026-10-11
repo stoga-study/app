@@ -1,6 +1,7 @@
 import { AlertCircle, BookOpen, Check, FileText, Layers, ListChecks, NotebookPen, Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Markdown } from "@/components/Markdown";
+import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
 import { Button } from "@/components/ui/button";
 import { pageWord, type Source } from "@/lib/queries/sources";
@@ -154,7 +155,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
             className={`card w-full p-5 text-left ${open[c.id] ? "!border-tint-line !bg-tint" : ""}`}
           >
             <span className="chip !text-[0.8125rem]">{open[c.id] ? "Answer" : "Question"}</span>
-            <span className="mt-2 block font-display text-[1.125rem] font-bold">{open[c.id] ? c.back : c.front}</span>
+            <span className="mt-2 block font-display text-[1.125rem] font-bold">{open[c.id] ? <MathText text={c.back} /> : <MathText text={c.front} />}</span>
             <PageChips pages={c.pages} kind={source.kind} />
           </button>
         ))}
@@ -165,21 +166,21 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
             {d.questions.map((q, i) => (
               <article key={q.id} className="card p-5">
                 <p className="text-[0.8125rem] font-bold text-muted">Question {i + 1}</p>
-                <p className="mt-1 font-display text-[1.125rem] font-bold">{q.prompt}</p>
+                <p className="mt-1 font-display text-[1.125rem] font-bold"><MathText text={q.prompt} /></p>
                 <ol className="mt-3 flex flex-col gap-2">
                   {q.options.map((o, k) => {
                     const reveal = open[q.id] && k === q.answer_index;
                     return (
                       <li key={k} className={`flex items-center gap-3 rounded-[0.875rem] border-2 px-3 py-2 ${reveal ? "border-primary bg-tint" : "border-line"}`}>
                         <span className="grid size-7 flex-none place-items-center rounded-full bg-soft text-[0.8125rem] font-bold">{"ABCD"[k]}</span>
-                        <span className="flex-1">{o}</span>
+                        <span className="flex-1"><MathText text={o} /></span>
                         {reveal && <Check className="size-5 text-brand" aria-label="Correct answer" />}
                       </li>
                     );
                   })}
                 </ol>
                 {open[q.id] ? (
-                  <div className="callout mt-3"><span><b>Why:</b> {q.explanation}</span></div>
+                  <div className="callout mt-3"><span><b>Why:</b> <MathText text={q.explanation} /></span></div>
                 ) : (
                   <Button variant="ghost" size="sm" className="mt-2" onClick={() => setOpen((o) => ({ ...o, [q.id]: true }))}>Show answer</Button>
                 )}

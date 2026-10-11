@@ -1,6 +1,7 @@
 import { RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
+import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
@@ -42,9 +43,9 @@ export default function Mistakes() {
             {shown.map((m) => (
               <li key={m.id} className="card p-5">
                 <p className="text-[0.8125rem] font-bold text-muted">{[subjectName(m.question.subject_id), m.question.topic].filter(Boolean).join(" · ")}</p>
-                <p className="mt-1 font-display text-[1.125rem] font-bold">{m.question.prompt}</p>
+                <p className="mt-1 font-display text-[1.125rem] font-bold"><MathText text={m.question.prompt} /></p>
                 {m.chosen_index !== null && m.question.options[m.chosen_index] && (
-                  <p className="mt-2 text-[0.9375rem] text-muted">You chose: {m.question.options[m.chosen_index]}</p>
+                  <p className="mt-2 text-[0.9375rem] text-muted">You chose: <MathText text={m.question.options[m.chosen_index]} /></p>
                 )}
                 <PageChips pages={m.question.pages} kind={m.question.kind} />
               </li>

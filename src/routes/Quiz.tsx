@@ -3,6 +3,7 @@ import { Check, Info, Lightbulb, RotateCcw, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
@@ -126,7 +127,7 @@ export default function Quiz() {
 
       <div className="card p-5">
         <span className="chip !text-[0.8125rem]">{q.topic || title}</span>
-        <h1 id={`q-${q.id}`} className="mt-3 text-[1.375rem] leading-snug">{q.prompt}</h1>
+        <h1 id={`q-${q.id}`} className="mt-3 text-[1.375rem] leading-snug"><MathText text={q.prompt} /></h1>
       </div>
 
       <div role="radiogroup" aria-labelledby={`q-${q.id}`} className="flex flex-col gap-2">
@@ -144,7 +145,7 @@ export default function Quiz() {
               className={`card flex min-h-14 w-full items-center gap-3 px-4 py-3 text-left font-bold !shadow-[0_3px_0_var(--line)] ${pick === k && !checked ? "!border-primary !bg-tint !shadow-[0_3px_0_var(--primary)]" : ""} ${correct ? "!border-primary !bg-tint !shadow-[0_3px_0_var(--primary)]" : ""} ${wrong ? "!border-line-strong !bg-soft" : ""}`}
             >
               <span className={`grid size-8 flex-none place-items-center rounded-full text-[0.875rem] ${pick === k || correct ? "bg-primary text-white" : "bg-soft"}`}>{"ABCD"[k]}</span>
-              <span className="flex-1">{o}</span>
+              <span className="flex-1"><MathText text={o} /></span>
               {correct && <span className="flex items-center gap-1 text-[0.8125rem] text-brand"><Check className="size-4" />Correct</span>}
               {wrong && <span className="flex items-center gap-1 text-[0.8125rem] text-muted"><X className="size-4" />Your answer</span>}
             </button>
@@ -155,7 +156,7 @@ export default function Quiz() {
       {hint && !checked && q.hint && (
         <div role="status" className="sheet-in rounded-[1.25rem] border-2 border-tint-line bg-tint p-4">
           <p className="flex items-center gap-2 font-display text-[1.125rem] font-bold text-brand"><Lightbulb className="size-5" /> Hint</p>
-          <p className="mt-1">{q.hint}</p>
+          <p className="mt-1"><MathText text={q.hint} /></p>
         </div>
       )}
       {checked && (
@@ -164,7 +165,7 @@ export default function Quiz() {
             {isRight ? <Check className="size-5" /> : <Info className="size-5" />}
             {isRight ? "Correct" : "Not quite, and that is useful to know"}
           </p>
-          <p className="mt-1">{q.explanation}{!isRight && " Added to your mistake review."}</p>
+          <p className="mt-1"><MathText text={q.explanation} />{!isRight && " Added to your mistake review."}</p>
           <PageChips pages={q.pages} kind={q.kind} />
         </div>
       )}

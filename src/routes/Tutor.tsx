@@ -1,0 +1,250 @@
+import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, ArrowUp, BookOpen, FileText, Layers, ListChecks, MessageCircle, Plus, WifiOff } from "lucide-react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { toast } from "sonner";
+import { Markdown } from "@/components/Markdown";
+import { PageHeader } from "@/components/PageHeader";
+import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
+import { Button } from "@/components/ui/button";
+import { useSubjects } from "@/lib/queries/profile";
+import { useAllowance } from "@/lib/queries/sources";
+import { askTutor, HINT_LABEL, makeCardFromAnswer, useThreadMessages, useThreads, type Citation, type SourceRef, type TutorMessage } from "@/lib/tutor";
+import { useOnline } from "@/lib/useOnline";
+
+const fmtWhen = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
+
+/** /tutor: choose a class, or pick up a recent conversation. */
+export function TutorHome() {
+  const subjects = useSubjects();
+  const threads = useThreads();
+  if (subjects.isPending) return <PageSkeleton />;
+  const name = (id: string) => subjects.data?.find((s) => s.id === id)?.name ?? "";
+  return (
+    <>
+      <PageHeader title="AI tutor">Ask about anything in your notes. Hints come first; the full explanation is there when you want it.</PageHeader>
+      {!subjects.data?.length ? (
+        <EmptyState icon={<MessageCircle />} title="Add a class first" action={<Button asChild><Link to="/classes">Choose your classes</Link></Button>}>The tutor answers from the notes you add to a class.</EmptyState>
+      ) : (
+        <>
+          <h2 className="mb-3 text-[1.375rem]">Which class?</h2>
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {subjects.data.map((s) => (
+              <li key={s.id}>
+                <Link to={`/tutor/${s.id}`} className="card flex items-center gap-4 p-4 text-ink no-underline">
+                  <span className="tile soft"><BookOpen /></span>
+                  <span className="font-display text-[1.125rem] font-bold">{s.name}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {!!threads.data?.length && (
+            <section className="mt-8" aria-labelledby="recent">
+              <h2 id="recent" className="mb-3 text-[1.375rem]">Recent conversations</h2>
+              <ul className="card divide-y divide-line px-4">
+                {threads.data.slice(0, 8).map((t) => (
+                  <li key={t.id}>
+                    <Link to={`/tutor/${t.subject_id}?thread=${t.id}`} className="flex items-center gap-3 py-3 text-ink no-underline">
+                      <MessageCircle className="size-5 flex-none text-brand" aria-hidden="true" />
+                      <span className="min-w-0 flex-1"><span className="block truncate font-bold">{t.title}</span><span className="block text-[0.8125rem] text-muted">{name(t.subject_id)} · {fmtWhen(t.updated_at)}</span></span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
+function CiteChip({ c }: { c: Pick<Citation, "source_id" | "page" | "kind" | "filename"> }) {
+  return (
+    <Link to={`/sources/${c.source_id}`} className="source-chip mx-0.5 !min-h-7 align-middle !text-[0.75rem]" title={c.filename}>
+      <FileText aria-hidden="true" />
+      {c.kind === "pdf" ? "p." : "part"} {c.page}
+    </Link>
+  );
+}
+
+function Answer({ m, live }: { m: { content: string; hint_level: number | null; citations: Citation[] }; live?: SourceRef[] }) {
+  const lookup = (key: string, page: number) => {
+    const c = m.citations.find((x) => x.key === key && x.page === page);
+    if (c) return c;
+    const s = live?.find((x) => x.key === key);
+    return s && s.pages.includes(page) ? { source_id: s.source_id, page, kind: s.kind, filename: s.filename } : null;
+  };
+  const full = m.hint_level === 3;
+  const general = m.content.startsWith("Your sources don't cover this");
+  return (
+    <div className={`max-w-[94%] rounded-[1.25rem] rounded-bl-md p-4 ${full ? "bg-ink-panel text-white" : "bg-tint"}`}>
+      <p className={`text-[0.8125rem] font-bold ${full ? "text-[#F2A8BA]" : "text-brand"}`}>{general ? "General knowledge" : HINT_LABEL[m.hint_level ?? 1]}</p>
+      <Markdown text={m.content} className="text-[0.9875rem] leading-relaxed" cite={(key, page, i) => { const c = lookup(key, page); return c ? <CiteChip key={i} c={c} /> : null; }} />
+    </div>
+  );
+}
+
+/** /tutor/:subjectId: one conversation. */
+export default function Tutor() {
+  const { subjectId } = useParams();
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const online = useOnline();
+  const subjects = useSubjects();
+  const allowance = useAllowance();
+  // The open conversation lives in the URL (?thread=), so links and the back button just work.
+  const threadId = params.get("thread");
+  const history = useThreadMessages(threadId);
+  const [draft, setDraft] = useState("");
+  const [live, setLive] = useState<{ question: string; level: 1 | 2 | 3; text: string; sources: SourceRef[] } | null>(null);
+  const [limit, setLimit] = useState<{ resets_at?: string; used?: number; limit?: number } | null>(null);
+  const [carded, setCarded] = useState<Record<string, boolean>>({});
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [history.data?.length, live?.text]);
+
+  const subject = subjects.data?.find((s) => s.id === subjectId);
+  if (subjects.isPending) return <PageSkeleton />;
+  if (!subject) return <ErrorState title="We could not find that class"><Link to="/tutor">Pick a class</Link>.</ErrorState>;
+
+  const msgs: TutorMessage[] = history.data ?? [];
+  const lastUser = [...msgs].reverse().find((m) => m.role === "user");
+  const lastAnswer = [...msgs].reverse().find((m) => m.role === "assistant");
+  const tutorUse = allowance.data?.tutor_message;
+
+  async function ask(question: string, level: 1 | 2 | 3, followup: boolean) {
+    if (live) return;
+    setLive({ question: followup ? "" : question, level, text: "", sources: [] });
+    let thread = threadId;
+    await askTutor({ subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup }, (e) => {
+      if (e.type === "meta") {
+        thread = e.thread_id;
+        setLive((l) => (l ? { ...l, sources: e.sources } : l));
+      } else if (e.type === "delta") setLive((l) => (l ? { ...l, text: l.text + e.text } : l));
+      else if (e.type === "error") {
+        if (e.error === "limit") setLimit({ resets_at: e.resets_at, used: e.used, limit: e.limit });
+        else toast(e.error === "busy" ? "Stoga.study is busy right now. Try again in a minute. That did not count." : e.error === "offline" ? "You are offline. The tutor needs a connection." : e.error === "key_invalid" ? "Your own key did not work. Update it in Settings." : "The answer was cut off. Try again; that did not count.");
+      }
+    });
+    if (thread && thread !== threadId) setParams({ thread }, { replace: true });
+    await qc.invalidateQueries({ queryKey: ["thread", thread] });
+    qc.invalidateQueries({ queryKey: ["threads"] });
+    qc.invalidateQueries({ queryKey: ["allowance"] });
+    setLive(null);
+  }
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    const q = draft.trim();
+    if (!q || live) return;
+    setDraft("");
+    void ask(q, 1, false);
+  }
+
+  if (limit) {
+    const resets = limit.resets_at ? new Date(limit.resets_at) : null;
+    const mins = resets ? Math.max(1, Math.round((resets.getTime() - new Date().getTime()) / 60000)) : null;
+    return (
+      <section className="mx-auto flex max-w-xl flex-col gap-4">
+        <button type="button" onClick={() => setLimit(null)} className="grid size-11 place-items-center rounded-full" aria-label="Back"><ArrowLeft className="size-5" /></button>
+        <div className="ink-panel p-6">
+          <span className="circle circle-big right-[-4rem] top-[-5rem] size-52" aria-hidden="true" />
+          <p className="ink-muted text-[0.9375rem]">Tutor messages today</p>
+          <p className="big-num mt-1 text-[4rem] tabular">{limit.used ?? 50} of {limit.limit ?? 50}</p>
+          <p className="ink-muted mt-2">Fresh messages arrive at midnight{mins ? `, in ${Math.floor(mins / 60)}h ${mins % 60}m` : ""}. Your cards, notes and quizzes still work.</p>
+        </div>
+        <p className="font-bold">While you wait</p>
+        <Button asChild variant="secondary"><Link to="/review/session"><Layers /> Review your cards</Link></Button>
+        <Button asChild variant="secondary"><Link to="/review"><ListChecks /> Take a practice quiz</Link></Button>
+        <Link to="/plans" className="text-[0.9375rem]">Use your own key for more</Link>
+      </section>
+    );
+  }
+
+  return (
+    <section className="mx-auto flex min-h-[calc(100dvh-10rem)] max-w-2xl flex-col" aria-label={`AI tutor for ${subject.name}`}>
+      <div className="mb-4 flex items-center gap-2">
+        <button type="button" onClick={() => navigate("/tutor")} className="grid size-11 place-items-center rounded-full" aria-label="Back to tutor"><ArrowLeft className="size-5" /></button>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[1.375rem]">AI tutor</h1>
+          <p className="truncate text-[0.875rem] text-muted">{subject.name}, using your notes</p>
+        </div>
+        <span className="chip">Hints first</span>
+        {threadId && <Button variant="ghost" size="sm" aria-label="New question" onClick={() => setParams({}, { replace: true })}><Plus /></Button>}
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3" aria-live="polite">
+        {!threadId && !live && (
+          <div className="card card-dashed p-5">
+            <p className="font-display text-[1.25rem] font-bold">What are you stuck on?</p>
+            <p className="mt-1 text-muted">Answers come from your {subject.name} notes, with page links. You get a hint first, then a closer hint, then the full explanation if you want it.</p>
+          </div>
+        )}
+        {history.isPending && threadId && <div className="skeleton h-24 rounded-[1.25rem]" />}
+        {msgs.map((m) =>
+          m.role === "user" ? (
+            <div key={m.id} className="max-w-[88%] self-end rounded-[1.25rem] rounded-br-md border-2 border-line bg-card p-3">{m.content}</div>
+          ) : (
+            <Answer key={m.id} m={m} />
+          ),
+        )}
+        {live && (
+          <>
+            {live.question && <div className="max-w-[88%] self-end rounded-[1.25rem] rounded-br-md border-2 border-line bg-card p-3">{live.question}</div>}
+            {live.text ? <Answer m={{ content: live.text, hint_level: live.level, citations: [] }} live={live.sources} /> : <div className="skeleton h-16 w-2/3 rounded-[1.25rem]" aria-label="The tutor is writing" />}
+          </>
+        )}
+        {!live && lastAnswer && lastUser && (
+          <div className="flex flex-wrap gap-2">
+            {(lastAnswer.hint_level ?? 1) < 3 && (
+              <Button size="sm" onClick={() => ask(lastUser.content, ((lastAnswer.hint_level ?? 1) + 1) as 2 | 3, true)} disabled={!online}>
+                {(lastAnswer.hint_level ?? 1) === 1 ? "Show hint 2" : "Show full explanation"}
+              </Button>
+            )}
+            <Button size="sm" variant="secondary" onClick={() => inputRef.current?.focus()}>Let me try</Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={carded[lastAnswer.id] || !online}
+              onClick={() =>
+                makeCardFromAnswer(lastAnswer.id)
+                  .then(() => { setCarded((c) => ({ ...c, [lastAnswer.id]: true })); toast(`Card added to ${subject.name}. You can edit it in review.`); qc.invalidateQueries({ queryKey: ["due-cards"] }); })
+                  .catch(() => toast("We could not make that card. Try again in a moment."))
+              }
+            >
+              {carded[lastAnswer.id] ? "Card added" : "Make a flashcard"}
+            </Button>
+          </div>
+        )}
+        <div ref={endRef} />
+      </div>
+
+      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] mt-4 border-t border-line bg-bg pt-3 lg:bottom-0 lg:pb-4">
+        <p className="mb-2 text-center text-[0.8125rem] text-muted">
+          {online ? "Check key facts against your sources." : <span className="inline-flex items-center gap-1"><WifiOff className="size-4" /> The tutor needs a connection.</span>}
+          {tutorUse?.limit != null && <span className="tabular"> {tutorUse.used} of {tutorUse.limit} today.</span>}
+        </p>
+        <form onSubmit={onSubmit} className="flex items-end gap-2 rounded-[1.5rem] border-2 border-line bg-card p-2 focus-within:border-hot">
+          <label htmlFor="ask" className="sr-only">Ask about your notes</label>
+          <textarea
+            id="ask"
+            ref={inputRef}
+            rows={1}
+            value={draft}
+            maxLength={2000}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSubmit(e); } }}
+            placeholder={lastAnswer ? "Your answer, or a new question" : "Ask about your notes"}
+            className="max-h-40 min-h-11 flex-1 resize-none border-0 bg-transparent px-3 py-2.5 outline-none"
+          />
+          <button type="submit" disabled={!draft.trim() || !!live || !online} aria-label="Send" className="grid size-11 flex-none place-items-center rounded-full bg-primary text-white disabled:bg-line disabled:text-muted">
+            <ArrowUp className="size-5" />
+          </button>
+        </form>
+      </div>
+    </section>
+  );
+}
