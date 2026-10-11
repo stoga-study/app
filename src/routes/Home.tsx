@@ -54,7 +54,7 @@ export default function Home() {
                 : due.data && due.data.total > 0
                   ? `All caught up.${nextDue ? ` Next cards are due ${nextDue}.` : ""}`
                   : sourceTotal > 0
-                    ? `${sourceTotal} ${sourceTotal === 1 ? "source is" : "sources are"} saved. Cards from them arrive in the next update.`
+                    ? `${sourceTotal} ${sourceTotal === 1 ? "source is" : "sources are"} saved. Cards appear here once a study set is ready.`
                     : "Add notes and your first cards will appear here."}
             </p>
           </div>

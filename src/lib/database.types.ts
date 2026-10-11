@@ -92,6 +92,7 @@ export type Database = {
           edited: boolean
           elapsed_days: number
           front: string
+          gen_part: number | null
           id: string
           lapses: number
           last_review: string | null
@@ -113,6 +114,7 @@ export type Database = {
           edited?: boolean
           elapsed_days?: number
           front: string
+          gen_part?: number | null
           id?: string
           lapses?: number
           last_review?: string | null
@@ -134,6 +136,7 @@ export type Database = {
           edited?: boolean
           elapsed_days?: number
           front?: string
+          gen_part?: number | null
           id?: string
           lapses?: number
           last_review?: string | null
@@ -394,6 +397,7 @@ export type Database = {
       notes_sections: {
         Row: {
           body_md: string
+          gen_part: number | null
           id: string
           pages: number[]
           position: number
@@ -403,6 +407,7 @@ export type Database = {
         }
         Insert: {
           body_md: string
+          gen_part?: number | null
           id?: string
           pages?: number[]
           position: number
@@ -412,6 +417,7 @@ export type Database = {
         }
         Update: {
           body_md?: string
+          gen_part?: number | null
           id?: string
           pages?: number[]
           position?: number

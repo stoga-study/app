@@ -25,7 +25,16 @@ npm run dev                  # http://localhost:5173
 - Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` as environment variables.
 - `public/_redirects` handles routing in the single-page app. `public/_headers` sets security headers and caching.
 
-The Groq API key is never shipped to the browser. It is stored as a Supabase Edge Function secret.
+The Groq API key is never shipped to the browser. It is stored as a Supabase Edge Function secret (`GROQ_API_KEY`; optional `GROQ_MODEL`, default `openai/gpt-oss-120b`).
+
+## Backend functions
+
+`supabase/functions/` holds the Edge Functions. `generate` builds study sets as a chain of small background jobs, and `title-source` names uploads. Deploy without Docker:
+
+```bash
+npx supabase@2.120.0 functions deploy generate --use-api --no-verify-jwt   # it checks auth itself
+npx supabase@2.120.0 functions deploy title-source --use-api
+```
 
 ## Design
 
