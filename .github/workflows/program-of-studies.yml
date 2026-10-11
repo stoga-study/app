@@ -16,8 +16,8 @@ jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - run: pip install pymupdf==1.28.2
@@ -25,7 +25,7 @@ jobs:
         run: python scripts/program-of-studies/check_for_update.py --report report.md
 
       - if: steps.check.outputs.status == 'new'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -35,7 +35,7 @@ jobs:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
       - if: steps.check.outputs.status == 'new'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: program-of-studies/${{ steps.check.outputs.year }}
           add-paths: src/data/catalogs/*.json
