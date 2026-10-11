@@ -16,7 +16,7 @@ export default function Review() {
   const nextDue = useNextDue();
   if (due.isPending || subjects.isPending) return <PageSkeleton label="Getting your review ready." />;
   const name = (id: string) => subjects.data?.find((s) => s.id === id)?.name ?? "Class";
-  const bySubject = [...(due.data?.bySubject ?? new Map())].sort((a, b) => b[1] - a[1]);
+  const bySubject = Object.entries(due.data?.bySubject ?? {}).sort((a, b) => b[1] - a[1]);
   const count = due.data?.count ?? 0;
   const next = nextDue.data ? new Intl.DateTimeFormat("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" }).format(new Date(nextDue.data)) : null;
   const today = new Intl.DateTimeFormat("en-US", { weekday: "long", month: "short", day: "numeric" }).format(new Date());

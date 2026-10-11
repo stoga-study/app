@@ -129,7 +129,7 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
                       ) : (
                       <div role="radiogroup" aria-labelledby={`lvl-${course.id}`} className="flex flex-wrap gap-2">
                         {options.map((s) => (
-                          <button key={s.code} type="button" role="radio" aria-checked={chosen === s.code} aria-pressed={chosen === s.code} className="pill-option !min-h-10 !text-[0.875rem]" onClick={() => onChange({ ...value, [course.id]: s.code })}>
+                          <button key={s.code} type="button" role="radio" aria-checked={chosen === s.code} className="pill-option !min-h-10 !text-[0.875rem]" onClick={() => onChange({ ...value, [course.id]: s.code })}>
                             {chosen === s.code && <Check />}
                             {levelText(s, shownGrade, course, options)}
                             <span className="font-normal text-muted tabular">{s.code}</span>

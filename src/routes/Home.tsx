@@ -7,6 +7,7 @@ import { describeGrade } from "@/lib/grade";
 import { currentSchoolYear } from "@/lib/catalog";
 import { lastYearClasses, useAllSubjects, useProfile, useSubjects } from "@/lib/queries/profile";
 import { joinNames, reviewMinutes, useDueCards } from "@/lib/queries/cards";
+import { useDueQueue } from "@/lib/queries/review";
 import { useSources } from "@/lib/queries/sources";
 import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
@@ -25,7 +26,9 @@ export default function Home() {
   for (const s of sources.data ?? []) counts.set(s.subject_id, (counts.get(s.subject_id) ?? 0) + 1);
   const name = profile.data?.first_name;
   const due = useDueCards();
-  const dueNames = [...(due.data?.bySubject ?? new Map<string, number>())]
+  // Fetch today's review queue in the background, so review works even if the connection drops.
+  useDueQueue(null);
+  const dueNames = Object.entries(due.data?.bySubject ?? {})
     .sort((a, b) => b[1] - a[1])
     .map(([id]) => subjects.data?.find((s) => s.id === id)?.name)
     .filter((n): n is string => !!n);

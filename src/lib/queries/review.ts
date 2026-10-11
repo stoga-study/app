@@ -68,11 +68,12 @@ export function useReviewHistory(days = 7) {
       const buckets = Array.from({ length: days }, (_, i) => {
         const d = new Date(since);
         d.setDate(since.getDate() + i);
-        return { date: d, count: 0 };
+        return { date: d.toISOString(), count: 0 }; // ISO string: saved for offline use as JSON
       });
+      const start = since.getTime();
       for (const r of data) {
         const d = new Date(r.reviewed_at);
-        const i = Math.floor((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - since.getTime()) / 86400000);
+        const i = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() - start) / 86400000);
         if (i >= 0 && i < days) buckets[i].count++;
       }
       return buckets;

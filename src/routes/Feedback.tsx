@@ -48,7 +48,7 @@ export default function Feedback() {
       <form onSubmit={submit} className="flex max-w-xl flex-col gap-5">
         <div role="radiogroup" aria-label="Type of feedback" className="flex flex-wrap gap-2">
           {KINDS.map(([k, label, icon]) => (
-            <button key={k} type="button" role="radio" aria-checked={kind === k} aria-pressed={kind === k} onClick={() => setKind(k)} className="pill-option">{icon}{label}</button>
+            <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)} className="pill-option">{icon}{label}</button>
           ))}
         </div>
         <div className="flex flex-col gap-1.5">

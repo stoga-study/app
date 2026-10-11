@@ -11,6 +11,7 @@ import { useSubjects } from "@/lib/queries/profile";
 import { prettyFilename } from "@/lib/extract/filename";
 import { pageWord, saveUpload, suggestTitle, UploadLimitError, useAllowance } from "@/lib/queries/sources";
 import { startGeneration } from "@/lib/queries/studyset";
+import { useOnline } from "@/lib/useOnline";
 
 type Phase =
   | { step: "choose" }
@@ -72,6 +73,7 @@ export default function Upload() {
   const [pasteTitle, setPasteTitle] = useState("");
   const [over, setOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const online = useOnline();
 
   const list = subjects.data ?? [];
   const subject = list.find((s) => s.id === subjectId) ?? list[0];
@@ -204,7 +206,7 @@ export default function Upload() {
           <span className="field-label">Class</span>
           <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 md:flex-wrap" role="radiogroup" aria-label="Class">
             {list.map((s) => (
-              <button key={s.id} type="button" role="radio" aria-checked={s.id === subject!.id} aria-pressed={s.id === subject!.id} className="pill-option flex-none" onClick={() => setSubjectId(s.id)}>
+              <button key={s.id} type="button" role="radio" aria-checked={s.id === subject!.id} className="pill-option flex-none" onClick={() => setSubjectId(s.id)}>
                 {s.id === subject!.id && <Check />}
                 {s.name}
               </button>
@@ -213,7 +215,9 @@ export default function Upload() {
         </div>
       )}
 
-      {atLimit ? (
+      {!online ? (
+        <div className="callout neutral"><span><b>Uploading needs a connection.</b> Your saved cards, notes and quizzes still work offline.</span></div>
+      ) : atLimit ? (
         <div className="callout"><span><b>That was this month&apos;s {uploads!.limit} uploads.</b> More arrive on {fmtDate(uploads!.resetsAt)}. Your notes, cards and quizzes still work.</span></div>
       ) : pasting ? (
         <section className="card flex flex-col gap-4 p-5" aria-labelledby="paste-title">
@@ -250,6 +254,7 @@ export default function Upload() {
           <input
             ref={inputRef}
             type="file"
+            aria-label="Choose a file to upload"
             className="sr-only"
             tabIndex={-1}
             accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"

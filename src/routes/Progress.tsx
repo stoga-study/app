@@ -49,7 +49,7 @@ export default function Progress() {
             {days.map((d, i) => (
               <div key={i} className="flex flex-1 flex-col items-center gap-1">
                 <div className="w-full rounded-t-md bg-white/85" style={{ height: `${Math.max(4, (d.count / max) * 72)}px`, opacity: d.count ? 1 : 0.25 }} />
-                <span className="text-[0.75rem] text-[#F7EAEC]">{new Intl.DateTimeFormat("en-US", { weekday: "narrow" }).format(d.date)}</span>
+                <span className="text-[0.75rem] text-[#F7EAEC]">{new Intl.DateTimeFormat("en-US", { weekday: "narrow" }).format(new Date(d.date))}</span>
               </div>
             ))}
           </div>

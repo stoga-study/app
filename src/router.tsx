@@ -1,4 +1,5 @@
 import { createBrowserRouter } from "react-router";
+import { RouteError } from "./components/RouteError";
 import { Shell } from "./components/Shell";
 import { RedirectIfSignedIn, RequireAuth, RequireOnboarded } from "./lib/auth/RequireAuth";
 import Classes from "./routes/Classes";
@@ -22,6 +23,9 @@ import SignIn from "./routes/SignIn";
 import Welcome from "./routes/Welcome";
 
 export const router = createBrowserRouter([
+  {
+    errorElement: <RouteError />,
+    children: [
   {
     element: <RedirectIfSignedIn />,
     children: [
@@ -60,6 +64,8 @@ export const router = createBrowserRouter([
       },
         ],
       },
+    ],
+  },
     ],
   },
 ]);

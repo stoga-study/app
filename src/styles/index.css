@@ -177,7 +177,7 @@ html[data-text="largest"] { font-size: 125%; }
     display: inline-flex; align-items: center; gap: 0.375rem; min-height: 2.75rem; padding: 0 1rem; border-radius: 999px;
     border: 2px solid var(--line); background: var(--card); font-weight: 700; font-size: 0.9375rem; box-shadow: 0 2px 0 var(--line);
   }
-  .pill-option[aria-pressed="true"] { background: var(--tint); border-color: var(--primary); color: var(--brand); box-shadow: 0 2px 0 var(--primary); }
+  .pill-option[aria-pressed="true"], .pill-option[aria-checked="true"], .pill-option[aria-selected="true"] { background: var(--tint); border-color: var(--primary); color: var(--brand); box-shadow: 0 2px 0 var(--primary); }
   .pill-option svg { width: 1rem; height: 1rem; }
 
   .skeleton { background: var(--line); border-radius: 0.75rem; animation: shimmer 1.4s ease-in-out infinite; }

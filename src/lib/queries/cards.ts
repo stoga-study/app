@@ -26,8 +26,9 @@ export function useDueCards() {
         supabase.from("cards").select("id", { count: "exact", head: true }),
       ]);
       for (const r of [due, next, total]) if (r.error) throw r.error;
-      const bySubject = new Map<string, number>();
-      for (const c of due.data!) bySubject.set(c.subject_id, (bySubject.get(c.subject_id) ?? 0) + 1);
+      // Plain object, not a Map: this result is saved for offline use as JSON.
+      const bySubject: Record<string, number> = {};
+      for (const c of due.data!) bySubject[c.subject_id] = (bySubject[c.subject_id] ?? 0) + 1;
       return { count: due.data!.length, bySubject, nextDue: next.data![0]?.due ?? null, total: total.count ?? 0 };
     },
   });

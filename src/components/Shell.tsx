@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
 import { Brand } from "./Brand";
+import { OfflineBanner } from "./OfflineBanner";
 
 type Item = { to: string; label: string; icon: ReactNode; end?: boolean };
 
@@ -48,7 +49,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
 
       {/* Desktop sidebar: 272px, per the brand layout spec. */}
       <aside className="sticky top-0 hidden h-dvh flex-col gap-1 border-r border-line px-4 py-5 lg:flex" aria-label="Sidebar">
-        <NavLink to="/" className="mb-6 px-1 text-ink no-underline" aria-label="Stoga.study home">
+        <NavLink to="/" className="mb-6 px-1 text-ink no-underline">
           <Brand />
         </NavLink>
         <nav aria-label="Main" className="flex flex-col gap-1">
@@ -63,7 +64,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
       <div className="flex min-h-dvh min-w-0 flex-col">
         {/* Phone and tablet top bar; the sidebar carries the brand on desktop. */}
         <header className="flex items-center justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] md:px-8 lg:hidden">
-          <NavLink to="/" className="text-ink no-underline" aria-label="Stoga.study home">
+          <NavLink to="/" className="text-ink no-underline">
             <Brand descriptor={false} />
           </NavLink>
           <NavLink
@@ -75,6 +76,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
           </NavLink>
         </header>
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[70rem] flex-1 px-5 pb-28 pt-5 outline-none md:px-8 lg:px-12 lg:pb-12 lg:pt-8">
+          <OfflineBanner />
           <Outlet />
         </main>
 

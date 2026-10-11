@@ -33,7 +33,7 @@ export default function Subject() {
         end={<Button asChild><Link to={`/upload?subject=${subject.id}`}><Upload /> Add notes</Link></Button>}
       />
       {(() => {
-        const n = due.data?.bySubject.get(subject.id) ?? 0;
+        const n = due.data?.bySubject[subject.id] ?? 0;
         const mine = (quizzes.data ?? []).filter((q) => q.subject_id === subject.id);
         return (
           <div className="mb-8 grid gap-3 sm:grid-cols-3">
