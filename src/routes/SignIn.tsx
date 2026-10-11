@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 
 const RESEND_SECONDS = 60;
+// The 6-digit code only appears in the branded email, which needs custom SMTP. Until then the email
+// carries a link only, so the code box stays hidden. Set VITE_EMAIL_HAS_CODE=true once it is live.
+const EMAIL_HAS_CODE = import.meta.env.VITE_EMAIL_HAS_CODE === "true";
 
 // Plain, specific messages (Brand Guidelines p. 14). Never "Something went wrong".
 function explain(error: { status?: number; code?: string; message: string }) {
@@ -131,27 +134,35 @@ export default function SignIn() {
           <div>
             <h1 className="text-[2rem]">Check your email</h1>
             <p className="mt-2 text-ink-2">
-              We sent a link to <b className="break-all">{sentTo}</b>. Tap it to sign in, or enter the 6-digit code here.
+              We sent a link to <b className="break-all">{sentTo}</b>.{" "}
+              {EMAIL_HAS_CODE ? "Tap it to sign in, or enter the 6-digit code here." : "Tap it to sign in. This screen updates on its own once you have."}
             </p>
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="code" className="field-label">6-digit code</label>
-            <input
-              id="code"
-              ref={codeRef}
-              className="input tabular text-center !text-[1.5rem] font-bold tracking-[0.4em]"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]*"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-              aria-invalid={!!error}
-              aria-describedby={error ? "code-error" : "code-hint"}
-            />
-            <p id="code-hint" className="field-hint">The code and link work once and expire in an hour.</p>
-          </div>
-          {error && <p id="code-error" role="alert" className="callout"><span>{error}</span></p>}
-          <Button type="submit" block disabled={busy || code.length !== 6}>{busy ? "Checking…" : "Sign in"}</Button>
+          {EMAIL_HAS_CODE && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="code" className="field-label">6-digit code</label>
+                <input
+                  id="code"
+                  ref={codeRef}
+                  className="input tabular text-center !text-[1.5rem] font-bold tracking-[0.4em]"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]*"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  aria-invalid={!!error}
+                  aria-describedby={error ? "code-error" : "code-hint"}
+                />
+                <p id="code-hint" className="field-hint">The code and link work once and expire in an hour.</p>
+              </div>
+              {error && <p id="code-error" role="alert" className="callout"><span>{error}</span></p>}
+              <Button type="submit" block disabled={busy || code.length !== 6}>{busy ? "Checking…" : "Sign in"}</Button>
+            </>
+          )}
+          {!EMAIL_HAS_CODE && (
+            <p className="field-hint">The link works once and expires in an hour. Open it on this device to sign in here.</p>
+          )}
           <Button variant="ghost" block disabled={busy || wait > 0} onClick={() => send(sentTo)}>
             {wait > 0 ? <span className="tabular">Send a new email in {wait}s</span> : "Send a new email"}
           </Button>
