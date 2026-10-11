@@ -59,7 +59,7 @@ export default function Home() {
             </p>
           </div>
           {due.data && due.data.count > 0 && (
-            <Button asChild variant="inverse" block className="mt-4"><Link to="/review">Start review</Link></Button>
+            <Button asChild variant="inverse" block className="mt-4"><Link to="/review/session">Start review</Link></Button>
           )}
         </section>
         <section className="card card-dashed flex flex-col justify-center gap-3 p-6">

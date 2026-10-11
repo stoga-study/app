@@ -81,7 +81,7 @@ export default function SourcePage() {
 
       <section className={`ink-panel p-6 ${justUploaded ? "pop" : ""}`} aria-labelledby="source-title">
         <span className="circle circle-big right-[-5rem] top-[-6rem] size-60" aria-hidden="true" />
-        <span className="circle circle-hot bottom-6 right-8 size-9" aria-hidden="true" />
+        <span className="circle circle-hot right-8 top-8 size-9" aria-hidden="true" />
         <p className="ink-muted text-[0.9375rem]">{ready ? "Study set ready. We made" : justUploaded ? "Added and read." : "Source"}</p>
         {editing === null ? (
           <div className="mt-1 flex items-start gap-2">

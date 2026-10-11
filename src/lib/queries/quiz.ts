@@ -1,0 +1,108 @@
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "../auth/session";
+import type { Json } from "../database.types";
+import { supabase } from "../supabase";
+
+export type Question = {
+  id: string; quiz_id: string; prompt: string; options: string[]; answer_index: number; hint: string | null;
+  explanation: string; topic: string | null; pages: number[];
+};
+const Q_FIELDS = "id, quiz_id, prompt, options, answer_index, hint, explanation, topic, pages";
+const asQuestions = (rows: unknown[]) => (rows as (Omit<Question, "options"> & { options: unknown })[]).map((q) => ({ ...q, options: q.options as string[] }));
+
+/** A quiz with its questions, the source kind (for page chips) and the last finished attempt. */
+export function useQuiz(id: string | undefined) {
+  return useQuery({
+    queryKey: ["quiz", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data: quiz, error } = await supabase.from("quizzes").select("id, title, subject_id, source_id, sources(kind)").eq("id", id!).maybeSingle();
+      if (error) throw error;
+      if (!quiz) return null;
+      const [qs, last] = await Promise.all([
+        supabase.from("quiz_questions").select(Q_FIELDS).eq("quiz_id", id!).order("position"),
+        supabase.from("quiz_attempts").select("correct, total, finished_at").eq("quiz_id", id!).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1),
+      ]);
+      if (qs.error) throw qs.error;
+      if (last.error) throw last.error;
+      const kind = (quiz.sources as unknown as { kind: string } | null)?.kind ?? "pdf";
+      return { quiz, kind, questions: asQuestions(qs.data), last: last.data[0] ?? null };
+    },
+  });
+}
+
+export type Mistake = { id: string; question_id: string; chosen_index: number | null; created_at: string; question: Question & { kind: string; subject_id: string } };
+
+/** Unresolved mistakes with their questions, newest first. */
+export function useMistakes() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["mistakes", session?.user.id],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data: ms, error } = await supabase.from("mistakes").select("id, question_id, chosen_index, created_at").is("resolved_at", null).order("created_at", { ascending: false });
+      if (error) throw error;
+      if (!ms.length) return [] as Mistake[];
+      const { data: qs, error: qErr } = await supabase.from("quiz_questions").select(Q_FIELDS).in("id", ms.map((m) => m.question_id));
+      if (qErr) throw qErr;
+      const quizIds = [...new Set(qs.map((q) => q.quiz_id))];
+      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, subject_id, sources(kind)").in("id", quizIds);
+      if (zErr) throw zErr;
+      const byQuiz = new Map(quizzes.map((z) => [z.id, z]));
+      const byQ = new Map(asQuestions(qs).map((q) => [q.id, q]));
+      return ms.flatMap((m) => {
+        const q = byQ.get(m.question_id);
+        if (!q) return [];
+        const z = byQuiz.get(q.quiz_id);
+        return [{ ...m, question: { ...q, subject_id: z?.subject_id ?? "", kind: (z?.sources as unknown as { kind: string } | null)?.kind ?? "pdf" } }];
+      });
+    },
+  });
+}
+
+/** Quizzes for the Review page, with each one's latest score. */
+export function useQuizList() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["quiz-list", session?.user.id],
+    enabled: !!session,
+    queryFn: async () => {
+      const [qz, at] = await Promise.all([
+        supabase.from("quizzes").select("id, title, subject_id, created_at, quiz_questions!quiz_questions_quiz_id_fkey(count)").order("created_at", { ascending: false }),
+        supabase.from("quiz_attempts").select("quiz_id, correct, total, finished_at").not("finished_at", "is", null).order("finished_at", { ascending: false }),
+      ]);
+      if (qz.error) throw qz.error;
+      if (at.error) throw at.error;
+      const latest = new Map<string, { correct: number; total: number }>();
+      for (const a of at.data) if (!latest.has(a.quiz_id)) latest.set(a.quiz_id, a);
+      return qz.data.map((q) => ({
+        id: q.id, title: q.title, subject_id: q.subject_id,
+        count: ((q as unknown as { quiz_questions: { count: number }[] }).quiz_questions)[0]?.count ?? 0,
+        last: latest.get(q.id) ?? null,
+      }));
+    },
+  });
+}
+
+export async function startAttempt(quizId: string, total: number) {
+  const { data, error } = await supabase.from("quiz_attempts").insert({ quiz_id: quizId, total, answers: [] }).select("id").single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+export async function recordAnswer(opts: { attemptId: string | null; questionId: string; chosen: number; correct: boolean; answers: Json[]; correctSoFar: number; finished: boolean }) {
+  if (opts.attemptId) {
+    await supabase.from("quiz_attempts").update({
+      answers: opts.answers, correct: opts.correctSoFar, ...(opts.finished ? { finished_at: new Date().toISOString() } : {}),
+    }).eq("id", opts.attemptId);
+  }
+  if (opts.correct) {
+    // Getting it right clears it from mistake review.
+    await supabase.from("mistakes").update({ resolved_at: new Date().toISOString() }).eq("question_id", opts.questionId).is("resolved_at", null);
+  } else {
+    await supabase.from("mistakes").upsert(
+      { question_id: opts.questionId, attempt_id: opts.attemptId, chosen_index: opts.chosen, resolved_at: null, created_at: new Date().toISOString() },
+      { onConflict: "user_id,question_id" },
+    );
+  }
+}
