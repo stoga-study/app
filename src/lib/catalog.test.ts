@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { catalogFor, catalogs, schoolYearLabel } from "./catalog";
+import { catalogFor, catalogs, mergeSameLevel, schoolYearLabel } from "./catalog";
 
 const LEVELS = new Set(["AP", "H*", "H", "X", "A"]);
 
@@ -51,5 +51,18 @@ describe.each(catalogs.map((c) => [c.schoolYear, c] as const))("catalog %s", (_y
       // Reviewed in scripts/program-of-studies/rules.py (REVIEWED_DUPLICATE_LEVELS); the picker shows codes for these.
       if (dupes.length) expect(["Literary Foundations", "American Voices"]).toContain(course.title);
     }
+  });
+});
+
+describe("mergeSameLevel", () => {
+  it("shows a level once when the Program of Studies lists two identical sections", () => {
+    const lf = catalogs.flatMap((c) => c.courses).find((c) => c.id === "literary-foundations")!;
+    const choices = mergeSameLevel(lf.sections.filter((s) => s.grades.includes(9)));
+    expect(choices.map((c) => c.level)).toEqual(["H", "X", "A"]);
+    expect(choices.find((c) => c.level === "X")!.codes).toEqual(["0301", "0311"]);
+  });
+  it("keeps sections that really differ (terms, tracks) apart", () => {
+    const eld = catalogs.flatMap((c) => c.courses).find((c) => c.id === "english-language-development")!;
+    expect(mergeSameLevel(eld.sections)).toHaveLength(2);
   });
 });

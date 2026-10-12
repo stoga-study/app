@@ -1,6 +1,6 @@
 import { Check, Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { catalog, catalogIsCurrent, currentSchoolYear, DEPARTMENTS, LEVEL_LABEL, sectionsForGrade, type Course, type Picks, type Section } from "@/lib/catalog";
+import { catalog, catalogIsCurrent, currentSchoolYear, DEPARTMENTS, LEVEL_LABEL, mergeSameLevel, sectionsForGrade, type Course, type Picks, type Section } from "@/lib/catalog";
 import type { Grade } from "@/lib/grade";
 
 function matches(course: Course, q: string) {
@@ -89,11 +89,12 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
               let options = sectionsForGrade(course, shownGrade);
               if (chosen && !options.some((s) => s.code === chosen)) options = [...options, ...course.sections.filter((s) => s.code === chosen)];
               if (options.length === 0) options = course.sections;
+              const choices = mergeSameLevel(options);
               const needsLevel = picked && !chosen;
-              const hasTracks = options.some((s) => s.track);
+              const hasTracks = choices.some((s) => s.track);
               return (
                 <li key={course.id} className={`card overflow-hidden !shadow-none ${picked ? "!border-primary" : ""}`}>
-                  <button type="button" aria-pressed={picked} onClick={() => toggle(course, options)} className="flex w-full items-start gap-3 p-4 text-left">
+                  <button type="button" aria-pressed={picked} onClick={() => toggle(course, choices)} className="flex w-full items-start gap-3 p-4 text-left">
                     <span className={`mt-0.5 grid size-6 flex-none place-items-center rounded-full border-2 ${picked ? "border-primary bg-primary text-white" : "border-line-strong"}`}>
                       {picked && <Check className="size-3.5" />}
                     </span>
@@ -102,15 +103,15 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
                       <span className="block text-[0.875rem] text-muted">{meta(course)}{course.prerequisite ? ` · Prerequisite: ${course.prerequisite}` : ""}</span>
                     </span>
                   </button>
-                  {picked && options.length > 1 && (
+                  {picked && choices.length > 1 && (
                     <div className="border-t border-line bg-soft px-4 py-3">
                       <p id={`lvl-${course.id}`} className={`mb-2 text-[0.875rem] font-bold ${needsLevel ? "text-brand" : "text-muted"}`}>
                         {needsLevel ? (hasTracks ? "Which version are you in?" : "Which level are you in?") : hasTracks ? "Version" : "Level"}
                       </p>
                       {hasTracks ? (
                         <div role="radiogroup" aria-labelledby={`lvl-${course.id}`} className="flex flex-col gap-2">
-                          {options.map((s) => {
-                            const on = chosen === s.code;
+                          {choices.map((s) => {
+                            const on = s.codes.includes(chosen);
                             return (
                               <button key={s.code} type="button" role="radio" aria-checked={on} onClick={() => onChange({ ...value, [course.id]: s.code })}
                                 className={`flex items-center gap-3 rounded-[0.875rem] border-2 bg-card px-3 py-2.5 text-left ${on ? "border-primary bg-tint" : "border-line"}`}>
@@ -121,23 +122,23 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
                                   <span className="block font-bold">{s.name} <span className="font-normal text-muted">· {levelText(s, shownGrade)}</span></span>
                                   {s.trackNote && <span className="block text-[0.8125rem] text-muted">{s.trackNote}</span>}
                                 </span>
-                                <span className="tabular text-[0.8125rem] text-muted">{s.code}</span>
+                                <span className="tabular text-[0.8125rem] text-muted">{s.codes.join(" / ")}</span>
                               </button>
                             );
                           })}
                         </div>
                       ) : (
                       <div role="radiogroup" aria-labelledby={`lvl-${course.id}`} className="flex flex-wrap gap-2">
-                        {options.map((s) => (
-                          <button key={s.code} type="button" role="radio" aria-checked={chosen === s.code} className="pill-option !min-h-10 !text-[0.875rem]" onClick={() => onChange({ ...value, [course.id]: s.code })}>
-                            {chosen === s.code && <Check />}
-                            {levelText(s, shownGrade, course, options)}
-                            <span className="font-normal text-muted tabular">{s.code}</span>
+                        {choices.map((s) => (
+                          <button key={s.code} type="button" role="radio" aria-checked={s.codes.includes(chosen)} className="pill-option !min-h-10 !text-[0.875rem]" onClick={() => onChange({ ...value, [course.id]: s.codes.includes(chosen) ? chosen : s.code })}>
+                            {s.codes.includes(chosen) && <Check />}
+                            {levelText(s, shownGrade, course, choices)}
+                            <span className="font-normal text-muted tabular">{s.codes.join(" / ")}</span>
                           </button>
                         ))}
                       </div>
                       )}
-                      {options.some((s) => options.some((o) => o !== s && levelText(o, shownGrade, course, options) === levelText(s, shownGrade, course, options))) && (
+                      {choices.some((s) => choices.some((o) => o !== s && levelText(o, shownGrade, course, choices) === levelText(s, shownGrade, course, choices))) && (
                         <p className="mt-2 text-[0.8125rem] text-muted">Two sections share a level. Pick the code that is on your schedule.</p>
                       )}
                     </div>

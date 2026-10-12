@@ -64,6 +64,24 @@ export const findSection = (course: Course, code: string) => course.sections.fin
 export const sectionsForGrade = (course: Course, grade: Grade | null) =>
   grade ? course.sections.filter((s) => s.grades.includes(grade)) : course.sections;
 
+/** A choice in the class picker: one or more sections that are the same class to a student. */
+export type Option = Section & { codes: string[] };
+
+/**
+ * Sections with the same name, level, track and term are one choice. The Program of Studies lists some
+ * classes twice at one level (Literary Foundations 0301 and 0311, both Accelerated) without saying how
+ * they differ, so students see one "Accelerated" option with both codes instead of two identical ones.
+ */
+export function mergeSameLevel(sections: Section[]): Option[] {
+  const out: Option[] = [];
+  for (const s of sections) {
+    const same = out.find((o) => o.level === s.level && o.track === s.track && o.term === s.term && o.name === s.name);
+    if (same) same.codes.push(s.code);
+    else out.push({ ...s, codes: [s.code] });
+  }
+  return out;
+}
+
 /** Subject tone index: one burgundy shade per department. */
 export const departmentTone = (department: string) => Math.max(0, DEPARTMENTS.indexOf(department as never)) % 4;
 
