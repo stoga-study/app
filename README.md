@@ -2,7 +2,7 @@
 
 The Stoga.study progressive web app: free, calm study help from your own notes.
 
-**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), Groq (`openai/gpt-oss-120b`), hosted on Cloudflare Pages.
+**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), OpenAI (`gpt-5-nano`, swappable for any OpenAI-compatible model), hosted on Cloudflare Pages.
 
 ## Develop
 
@@ -29,7 +29,24 @@ npm run dev                  # http://localhost:5173
 
 `public/_redirects` handles routing in the single-page app. `public/_headers` sets the Content Security Policy (network calls only to `*.supabase.co`), the other security headers, and caching. Run `npx wrangler@4 pages dev dist --port 8788` after a build to try it exactly as Cloudflare serves it.
 
-The Groq API key is never shipped to the browser. It is stored as a Supabase Edge Function secret (`GROQ_API_KEY`; optional `GROQ_MODEL`, default `openai/gpt-oss-120b`). Check the Groq account's rate limits before launch, because the base tier allows only a few study sets per minute.
+The AI key is never shipped to the browser. It is stored as a Supabase Edge Function secret:
+
+```bash
+npx supabase@2.120.0 secrets set OPENAI_API_KEY=sk-...
+```
+
+### Switching models
+
+Every AI call goes through `supabase/functions/_lib/llm.ts`, which works with any OpenAI-compatible provider. Change three optional secrets, then redeploy the functions:
+
+| Secret | Default | Example |
+| --- | --- | --- |
+| `LLM_MODEL` | `gpt-5-nano` | `gpt-5.4-nano`, `openai/gpt-oss-120b`, `Qwen/Qwen3-32B` |
+| `LLM_FAST_MODEL` (routing, titles) | same as `LLM_MODEL` | |
+| `LLM_BASE_URL` | `https://api.openai.com/v1` | `https://api.deepinfra.com/v1/openai` |
+| `LLM_API_KEY` | falls back to `OPENAI_API_KEY` | the other provider's key |
+
+`profile()` in `llm.ts` translates "light / normal / deep" thinking into each model family's settings. Before switching models for students, run the tutor tests below on the new model and compare the reports. Only switch if it passes at least as many checks.
 
 ## Backend functions
 
@@ -60,7 +77,7 @@ SUPABASE_SECRET_KEY=sb_secret_… node scripts/tutor-eval/run.mjs report.md     
 SUPABASE_SECRET_KEY=sb_secret_… node scripts/tutor-eval/run.mjs report.md --only hint # some
 ```
 
-Run it after every prompt change. A full run makes about 20 tutor calls on the platform Groq key.
+Run it after every prompt change. A full run makes about 20 tutor calls on the platform key (a few cents). The report records the model and the time per answer.
 
 ## Design
 

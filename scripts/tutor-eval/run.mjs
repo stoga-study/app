@@ -3,7 +3,7 @@
 //   SUPABASE_SECRET_KEY=sb_secret_… node scripts/tutor-eval/run.mjs [report.md] [--only "name part"]
 //
 // Reads VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY from .env.local. Uses about 20 tutor calls of
-// the platform Groq key, and waits out Groq rate limits. The test student is always deleted at the end.
+// the platform AI key, and waits out rate limits. The test student is always deleted at the end.
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import { cases, pages, topics } from "./cases.mjs";
@@ -19,15 +19,19 @@ const admin = createClient(URL_, SECRET, { auth: { persistSession: false } });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const words = (s) => s.split(/\s+/).filter(Boolean).length;
 
+let modelSeen = null;
+const seconds = [];
+
 async function ask(token, body) {
+  const started = Date.now();
   for (let attempt = 0; attempt < 12; attempt++) {
     const res = await fetch(`${URL_}/functions/v1/tutor`, { method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: PUB, "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (!res.headers.get("content-type")?.includes("event-stream")) {
       const j = await res.json().catch(() => ({}));
       if (j.error === "busy" || j.error === "unavailable") {
         const wait = (j.retry_after ?? 20) + 2;
-        if (wait > 600) return { error: `Groq rate limit: retry in ${Math.round(wait / 60)} minutes (likely the daily token cap)` };
-        console.log(`    (Groq busy, waiting ${wait}s)`);
+        if (wait > 600) return { error: `rate limit: retry in ${Math.round(wait / 60)} minutes` };
+        console.log(`    (AI busy, waiting ${wait}s)`);
         await sleep(wait * 1000);
         continue;
       }
@@ -40,11 +44,13 @@ async function ask(token, body) {
       const raw = /^data: (.*)$/m.exec(block)?.[1];
       if (!ev || !raw) continue;
       const d = JSON.parse(raw);
-      if (ev === "meta") out.thread_id = d.thread_id;
+      if (ev === "meta") { out.thread_id = d.thread_id; modelSeen ??= d.model ?? null; }
       if (ev === "done") Object.assign(out, { mode: d.mode, content: d.content, citations: d.citations });
       if (ev === "error") out.error = d.error;
     }
     if (out.error === "interrupted") { await sleep(15000); continue; }
+    out.seconds = (Date.now() - started) / 1000;
+    if (!out.error) seconds.push(out.seconds);
     return out;
   }
   return { error: "gave up after retries" };
@@ -101,13 +107,14 @@ try {
       const fails = grade(turn, r);
       total++; if (!fails.length) passed++;
       console.log(`  ${fails.length ? "✗" : "✓"} ${turn.say ? `"${turn.say.slice(0, 60)}"` : `[button: ${level === 3 ? "full explanation" : `hint ${level}`}]`} → ${r.mode ?? "-"}${fails.length ? `  ${fails.join("; ")}` : ""}`);
-      report.push(`**Student:** ${turn.say ?? `*(pressed ${level === 3 ? "Show full explanation" : `Show hint ${level}`})*`}\n\n**Tutor** \`${r.mode}\`${r.citations?.length ? ` cites p.${r.citations.map((x) => x.page).join(", ")}` : ""}${fails.length ? ` ✗ ${fails.join("; ")}` : " ✓"}\n\n> ${(r.content || r.error || "").replace(/\n/g, "\n> ")}\n`);
+      report.push(`**Student:** ${turn.say ?? `*(pressed ${level === 3 ? "Show full explanation" : `Show hint ${level}`})*`}\n\n**Tutor** \`${r.mode}\`${r.seconds ? ` ${r.seconds.toFixed(1)}s` : ""}${r.citations?.length ? ` cites p.${r.citations.map((x) => x.page).join(", ")}` : ""}${fails.length ? ` ✗ ${fails.join("; ")}` : " ✓"}\n\n> ${(r.content || r.error || "").replace(/\n/g, "\n> ")}\n`);
       await sleep(4000);
     }
   }
 } finally {
   await admin.auth.admin.deleteUser(uid);
-  report.splice(1, 0, `**${passed} of ${total} turns passed the automatic checks.**\n`);
+  const avg = seconds.length ? (seconds.reduce((a, b) => a + b, 0) / seconds.length).toFixed(1) : "?";
+  report.splice(1, 0, `**Model: ${modelSeen ?? "unknown"}. ${passed} of ${total} turns passed the automatic checks. Average answer time ${avg}s.**\n`);
   fs.writeFileSync(reportPath, report.join("\n"));
-  console.log(`\n${passed}/${total} passed. Transcript: ${reportPath}`);
+  console.log(`\n${modelSeen ?? "?"}: ${passed}/${total} passed, average ${avg}s per answer. Transcript: ${reportPath}`);
 }

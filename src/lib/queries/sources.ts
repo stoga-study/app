@@ -127,7 +127,7 @@ export async function saveUpload(opts: {
   }
 }
 
-/** Ask the server for a smarter title (Groq reads the first page). Never throws: the cleaned title stays. */
+/** Ask the server for a smarter title (the AI reads the first page). Never throws: the cleaned title stays. */
 export async function suggestTitle(sourceId: string): Promise<string | null> {
   try {
     const { data, error } = await supabase.functions.invoke<{ title: string; changed: boolean }>("title-source", { body: { source_id: sourceId } });

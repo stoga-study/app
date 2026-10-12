@@ -1,7 +1,7 @@
 // Turns raw filenames into readable titles on the device, before anything is saved:
 // "U2L6+Notes+Equations+with+Radicals+and+Rational+Exponents+ANSWERS.pdf"
 //   → "Lesson 6: Equations with Radicals and Rational Exponents (Answers)" (shortened to fit)
-// A Groq pass may refine it afterwards; this is the instant, offline fallback.
+// An AI pass may refine it afterwards; this is the instant, offline fallback.
 
 export const TITLE_MAX = 50;
 

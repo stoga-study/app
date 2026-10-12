@@ -8,7 +8,7 @@ import { useAllowance } from "@/lib/queries/sources";
 
 const PLANS = [
   { id: "essential", name: "Essential", price: "Free", desc: "Normal study usage for a full course load.", points: ["50 tutor messages a day", "10 uploads a month", "Every feature, same quality of answers"] },
-  { id: "independent", name: "Independent", price: "Free, plus provider fees", desc: "Bring your own Groq key. Your provider bills the key holder.", points: ["No Stoga.study limits", "Set a spending cap with your provider", "Remove the key any time"] },
+  { id: "independent", name: "Independent", price: "Free, plus provider fees", desc: "Bring your own OpenAI key. Your provider bills the key holder.", points: ["No Stoga.study limits", "Set a spending cap with your provider", "Remove the key any time"] },
   { id: "unlimited", name: "Unlimited", price: "$10 a month", desc: "Heavy use with plain-language fair use. Helps keep Essential free.", points: ["No daily or monthly caps", "A parent or guardian pays", "We email before limiting anything"] },
 ] as const;
 

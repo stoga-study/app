@@ -16,9 +16,9 @@ export function useApiKey() {
 }
 
 const KEY_ERRORS: Record<string, string> = {
-  format: "That does not look like a Groq key. Groq keys start with gsk_.",
-  invalid: "Groq said that key is not valid. Nothing was saved and your study material is untouched.",
-  unreachable: "We could not reach Groq to check the key. Try again in a moment.",
+  format: "That does not look like an OpenAI key. OpenAI keys start with sk-.",
+  invalid: "OpenAI said that key is not valid. Nothing was saved and your study material is untouched.",
+  unreachable: "We could not reach OpenAI to check the key. Try again in a moment.",
 };
 
 export function useSaveKey() {

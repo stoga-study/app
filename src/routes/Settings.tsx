@@ -88,10 +88,10 @@ function OwnKey() {
     return (
       <>
         <p>
-          A Groq key ending in <b className="tabular">{key.data.last4}</b> is in use, added {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(key.data.created_at))}.
+          An OpenAI key ending in <b className="tabular">{key.data.last4}</b> is in use, added {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(key.data.created_at))}.
           Your tutor answers and study sets run on it, with no Stoga.study limits.
         </p>
-        <p className="field-hint">It is stored encrypted and never shown again. Charges come from Groq, so keep a spending cap there.</p>
+        <p className="field-hint">It is stored encrypted and never shown again. Charges come from OpenAI, so set a monthly budget limit there.</p>
         <Button variant="secondary" className="self-start" disabled={remove.isPending} onClick={() => remove.mutate(undefined, { onSuccess: () => toast("Key removed. You are back on Essential."), onError: () => toast("We could not remove it. Try again.") })}>
           Remove key
         </Button>
@@ -110,14 +110,14 @@ function OwnKey() {
         });
       }}
     >
-      <p className="text-muted">On the Independent plan, the tutor and study sets use your own Groq key instead of shared limits. Groq bills the key holder, and most AI providers need an adult account holder, so a parent or guardian usually sets this up.</p>
+      <p className="text-muted">On the Independent plan, the tutor and study sets use your own OpenAI key instead of shared limits. OpenAI bills the key holder, and most AI providers need an adult account holder, so a parent or guardian usually sets this up.</p>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="key" className="field-label">Groq API key</label>
+        <label htmlFor="key" className="field-label">OpenAI API key</label>
         <div className="flex gap-2">
-          <input id="key" className="input flex-1" type={show ? "text" : "password"} value={value} onChange={(e) => setValue(e.target.value)} placeholder="gsk_…" autoComplete="off" spellCheck={false} aria-invalid={!!error} aria-describedby="key-hint key-error" />
+          <input id="key" className="input flex-1" type={show ? "text" : "password"} value={value} onChange={(e) => setValue(e.target.value)} placeholder="sk-…" autoComplete="off" spellCheck={false} aria-invalid={!!error} aria-describedby="key-hint key-error" />
           <Button variant="secondary" onClick={() => setShow((s) => !s)} aria-pressed={show}>{show ? "Hide" : "Show"}</Button>
         </div>
-        <p id="key-hint" className="field-hint">We check it with Groq, then store it encrypted. It is never shown again.</p>
+        <p id="key-hint" className="field-hint">We check it with OpenAI, then store it encrypted. It is never shown again.</p>
       </div>
       {error && <p id="key-error" role="alert" className="callout">{error}</p>}
       <Button type="submit" className="self-start" disabled={!value.trim() || save.isPending}>{save.isPending ? "Checking…" : "Check and save key"}</Button>

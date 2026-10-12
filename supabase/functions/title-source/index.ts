@@ -2,7 +2,7 @@
 // The app already shows an on-device cleaned title; this only replaces it with something better.
 import { corsHeaders, json } from "../_lib/cors.ts";
 import { studentClient } from "../_lib/auth.ts";
-import { groqJson } from "../_lib/groq.ts";
+import { LLM_FAST_MODEL, llmJson } from "../_lib/llm.ts";
 
 const MIN = 8, MAX = 56;
 
@@ -38,7 +38,9 @@ Deno.serve(async (req) => {
   const excerpt = (pages ?? []).map((p) => p.text).join("\n\n").slice(0, 2500);
 
   try {
-    const out = await groqJson<{ title: string }>({
+    const out = await llmJson<{ title: string }>({
+      model: LLM_FAST_MODEL,
+      effort: "light",
       schemaName: "source_title",
       schema: { type: "object", properties: { title: { type: "string" } }, required: ["title"], additionalProperties: false },
       messages: [
@@ -48,8 +50,8 @@ Deno.serve(async (req) => {
           content: `Original name: ${source.original_filename ?? source.filename}\nCleaned name: ${source.filename}\nClass: ${subject?.name ?? "unknown"}\n\nStart of the text:\n${excerpt || "(no text)"}`,
         },
       ],
-      maxTokens: 1024,
-      timeoutMs: 15_000,
+      maxTokens: 200,
+      timeoutMs: 20_000,
     });
     const title = clean(out.title);
     if (!title) return json(req, { title: source.filename, changed: false });

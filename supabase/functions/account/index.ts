@@ -1,21 +1,12 @@
 // Account actions that need the server's own key.
-// POST { action: "save_key", key }   check a Groq key with Groq, then store it encrypted in Vault
+// POST { action: "save_key", key }   check an OpenAI key with OpenAI, then store it encrypted in Vault
 // POST { action: "delete_account", confirm: "delete" }   remove every file, then the account (cascades all data)
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
+import { checkKey } from "../_lib/llm.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
-
-async function checkGroqKey(key: string): Promise<"ok" | "invalid" | "unreachable"> {
-  try {
-    const res = await fetch("https://api.groq.com/openai/v1/models", { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(10_000) });
-    if (res.ok) return "ok";
-    return res.status === 401 || res.status === 403 ? "invalid" : "unreachable";
-  } catch {
-    return "unreachable";
-  }
-}
 
 async function removeAllFiles(userId: string) {
   const { data: folders } = await admin.storage.from("sources").list(userId, { limit: 1000 });
@@ -34,10 +25,10 @@ Deno.serve(async (req) => {
 
   if (body.action === "save_key") {
     const key = typeof body.key === "string" ? body.key.trim() : "";
-    if (!/^gsk_[A-Za-z0-9]{20,}$/.test(key)) return json(req, { error: "format" }, 400);
-    const check = await checkGroqKey(key);
+    if (!/^sk-[A-Za-z0-9_-]{20,}$/.test(key)) return json(req, { error: "format" }, 400);
+    const check = await checkKey(key);
     if (check !== "ok") return json(req, { error: check }, check === "invalid" ? 400 : 503);
-    const { error } = await admin.rpc("store_api_key", { p_user: student.userId, p_provider: "groq", p_key: key });
+    const { error } = await admin.rpc("store_api_key", { p_user: student.userId, p_provider: "openai", p_key: key });
     if (error) return json(req, { error: "save_failed" }, 500);
     return json(req, { last4: key.slice(-4) });
   }

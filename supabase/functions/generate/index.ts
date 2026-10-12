@@ -8,7 +8,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { groqJson, GroqError } from "../_lib/groq.ts";
+import { llmJson, LLMError } from "../_lib/llm.ts";
 import {
   CARDS_SCHEMA, cardsPrompt, chunkPages, GUIDE_SCHEMA, guidePrompt, NOTES_SCHEMA, notesDigest, notesPrompt,
   QUIZ_SCHEMA, quizPrompt, tagged, validCards, validGuide, validNotes, validQuiz,
@@ -21,7 +21,7 @@ const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin = createClient(URL_, SERVICE_KEY, { auth: { persistSession: false } });
 const MAX_ATTEMPTS = 4;
-// Groq's per-minute token budget is small, so rate limits get patient retries that honour retry-after.
+// Rate limits get patient retries that honour retry-after.
 const MAX_RATE_LIMIT_ATTEMPTS = 10;
 
 type Task = { kind: "notes" | "cards"; part: number } | { kind: "quiz" | "guide" };
@@ -78,8 +78,8 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
   try {
     if (task.kind === "notes") {
       const chunk = chunks[task.part];
-      const out = await groqJson<NotesOut>({
-        schemaName: "notes", schema: NOTES_SCHEMA, apiKey, maxTokens: 4096,
+      const out = await llmJson<NotesOut>({
+        schemaName: "notes", schema: NOTES_SCHEMA, apiKey, maxTokens: 4096, effort: "normal",
         messages: [{ role: "system", content: notesPrompt(word) }, { role: "user", content: tagged(chunk.pages, word) }],
       });
       const rows = validNotes(out, valid);
@@ -94,8 +94,8 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       const chunk = chunks[task.part];
       const chars = chunk.pages.reduce((n, p) => n + p.text.length, 0);
       const target = Math.max(6, Math.min(20, Math.round(chars / 450)));
-      const out = await groqJson<CardsOut>({
-        schemaName: "cards", schema: CARDS_SCHEMA, apiKey, maxTokens: 4096,
+      const out = await llmJson<CardsOut>({
+        schemaName: "cards", schema: CARDS_SCHEMA, apiKey, maxTokens: 4096, effort: "normal",
         messages: [{ role: "system", content: cardsPrompt(word, target) }, { role: "user", content: tagged(chunk.pages, word) }],
       });
       const rows = validCards(out, valid);
@@ -111,8 +111,8 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       const digest = notesDigest(notes ?? [], word);
       if (digest) {
         if (task.kind === "quiz") {
-          const out = validQuiz(await groqJson<QuizOut>({
-            schemaName: "quiz", schema: QUIZ_SCHEMA, apiKey, maxTokens: 6000, effort: "medium",
+          const out = validQuiz(await llmJson<QuizOut>({
+            schemaName: "quiz", schema: QUIZ_SCHEMA, apiKey, maxTokens: 6000, effort: "deep", timeoutMs: 120_000,
             messages: [{ role: "system", content: quizPrompt(word) }, { role: "user", content: digest }],
           }), valid);
           if (out.questions.length < 3) throw new Error("too few valid quiz questions");
@@ -125,8 +125,8 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
           );
           if (qErr) throw qErr;
         } else {
-          const rows = validGuide(await groqJson<GuideOut>({
-            schemaName: "guide", schema: GUIDE_SCHEMA, apiKey, maxTokens: 8000, effort: "medium", timeoutMs: 60_000,
+          const rows = validGuide(await llmJson<GuideOut>({
+            schemaName: "guide", schema: GUIDE_SCHEMA, apiKey, maxTokens: 8000, effort: "deep", timeoutMs: 120_000,
             messages: [{ role: "system", content: guidePrompt(word) }, { role: "user", content: digest }],
           }), valid);
           await admin.from("guide_sections").delete().eq("source_id", sourceId);
@@ -146,11 +146,12 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
     await admin.from("sources").update({ steps: next, status: last ? "ready" : "generating" }).eq("id", sourceId);
     if (!last) await dispatch({ source_id: sourceId, user_id: userId, task: index + 1, attempt: 0 });
   } catch (e) {
-    const status = e instanceof GroqError ? e.status : 0;
+    const status = e instanceof LLMError ? e.status : 0;
+    const outOfCredit = e instanceof LLMError && e.kind === "quota";
     console.error("generate", sourceId, task.kind, attempt, status, e instanceof Error ? e.message : e);
-    const limited = status === 429;
-    if (attempt + 1 < (limited ? MAX_RATE_LIMIT_ATTEMPTS : MAX_ATTEMPTS) && status !== 401) {
-      const wait = limited ? Math.min(60, Math.max(5, (e as GroqError).retryAfter ?? 15)) : [3, 8, 15][Math.min(attempt, 2)];
+    const limited = status === 429 && !outOfCredit;
+    if (attempt + 1 < (limited ? MAX_RATE_LIMIT_ATTEMPTS : MAX_ATTEMPTS) && status !== 401 && !outOfCredit) {
+      const wait = limited ? Math.min(60, Math.max(5, (e as LLMError).retryAfter ?? 15)) : [3, 8, 15][Math.min(attempt, 2)];
       await new Promise((r) => setTimeout(r, wait * 1000));
       await dispatch({ source_id: sourceId, user_id: userId, task: index, attempt: attempt + 1 });
       return;
