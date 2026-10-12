@@ -2,7 +2,7 @@
 
 The Stoga.study progressive web app: free, calm study help from your own notes.
 
-**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), OpenAI (`gpt-5.6-luna`, swappable for any OpenAI-compatible model), hosted on Cloudflare Pages.
+**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), OpenAI (`gpt-6-luna`, swappable for any OpenAI-compatible model), hosted on Cloudflare Pages.
 
 ## Develop
 
@@ -41,7 +41,7 @@ Every AI call goes through `supabase/functions/_lib/llm.ts`, which works with an
 
 | Secret | Default | Example |
 | --- | --- | --- |
-| `LLM_MODEL` | `gpt-5.6-luna` | `openai/gpt-oss-120b`, `Qwen/Qwen3-32B` |
+| `LLM_MODEL` | `gpt-6-luna` | `gpt-5.6-luna`, `openai/gpt-oss-120b`, `Qwen/Qwen3-32B` |
 | `LLM_FAST_MODEL` (routing, titles) | same as `LLM_MODEL` | |
 | `LLM_BASE_URL` | `https://api.openai.com/v1` | `https://api.deepinfra.com/v1/openai` |
 | `LLM_API_KEY` | falls back to `OPENAI_API_KEY` | the other provider's key |
@@ -77,7 +77,7 @@ SUPABASE_SECRET_KEY=sb_secret_… node scripts/tutor-eval/run.mjs report.md     
 SUPABASE_SECRET_KEY=sb_secret_… node scripts/tutor-eval/run.mjs report.md --only hint # some
 ```
 
-Run it after every prompt change. A full run makes about 20 tutor calls on the platform key (a few cents). The report records the model and the time per answer.
+Run it after every prompt change. Every AI call's token counts are saved in `ai_usage` (prices in `model_prices`, daily totals in the `ai_usage_daily` view), server-only. A full run makes about 20 tutor calls on the platform key (a few cents). The report records the model and the time per answer.
 
 ## Design
 

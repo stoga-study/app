@@ -7,11 +7,12 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { LLM_FAST_MODEL, LLM_MODEL, llmJson, llmStream, LLMError, type Effort } from "../_lib/llm.ts";
+import { LLM_FAST_MODEL, LLM_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort } from "../_lib/llm.ts";
 import { cleanText } from "../_lib/study.ts";
 import { checkCitations, CRISIS_LINE, guessMode, obviousMode, ROUTER_SCHEMA, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+setUsageLogger((row) => admin.from("ai_usage").insert(row));
 const MAX_Q = 2000;
 const MAX_PAGES = 6;
 
@@ -38,12 +39,12 @@ async function ownKey(userId: string) {
 }
 
 /** Pick the reply mode with the fast model; fall back to rules if it fails or is slow. */
-async function route(history: Turn[], message: string, apiKey?: string): Promise<Mode> {
+async function route(history: Turn[], message: string, apiKey: string | undefined, userId: string): Promise<Mode> {
   const lastMode = [...history].reverse().find((t) => t.role === "assistant")?.mode;
   const obvious = obviousMode(message, lastMode);
   if (obvious) return obvious;
   try {
-    const out = await llmJson<{ mode: Mode }>({ model: LLM_FAST_MODEL, schemaName: "route", schema: ROUTER_SCHEMA, messages: routerMessages(history, message), effort: "light", maxTokens: 50, timeoutMs: 8000, apiKey, noRetry: true });
+    const out = await llmJson<{ mode: Mode }>({ model: LLM_FAST_MODEL, schemaName: "route", schema: ROUTER_SCHEMA, messages: routerMessages(history, message), effort: "light", maxTokens: 50, timeoutMs: 8000, apiKey, noRetry: true, usage: { feature: "tutor_route", userId, byok: !!apiKey } });
     if (["chat", "explain", "hint", "check"].includes(out.mode)) return out.mode;
   } catch (e) {
     console.error("tutor route", e instanceof Error ? e.message.slice(0, 200) : e);
@@ -60,7 +61,7 @@ async function makeCard(req: Request, student: { db: SupabaseClient; userId: str
   ]);
   const out = await llmJson<{ front: string; back: string }>({
     effort: "light",
-    apiKey: await ownKey(student.userId),
+    ...(await ownKey(student.userId).then((apiKey) => ({ apiKey, usage: { feature: "tutor_card", userId: student.userId, byok: !!apiKey } }))),
     schemaName: "card",
     schema: { type: "object", additionalProperties: false, required: ["front", "back"], properties: { front: { type: "string" }, back: { type: "string" } } },
     messages: [
@@ -134,7 +135,7 @@ Deno.serve(async (req) => {
     const [hits, topics, routed] = await Promise.all([
       retrieve(student.db, subject.id, searchTerms(question, previous)),
       noteTopics(student.db, subject.id),
-      body.followup ? Promise.resolve<Mode>("hint") : route(history, question, apiKey),
+      body.followup ? Promise.resolve<Mode>("hint") : route(history, question, apiKey, student.userId),
     ]);
     // A student who may be in crisis gets a caring reply, not schoolwork.
     const mode: Mode = feeling === "crisis" ? "chat" : routed;
@@ -188,6 +189,8 @@ Deno.serve(async (req) => {
         send(controller, "meta", { thread_id: threadId, sources: publicSources, uncovered: sources.length === 0, model: LLM_MODEL });
         send(controller, "mode", { mode });
         let full = "";
+        // deno-lint-ignore no-explicit-any
+        let usage: any = null;
         try {
           const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
           let buf = "";
@@ -202,12 +205,15 @@ Deno.serve(async (req) => {
               if (!line.startsWith("data:")) continue;
               const payload = line.slice(5).trim();
               if (payload === "[DONE]") continue;
-              const delta = JSON.parse(payload)?.choices?.[0]?.delta?.content;
+              const chunk = JSON.parse(payload);
+              if (chunk?.usage) usage = chunk.usage;
+              const delta = chunk?.choices?.[0]?.delta?.content;
               if (typeof delta !== "string" || !delta) continue;
               full += delta;
               send(controller, "delta", { text: delta });
             }
           }
+          await recordUsage({ feature: "tutor", userId: student.userId, byok: !!apiKey }, LLM_MODEL, usage);
           const checked = checkCitations(full, sources);
           // The crisis line is never left to chance.
           const cleaned = feeling === "crisis" && !/\b988\b/.test(checked.cleaned) ? `${checked.cleaned}\n\n${CRISIS_LINE}` : checked.cleaned;

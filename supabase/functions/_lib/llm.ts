@@ -1,16 +1,47 @@
 // One client for every AI call. The key is a function secret and never reaches the browser.
 //
 // Any OpenAI-compatible provider works: set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL. The default is
-// OpenAI with gpt-5.6-luna (gpt-5-nano shuts down December 11, 2026). Models differ in which settings they accept (GPT-5 models reject
+// OpenAI with gpt-6-luna. Models differ in which settings they accept (GPT-5 models reject
 // temperature, and count hidden reasoning against the token limit), so `profile()` translates one
 // set of intentions into what each model family expects. Prompts and answer checks stay the same,
 // and the tutor test suite (scripts/tutor-eval) is the gate before switching models.
 
 export const LLM_BASE_URL = (Deno.env.get("LLM_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
-export const LLM_MODEL = Deno.env.get("LLM_MODEL") ?? "gpt-5.6-luna";
+export const LLM_MODEL = Deno.env.get("LLM_MODEL") ?? "gpt-6-luna";
 /** For quick decisions (routing a message, naming a file). Defaults to the main model. */
 export const LLM_FAST_MODEL = Deno.env.get("LLM_FAST_MODEL") ?? LLM_MODEL;
 const PLATFORM_KEY = Deno.env.get("LLM_API_KEY") ?? Deno.env.get("OPENAI_API_KEY");
+
+/** Who and what a call was for, so its token usage can be recorded (table ai_usage). */
+export type UsageMeta = { feature: string; userId?: string | null; byok?: boolean };
+type UsageRow = { user_id: string | null; feature: string; model: string; input_tokens: number; cached_tokens: number; output_tokens: number; reasoning_tokens: number; byok: boolean; flex: boolean };
+let usageLogger: ((row: UsageRow) => PromiseLike<unknown>) | null = null;
+
+/** Each function plugs in how to save usage rows (with its service-role client). */
+export function setUsageLogger(fn: (row: UsageRow) => PromiseLike<unknown>) {
+  usageLogger = fn;
+}
+
+/** Save one call's token counts. Never throws: usage tracking must not break a student's answer. */
+// deno-lint-ignore no-explicit-any
+export async function recordUsage(meta: UsageMeta | undefined, model: string, usage: any, flex = false) {
+  if (!meta || !usage || !usageLogger) return;
+  try {
+    await usageLogger({
+      user_id: meta.userId ?? null,
+      feature: meta.feature,
+      model,
+      input_tokens: usage.prompt_tokens ?? usage.input_tokens ?? 0,
+      cached_tokens: usage.prompt_tokens_details?.cached_tokens ?? usage.input_tokens_details?.cached_tokens ?? 0,
+      output_tokens: usage.completion_tokens ?? usage.output_tokens ?? 0,
+      reasoning_tokens: usage.completion_tokens_details?.reasoning_tokens ?? usage.output_tokens_details?.reasoning_tokens ?? 0,
+      byok: !!meta.byok,
+      flex,
+    });
+  } catch (e) {
+    console.error("usage log", e instanceof Error ? e.message : e);
+  }
+}
 
 /** How hard the model should think: light (routing, titles, small talk), normal, or deep (worked math, quizzes). */
 export type Effort = "light" | "normal" | "deep";
@@ -31,8 +62,9 @@ export class LLMError extends Error {
 
 /** Translate intentions into request settings for the model family. */
 export function profile(model: string, effort: Effort, maxTokens: number) {
-  const gpt5 = /^(openai\/)?gpt-5/i.test(model);
-  if (gpt5) {
+  // GPT-5 and later OpenAI reasoning models.
+  const reasoningGpt = /^(openai\/)?gpt-([5-9]|\d{2})/i.test(model);
+  if (reasoningGpt) {
     // GPT-5 (original) has "minimal"; GPT-5.1 and later have "none" instead.
     const original = /^(openai\/)?gpt-5(-|$)/i.test(model);
     const lightest = original ? "minimal" : "none";
@@ -83,6 +115,7 @@ export async function llmJson<T>(opts: {
    * Errors are thrown as usual, so the caller's retry runs at standard price.
    */
   flex?: boolean;
+  usage?: UsageMeta;
 }): Promise<T> {
   const model = opts.model ?? LLM_MODEL;
   const flex = opts.flex && /api\.openai\.com/.test(LLM_BASE_URL);
@@ -97,6 +130,7 @@ export async function llmJson<T>(opts: {
     const res = await post(body, opts.apiKey, opts.timeoutMs ?? 60_000);
     if (res.ok) {
       const data = await res.json();
+      await recordUsage(opts.usage, model, data?.usage, !!flex);
       const choice = data?.choices?.[0];
       const text = choice?.message?.content;
       if (typeof text !== "string" || !text) {
@@ -123,7 +157,8 @@ export async function llmJson<T>(opts: {
 /** Start a streamed answer. The caller reads OpenAI-style SSE chunks from `res.body`. */
 export async function llmStream(opts: { messages: Message[]; effort?: Effort; maxTokens?: number; apiKey?: string; timeoutMs?: number; model?: string }) {
   const model = opts.model ?? LLM_MODEL;
-  const res = await post({ model, messages: opts.messages, stream: true, ...profile(model, opts.effort ?? "normal", opts.maxTokens ?? 1500) }, opts.apiKey, opts.timeoutMs ?? 90_000);
+  // include_usage adds a last chunk with the token counts, for recordUsage().
+  const res = await post({ model, messages: opts.messages, stream: true, stream_options: { include_usage: true }, ...profile(model, opts.effort ?? "normal", opts.maxTokens ?? 1500) }, opts.apiKey, opts.timeoutMs ?? 90_000);
   if (!res.ok || !res.body) {
     const text = (await res.text().catch(() => "")).slice(0, 500);
     throw new LLMError(res.status, text, retryAfterOf(res));

@@ -2,7 +2,11 @@
 // The app already shows an on-device cleaned title; this only replaces it with something better.
 import { corsHeaders, json } from "../_lib/cors.ts";
 import { studentClient } from "../_lib/auth.ts";
-import { LLM_FAST_MODEL, llmJson } from "../_lib/llm.ts";
+import { createClient } from "npm:@supabase/supabase-js@2.117.3";
+import { LLM_FAST_MODEL, llmJson, setUsageLogger } from "../_lib/llm.ts";
+
+const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+setUsageLogger((row) => admin.from("ai_usage").insert(row));
 
 const MIN = 8, MAX = 56;
 
@@ -41,6 +45,7 @@ Deno.serve(async (req) => {
     const out = await llmJson<{ title: string }>({
       model: LLM_FAST_MODEL,
       effort: "light",
+      usage: { feature: "source_title", userId: student.userId },
       schemaName: "source_title",
       schema: { type: "object", properties: { title: { type: "string" } }, required: ["title"], additionalProperties: false },
       messages: [
