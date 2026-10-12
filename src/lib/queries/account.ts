@@ -33,6 +33,15 @@ export const hostOf = (url: string) => {
   }
 };
 
+/** A failed key check, with the form field it is about (so that field is highlighted, and the key kept unless it was the problem). */
+export class KeyError extends Error {
+  constructor(message: string, public field: "key" | "url" | "model" | null) {
+    super(message);
+  }
+}
+
+const KEY_FIELD: Record<string, KeyError["field"]> = { format: "key", invalid: "key", bad_url: "url", not_compatible: "url", model_required: "model", model_not_found: "model" };
+
 function keyError(code: string | undefined, suggestions: string[] | undefined, host: string) {
   switch (code) {
     case "format": return "That does not look like a complete API key. Copy the whole key, with no spaces.";
@@ -55,7 +64,7 @@ export function useSaveKey() {
       });
       if (error) {
         const j = await (error as { context?: Response }).context?.json?.().catch(() => null);
-        throw new Error(keyError(j?.error, j?.suggestions, hostOf(input.baseUrl || "https://api.openai.com/v1")));
+        throw new KeyError(keyError(j?.error, j?.suggestions, hostOf(input.baseUrl || "https://api.openai.com/v1")), KEY_FIELD[j?.error] ?? null);
       }
       return data!;
     },

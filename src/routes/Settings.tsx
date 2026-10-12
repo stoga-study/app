@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { describeGrade } from "@/lib/grade";
 import { TEXT_LABEL, THEME_LABEL, useTextSize, useTheme, type TextSize, type ThemeChoice } from "@/lib/preferences";
-import { deleteAccount, hostOf, PROVIDER_PRESETS, useApiKey, useRemoveKey, useSaveKey, useUpdateName } from "@/lib/queries/account";
+import { deleteAccount, hostOf, KeyError, PROVIDER_PRESETS, useApiKey, useRemoveKey, useSaveKey, useUpdateName } from "@/lib/queries/account";
 import { useProfile } from "@/lib/queries/profile";
 import { supabase } from "@/lib/supabase";
 
@@ -85,7 +85,7 @@ function OwnKey() {
   const [model, setModel] = useState<string>(PROVIDER_PRESETS[0].model);
   const [value, setValue] = useState("");
   const [show, setShow] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string; field: KeyError["field"] } | null>(null);
 
   if (key.data) {
     const host = hostOf(key.data.base_url);
@@ -112,7 +112,11 @@ function OwnKey() {
         setError(null);
         save.mutate({ key: value.trim(), baseUrl: baseUrl.trim(), model: model.trim() }, {
           onSuccess: () => { setValue(""); toast("Key checked and saved. You are on the Independent plan."); },
-          onError: (err) => { setValue(""); setError(err.message); },
+          onError: (err) => {
+            const field = err instanceof KeyError ? err.field : null;
+            if (field === "key" || field === null) setValue("");
+            setError({ message: err.message, field });
+          },
         });
       }}
     >
@@ -136,23 +140,23 @@ function OwnKey() {
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="base-url" className="field-label">API address</label>
-        <input id="base-url" className="input" type="url" inputMode="url" value={baseUrl} onChange={(e) => { setBaseUrl(e.target.value); if (!other) setPreset(PROVIDER_PRESETS[PROVIDER_PRESETS.length - 1].name); }} placeholder="https://api.example.com/v1" autoComplete="off" spellCheck={false} aria-describedby="url-hint" />
+        <input id="base-url" className="input" type="url" inputMode="url" value={baseUrl} onChange={(e) => { setBaseUrl(e.target.value); if (!other) setPreset(PROVIDER_PRESETS[PROVIDER_PRESETS.length - 1].name); }} placeholder="https://api.example.com/v1" autoComplete="off" spellCheck={false} aria-invalid={error?.field === "url"} aria-describedby={error?.field === "url" ? "url-hint key-error" : "url-hint"} />
         <p id="url-hint" className="field-hint">The provider's OpenAI-compatible base URL. It usually ends in /v1.</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="model" className="field-label">Model</label>
-        <input id="model" className="input" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. openai/gpt-oss-120b" autoComplete="off" spellCheck={false} aria-describedby="model-hint" />
+        <input id="model" className="input" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. openai/gpt-oss-120b" autoComplete="off" spellCheck={false} aria-invalid={error?.field === "model"} aria-describedby={error?.field === "model" ? "model-hint key-error" : "model-hint"} />
         <p id="model-hint" className="field-hint">The exact model name from your provider. Larger models give better answers.</p>
       </div>
       <div className="flex flex-col gap-1.5">
         <label htmlFor="key" className="field-label">API key</label>
         <div className="flex gap-2">
-          <input id="key" className="input flex-1" type={show ? "text" : "password"} value={value} onChange={(e) => setValue(e.target.value)} placeholder="Paste your key" autoComplete="off" spellCheck={false} aria-invalid={!!error} aria-describedby="key-hint key-error" />
+          <input id="key" className="input flex-1" type={show ? "text" : "password"} value={value} onChange={(e) => setValue(e.target.value)} placeholder="Paste your key" autoComplete="off" spellCheck={false} aria-invalid={error?.field === "key"} aria-describedby={error?.field === "key" ? "key-hint key-error" : "key-hint"} />
           <Button variant="secondary" onClick={() => setShow((s) => !s)} aria-pressed={show}>{show ? "Hide" : "Show"}</Button>
         </div>
         <p id="key-hint" className="field-hint">We check it with a tiny test request (a fraction of a cent on your account), then store it encrypted. It is never shown again.</p>
       </div>
-      {error && <p id="key-error" role="alert" className="callout">{error}</p>}
+      {error && <p id="key-error" role="alert" className="callout">{error.message}</p>}
       <Button type="submit" className="self-start" disabled={!value.trim() || !baseUrl.trim() || !model.trim() || save.isPending}>{save.isPending ? "Checking…" : "Check and save key"}</Button>
     </form>
   );
