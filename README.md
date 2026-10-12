@@ -26,7 +26,7 @@ The app is static files served by a Cloudflare Worker (`wrangler.jsonc`). It has
 1. In Cloudflare, go to **Workers & Pages → Create → Import a repository** and pick `stoga-study/app`. The Worker's name must match `name` in `wrangler.jsonc` (currently `app`).
 2. Build command `npm run build`. Deploy command `npx wrangler deploy` (it uses the pinned `wrangler` dev dependency). `.node-version` pins Node 22.
 3. Under **Settings → Build → Variables and secrets**, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. They are *build* variables, because Vite bakes them into the files.
-4. Under **Settings → Domains & Routes**, add the custom domain `app.stoga.study`. stoga.study's DNS is on Cloudflare, so the record and certificate are created automatically.
+4. Under **Settings → Domains & Routes**, add the custom domain `beta.stoga.study`. stoga.study's DNS is on Cloudflare, so the record and certificate are created automatically.
 
 Every push to `main` deploys. `wrangler.jsonc` sends unknown paths (like `/sources/123`) to `index.html` for the app's router. `public/_headers` sets the Content Security Policy (network calls only to `*.supabase.co`), the other security headers, and caching. Run `npx wrangler dev` after a build to try it exactly as Cloudflare serves it.
 
