@@ -44,6 +44,14 @@ A student can save a key for **any OpenAI-compatible API**: an address (base URL
 
 PDF pages with no text (scans) and photos (JPG, PNG, WebP, HEIC) are rendered to JPEG on the device and read one page at a time by `read-page`, which sends the image to the platform model (`OCR_MODEL`, default the main model) and returns the transcription. It costs about $0.0002 a page with GPT-6 Luna. Each student can read `OCR_PAGES_PER_DAY` pages a day (default 150), and one upload can hold up to 60 scanned pages. Photos are stored as the shrunk JPEG.
 
+### Releases and What's new
+
+`public/changelog.json` is the single list of releases (newest first, plain words for students). After an update, each student sees the full-screen What's new once (`profiles.last_seen_version`; brand-new students are marked up to date). `/changelog` lists every release, linked from Settings.
+
+The breakdown email for a release is built from the same file by the `release-email` function and sent through Resend. It is only sent when you press "Send to everyone" in the local admin dashboard (Updates tab); "Send preview" emails just you first. Students who already got a release are skipped, and every email has a one-tap unsubscribe (`profiles.email_updates`). Secrets: `RESEND_API_KEY`, `ADMIN_TOKEN` (also in the admin dashboard's `.env`), `UNSUBSCRIBE_SECRET`, optional `RELEASE_EMAIL_FROM`.
+
+Shipping a release: add its entry to `public/changelog.json`, push, tag it (`git tag v1.1.0 && git push --tags`), then send the email from the dashboard.
+
 ### Switching models
 
 Every AI call goes through `supabase/functions/_lib/llm.ts`, which works with any OpenAI-compatible provider. Change three optional secrets, then redeploy the functions:
