@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkCitations, guessMode, houseStyle, normalizeCitations, searchTerms, systemPrompt, userTurn, type Src } from "../../supabase/functions/_lib/tutor";
+import { checkCitations, guessMode, houseStyle, normalizeCitations, obviousMode, searchTerms, systemPrompt, userTurn, wellbeing, type Src } from "../../supabase/functions/_lib/tutor";
 import { citesNotes, displayText } from "./tutor";
 
 const sources: Src[] = [{ key: "S1", source_id: "a", filename: "Week 5.pdf", kind: "pdf", pages: [4, 7] }];
@@ -24,6 +24,34 @@ describe("guessMode (fallback routing)", () => {
   });
 });
 
+describe("obviousMode (rules that run before the router)", () => {
+  it("treats a numeric problem phrased as a how-to question as a problem", () => {
+    expect(obviousMode("For σ = 15 and n = 25, how do I find the standard error of the mean?")).toBe("hint");
+  });
+  it("asks for the problem when it is only referenced", () => {
+    expect(obviousMode("I don't get #4")).toBe("chat");
+    expect(obviousMode("can you help with number 7")).toBe("chat");
+  });
+  it("leaves judgement calls to the router", () => {
+    expect(obviousMode("Why does the standard error shrink?")).toBeNull();
+    expect(obviousMode("What is the Central Limit Theorem?")).toBeNull();
+  });
+});
+
+describe("wellbeing", () => {
+  it("flags crisis language", () => {
+    expect(wellbeing("honestly I just want to give up on everything")).toBe("crisis");
+    expect(wellbeing("I don't want to be here anymore")).toBe("crisis");
+  });
+  it("flags stress without overreacting", () => {
+    expect(wellbeing("I'm so stressed about this test")).toBe("stressed");
+    expect(wellbeing("What is a p-value?")).toBeNull();
+  });
+  it("puts the crisis instructions in the prompt", () => {
+    expect(systemPrompt({ className: "AP Statistics", level: 1, hasSources: false, topics: [], mode: "chat", feeling: "crisis" })).toContain("988");
+  });
+});
+
 describe("citations", () => {
   it("rewrites gpt-oss style citations", () => {
     expect(normalizeCitations("SE = σ/√n【S1 p.7】 and 【S2†p.3】.")).toBe("SE = σ/√n[S1 p.7] and [S2 p.3].");
@@ -33,6 +61,9 @@ describe("citations", () => {
     const { cleaned, used } = checkCitations("SE = σ/√n【S1 p.7】. Also see [S1 p.9] and [S2 p.1].", sources);
     expect(cleaned).toBe("SE = σ/√n [S1 p.7]. Also see and.");
     expect(used).toEqual([{ key: "S1", source_id: "a", filename: "Week 5.pdf", kind: "pdf", page: 7 }]);
+  });
+  it("turns plain-text mentions into citations and drops repeats", () => {
+    expect(normalizeCitations("SE = σ/√n, per S1 p.7 [S1 p.7].")).toBe("SE = σ/√n, [S1 p.7].");
   });
   it("removes the old general-knowledge opener", () => {
     expect(checkCitations("Your sources don't cover this. Here's general knowledge: Plants use light.", []).cleaned).toBe("Plants use light.");
@@ -69,6 +100,14 @@ describe("prompts", () => {
     expect(systemPrompt({ ...base, mode: "chat" })).not.toContain("HINT 1 of 3");
     expect(systemPrompt({ ...base, mode: "hint", level: 2 })).toContain("HINT 2 of 3");
     expect(systemPrompt({ ...base, mode: "check" })).toContain("whether it is right");
+  });
+  it("keeps the opening identical across classes and modes, so it can be cached", () => {
+    const a = systemPrompt({ ...base, mode: "chat" });
+    const b = systemPrompt({ ...base, className: "Honors Chemistry", mode: "hint", level: 3, hasSources: false, topics: [] });
+    const shared = a.slice(0, a.indexOf("Your task:"));
+    expect(shared.length).toBeGreaterThan(1500);
+    expect(b.startsWith(shared)).toBe(true);
+    expect(shared).not.toContain("AP Statistics");
   });
   it("asks for the next ladder step without repeating the attempt", () => {
     expect(userTurn([], "is it 0.6?", 3)).toContain("the full explanation for the problem");

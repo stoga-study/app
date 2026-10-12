@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       api_keys: {
@@ -181,6 +206,7 @@ export type Database = {
           created_at: string
           hint_level: number | null
           id: string
+          mode: string | null
           role: string
           thread_id: string
           user_id: string
@@ -191,6 +217,7 @@ export type Database = {
           created_at?: string
           hint_level?: number | null
           id?: string
+          mode?: string | null
           role: string
           thread_id: string
           user_id?: string
@@ -201,6 +228,7 @@ export type Database = {
           created_at?: string
           hint_level?: number | null
           id?: string
+          mode?: string | null
           role?: string
           thread_id?: string
           user_id?: string
@@ -653,6 +681,36 @@ export type Database = {
           },
         ]
       }
+      shared_sets: {
+        Row: {
+          content_hash: string
+          created_at: string
+          gen_version: number
+          kind: string
+          page_count: number
+          payload: Json
+          uses: number
+        }
+        Insert: {
+          content_hash: string
+          created_at?: string
+          gen_version: number
+          kind: string
+          page_count: number
+          payload: Json
+          uses?: number
+        }
+        Update: {
+          content_hash?: string
+          created_at?: string
+          gen_version?: number
+          kind?: string
+          page_count?: number
+          payload?: Json
+          uses?: number
+        }
+        Relationships: []
+      }
       source_pages: {
         Row: {
           page_no: number
@@ -695,6 +753,7 @@ export type Database = {
       sources: {
         Row: {
           bytes: number | null
+          content_hash: string | null
           created_at: string
           error_code: string | null
           filename: string
@@ -711,6 +770,7 @@ export type Database = {
         }
         Insert: {
           bytes?: number | null
+          content_hash?: string | null
           created_at?: string
           error_code?: string | null
           filename: string
@@ -727,6 +787,7 @@ export type Database = {
         }
         Update: {
           bytes?: number | null
+          content_hash?: string | null
           created_at?: string
           error_code?: string | null
           filename?: string
@@ -1016,6 +1077,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       plan: ["essential", "independent", "unlimited"],

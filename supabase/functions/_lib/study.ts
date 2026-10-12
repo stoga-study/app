@@ -1,6 +1,9 @@
 // Prompts, schemas, chunking and validation for study-set generation.
 // Every item must point at pages that exist in the source; anything else is dropped.
 
+/** Bump when the study-set prompts or validators change, so shared sets made with older prompts are not reused. */
+export const GEN_VERSION = 1;
+
 export type Page = { page_no: number; text: string };
 export type Chunk = { part: number; pages: Page[] };
 

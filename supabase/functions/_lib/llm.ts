@@ -1,13 +1,13 @@
 // One client for every AI call. The key is a function secret and never reaches the browser.
 //
 // Any OpenAI-compatible provider works: set LLM_BASE_URL, LLM_API_KEY and LLM_MODEL. The default is
-// OpenAI with gpt-5-nano. Models differ in which settings they accept (GPT-5 models reject
+// OpenAI with gpt-5.6-luna (gpt-5-nano shuts down December 11, 2026). Models differ in which settings they accept (GPT-5 models reject
 // temperature, and count hidden reasoning against the token limit), so `profile()` translates one
 // set of intentions into what each model family expects. Prompts and answer checks stay the same,
 // and the tutor test suite (scripts/tutor-eval) is the gate before switching models.
 
 export const LLM_BASE_URL = (Deno.env.get("LLM_BASE_URL") ?? "https://api.openai.com/v1").replace(/\/$/, "");
-export const LLM_MODEL = Deno.env.get("LLM_MODEL") ?? "gpt-5-nano";
+export const LLM_MODEL = Deno.env.get("LLM_MODEL") ?? "gpt-5.6-luna";
 /** For quick decisions (routing a message, naming a file). Defaults to the main model. */
 export const LLM_FAST_MODEL = Deno.env.get("LLM_FAST_MODEL") ?? LLM_MODEL;
 const PLATFORM_KEY = Deno.env.get("LLM_API_KEY") ?? Deno.env.get("OPENAI_API_KEY");
@@ -78,10 +78,17 @@ export async function llmJson<T>(opts: {
   model?: string;
   /** Fail at once instead of retrying (for calls that have a fallback). */
   noRetry?: boolean;
+  /**
+   * Try OpenAI's half-price Flex processing (slower, sometimes unavailable). For background work only.
+   * Errors are thrown as usual, so the caller's retry runs at standard price.
+   */
+  flex?: boolean;
 }): Promise<T> {
   const model = opts.model ?? LLM_MODEL;
+  const flex = opts.flex && /api\.openai\.com/.test(LLM_BASE_URL);
   const body = {
     model,
+    ...(flex ? { service_tier: "flex" } : {}),
     messages: opts.messages,
     response_format: { type: "json_schema", json_schema: { name: opts.schemaName, strict: true, schema: opts.schema } },
     ...profile(model, opts.effort ?? "normal", opts.maxTokens ?? 2048),
@@ -102,7 +109,8 @@ export async function llmJson<T>(opts: {
     const text = (await res.text()).slice(0, 500);
     const err = new LLMError(res.status, text, retryAfterOf(res));
     // Retry brief rate limits and server errors once, and an occasional invalid structured output twice.
-    const retriable = (err.kind === "rate_limit" || res.status >= 500 || (res.status === 400 && /json_validate_failed|invalid json/i.test(text))) && !opts.noRetry;
+    // Flex errors go straight back: the caller's retry uses standard processing.
+    const retriable = (err.kind === "rate_limit" || res.status >= 500 || (res.status === 400 && /json_validate_failed|invalid json/i.test(text))) && !opts.noRetry && !flex;
     const wait = res.status === 400 ? 0.2 : err.retryAfter ?? 1;
     if (retriable && wait <= 5 && attempt < (res.status === 400 ? 2 : 1)) {
       await new Promise((r) => setTimeout(r, wait * 1000));

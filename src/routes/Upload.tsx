@@ -108,6 +108,8 @@ export default function Upload() {
       qc.invalidateQueries({ queryKey: ["allowance"] });
       // Start the study set straight away; the source page shows its progress.
       await startGeneration(id).catch(() => undefined);
+      // A file someone already prepared is copied instantly and its upload is given back.
+      qc.invalidateQueries({ queryKey: ["allowance"] });
       // A smarter title arrives a moment later for files; pasted notes keep the title the student typed.
       if (file)
         suggestTitle(id).then((better) => {

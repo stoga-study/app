@@ -2,7 +2,7 @@
 
 The Stoga.study progressive web app: free, calm study help from your own notes.
 
-**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), OpenAI (`gpt-5-nano`, swappable for any OpenAI-compatible model), hosted on Cloudflare Pages.
+**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), OpenAI (`gpt-5.6-luna`, swappable for any OpenAI-compatible model), hosted on Cloudflare Pages.
 
 ## Develop
 
@@ -41,7 +41,7 @@ Every AI call goes through `supabase/functions/_lib/llm.ts`, which works with an
 
 | Secret | Default | Example |
 | --- | --- | --- |
-| `LLM_MODEL` | `gpt-5-nano` | `gpt-5.4-nano`, `openai/gpt-oss-120b`, `Qwen/Qwen3-32B` |
+| `LLM_MODEL` | `gpt-5.6-luna` | `openai/gpt-oss-120b`, `Qwen/Qwen3-32B` |
 | `LLM_FAST_MODEL` (routing, titles) | same as `LLM_MODEL` | |
 | `LLM_BASE_URL` | `https://api.openai.com/v1` | `https://api.deepinfra.com/v1/openai` |
 | `LLM_API_KEY` | falls back to `OPENAI_API_KEY` | the other provider's key |

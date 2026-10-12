@@ -126,6 +126,9 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           </li>
         ))}
       </ul>
+      {(source.steps as Steps | null)?.shared && (
+        <p className="callout mt-3"><Sparkles /> <span>This file was already prepared on Stoga.study, so your study set was ready instantly. It did not count toward your uploads.</span></p>
+      )}
       <div className="mt-3 flex flex-wrap gap-2">
         {d.cards.length > 0 && <Button asChild variant="secondary" size="sm"><Link to="/review"><Layers /> Review cards</Link></Button>}
         {d.quiz && <Button asChild variant="secondary" size="sm"><Link to={`/quiz/${d.quiz.id}`}><ListChecks /> Take the quiz</Link></Button>}

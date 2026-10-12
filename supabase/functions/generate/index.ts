@@ -3,6 +3,9 @@
 // POST { source_id }                          as the student: start, or resume after a failure.
 // POST { source_id, user_id, task, attempt }  internal (service key): run one job, then start the next.
 //
+// A file that another student already turned into a study set (same bytes, same prompt version) is
+// copied instead of generated: instant, free, and it does not count against the uploads allowance.
+//
 // Work runs as a chain of small jobs, one chunk of pages each, in the background. The student can
 // leave the screen; progress is saved on the source row and streamed to the app.
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
@@ -10,7 +13,7 @@ import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
 import { llmJson, LLMError } from "../_lib/llm.ts";
 import {
-  CARDS_SCHEMA, cardsPrompt, chunkPages, GUIDE_SCHEMA, guidePrompt, NOTES_SCHEMA, notesDigest, notesPrompt,
+  CARDS_SCHEMA, cardsPrompt, chunkPages, GEN_VERSION, GUIDE_SCHEMA, guidePrompt, NOTES_SCHEMA, notesDigest, notesPrompt,
   QUIZ_SCHEMA, quizPrompt, tagged, validCards, validGuide, validNotes, validQuiz,
   type CardsOut, type GuideOut, type NotesOut, type Page, type QuizOut,
 } from "../_lib/study.ts";
@@ -26,7 +29,67 @@ const MAX_RATE_LIMIT_ATTEMPTS = 10;
 
 type Task = { kind: "notes" | "cards"; part: number } | { kind: "quiz" | "guide" };
 type Progress = { done: number; total: number };
-type Steps = { notes: Progress; cards: Progress; quiz: Progress; guide: Progress; next: number; failed?: string };
+type Steps = { notes: Progress; cards: Progress; quiz: Progress; guide: Progress; next: number; failed?: string; shared?: boolean };
+
+type SharedPayload = {
+  notes: { position: number; gen_part: number | null; title: string; body_md: string; pages: number[] }[];
+  guide: { position: number; title: string; body_md: string; minutes: number | null; pages: number[] }[];
+  cards: { gen_part: number | null; front: string; back: string; pages: number[] }[];
+  quiz: { title: string; questions: { position: number; topic: string | null; prompt: string; options: string[]; answer_index: number; hint: string | null; explanation: string; pages: number[] }[] } | null;
+};
+
+/** Snapshot a finished study set for students who upload the same file later. Never throws. */
+async function saveShared(sourceId: string, userId: string) {
+  try {
+    const { data: source } = await admin.from("sources").select("content_hash, kind, page_count").eq("id", sourceId).eq("user_id", userId).maybeSingle();
+    if (!source?.content_hash) return;
+    const [notes, guide, cards, quizzes] = await Promise.all([
+      admin.from("notes_sections").select("position, gen_part, title, body_md, pages").eq("source_id", sourceId).order("position"),
+      admin.from("guide_sections").select("position, title, body_md, minutes, pages").eq("source_id", sourceId).order("position"),
+      // Only untouched cards: a student's own edits stay private.
+      admin.from("cards").select("gen_part, front, back, pages").eq("source_id", sourceId).eq("edited", false),
+      admin.from("quizzes").select("id, title").eq("source_id", sourceId).limit(1),
+    ]);
+    const quiz = quizzes.data?.[0];
+    const questions = quiz
+      ? (await admin.from("quiz_questions").select("position, topic, prompt, options, answer_index, hint, explanation, pages").eq("quiz_id", quiz.id).order("position")).data ?? []
+      : [];
+    if (!notes.data?.length || !cards.data?.length) return;
+    const payload: SharedPayload = { notes: notes.data, guide: guide.data ?? [], cards: cards.data, quiz: quiz ? { title: quiz.title, questions } : null };
+    await admin.from("shared_sets").upsert(
+      { content_hash: source.content_hash, gen_version: GEN_VERSION, kind: source.kind, page_count: source.page_count, payload },
+      { onConflict: "content_hash,gen_version", ignoreDuplicates: true },
+    );
+  } catch (e) {
+    console.error("saveShared", sourceId, e instanceof Error ? e.message : e);
+  }
+}
+
+/** Give this student a private copy of a shared study set. Returns false (and cleans up) if anything fails. */
+async function copyShared(source: { id: string; subject_id: string }, userId: string, payload: SharedPayload) {
+  const sourceId = source.id;
+  try {
+    const own = { user_id: userId, source_id: sourceId };
+    const ins = async (table: string, rows: Record<string, unknown>[]) => {
+      if (!rows.length) return;
+      const { error } = await admin.from(table).insert(rows);
+      if (error) throw error;
+    };
+    await ins("notes_sections", payload.notes.map((n) => ({ ...n, ...own })));
+    await ins("guide_sections", payload.guide.map((g) => ({ ...g, ...own })));
+    await ins("cards", payload.cards.map((c) => ({ ...c, ...own, subject_id: source.subject_id })));
+    if (payload.quiz) {
+      const { data: quiz, error } = await admin.from("quizzes").insert({ ...own, subject_id: source.subject_id, title: payload.quiz.title }).select("id").single();
+      if (error) throw error;
+      await ins("quiz_questions", payload.quiz.questions.map((q) => ({ ...q, user_id: userId, quiz_id: quiz.id })));
+    }
+    return true;
+  } catch (e) {
+    console.error("copyShared", sourceId, e instanceof Error ? e.message : e);
+    await Promise.all(["notes_sections", "guide_sections", "cards", "quizzes"].map((t) => admin.from(t).delete().eq("source_id", sourceId)));
+    return false;
+  }
+}
 
 function plan(chunks: number): Task[] {
   return [
@@ -74,12 +137,15 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
   // Students on the Independent plan generate with their own key.
   const { data: ownKey } = await admin.rpc("read_api_key", { p_user: userId });
   const apiKey = typeof ownKey === "string" && ownKey ? ownKey : undefined;
+  // Half-price Flex processing first; any retry of this job uses standard processing.
+  // STUDY_SET_FLEX=off turns it off (faster sets, full price).
+  const flex = attempt === 0 && Deno.env.get("STUDY_SET_FLEX") !== "off";
 
   try {
     if (task.kind === "notes") {
       const chunk = chunks[task.part];
       const out = await llmJson<NotesOut>({
-        schemaName: "notes", schema: NOTES_SCHEMA, apiKey, maxTokens: 4096, effort: "normal",
+        schemaName: "notes", schema: NOTES_SCHEMA, apiKey, flex, maxTokens: 4096, effort: "normal",
         messages: [{ role: "system", content: notesPrompt(word) }, { role: "user", content: tagged(chunk.pages, word) }],
       });
       const rows = validNotes(out, valid);
@@ -95,7 +161,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       const chars = chunk.pages.reduce((n, p) => n + p.text.length, 0);
       const target = Math.max(6, Math.min(20, Math.round(chars / 450)));
       const out = await llmJson<CardsOut>({
-        schemaName: "cards", schema: CARDS_SCHEMA, apiKey, maxTokens: 4096, effort: "normal",
+        schemaName: "cards", schema: CARDS_SCHEMA, apiKey, flex, maxTokens: 4096, effort: "normal",
         messages: [{ role: "system", content: cardsPrompt(word, target) }, { role: "user", content: tagged(chunk.pages, word) }],
       });
       const rows = validCards(out, valid);
@@ -112,7 +178,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       if (digest) {
         if (task.kind === "quiz") {
           const out = validQuiz(await llmJson<QuizOut>({
-            schemaName: "quiz", schema: QUIZ_SCHEMA, apiKey, maxTokens: 6000, effort: "deep", timeoutMs: 120_000,
+            schemaName: "quiz", schema: QUIZ_SCHEMA, apiKey, flex, maxTokens: 6000, effort: "deep", timeoutMs: 120_000,
             messages: [{ role: "system", content: quizPrompt(word) }, { role: "user", content: digest }],
           }), valid);
           if (out.questions.length < 3) throw new Error("too few valid quiz questions");
@@ -126,7 +192,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
           if (qErr) throw qErr;
         } else {
           const rows = validGuide(await llmJson<GuideOut>({
-            schemaName: "guide", schema: GUIDE_SCHEMA, apiKey, maxTokens: 8000, effort: "deep", timeoutMs: 120_000,
+            schemaName: "guide", schema: GUIDE_SCHEMA, apiKey, flex, maxTokens: 8000, effort: "deep", timeoutMs: 120_000,
             messages: [{ role: "system", content: guidePrompt(word) }, { role: "user", content: digest }],
           }), valid);
           await admin.from("guide_sections").delete().eq("source_id", sourceId);
@@ -144,6 +210,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
     delete next.failed;
     const last = index + 1 >= tasks.length;
     await admin.from("sources").update({ steps: next, status: last ? "ready" : "generating" }).eq("id", sourceId);
+    if (last) await saveShared(sourceId, userId);
     if (!last) await dispatch({ source_id: sourceId, user_id: userId, task: index + 1, attempt: 0 });
   } catch (e) {
     const status = e instanceof LLMError ? e.status : 0;
@@ -180,7 +247,7 @@ Deno.serve(async (req) => {
   const student = await studentClient(req);
   if (!student) return json(req, { error: "not_signed_in" }, 401);
   if (typeof body.source_id !== "string") return json(req, { error: "source_id_required" }, 400);
-  const { data: source } = await student.db.from("sources").select("id, status, steps").eq("id", body.source_id).maybeSingle();
+  const { data: source } = await student.db.from("sources").select("id, status, steps, subject_id, kind, page_count, content_hash").eq("id", body.source_id).maybeSingle();
   if (!source) return json(req, { error: "not_found" }, 404);
   if (source.status === "generating" || source.status === "ready") return json(req, { status: source.status });
   if (source.status !== "ready_text" && source.status !== "failed") return json(req, { error: "not_ready" }, 409);
@@ -192,6 +259,21 @@ Deno.serve(async (req) => {
     .update({ status: "generating", error_code: null, steps })
     .eq("id", source.id).in("status", ["ready_text", "failed"]).select("id");
   if (!claimed?.length) return json(req, { status: "generating" });
+
+  // Same file as one already prepared: copy it instead of generating.
+  if (!resume && source.content_hash) {
+    const { data: shared } = await admin.from("shared_sets").select("payload, kind, page_count, uses")
+      .eq("content_hash", source.content_hash).eq("gen_version", GEN_VERSION).maybeSingle();
+    if (shared && shared.kind === source.kind && shared.page_count === source.page_count &&
+        await copyShared({ id: source.id, subject_id: source.subject_id }, student.userId, shared.payload as SharedPayload)) {
+      const one = { done: 1, total: 1 };
+      await admin.from("sources").update({ status: "ready", steps: { notes: one, cards: one, quiz: one, guide: one, next: 0, shared: true } }).eq("id", source.id);
+      // It cost nothing, so it does not count against the uploads allowance.
+      await admin.rpc("refund_allowance", { p_user: student.userId, p_kind: "upload" });
+      await admin.from("shared_sets").update({ uses: (shared.uses ?? 0) + 1 }).eq("content_hash", source.content_hash).eq("gen_version", GEN_VERSION);
+      return json(req, { status: "ready", shared: true });
+    }
+  }
 
   EdgeRuntime.waitUntil(dispatch({ source_id: source.id, user_id: student.userId, task: steps.next, attempt: 0 }));
   return json(req, { status: "generating" }, 202);

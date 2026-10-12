@@ -80,6 +80,16 @@ const safeName = (name: string) => name.normalize("NFKD").replace(/[^\w.-]+/g, "
  * Save an extracted file: take one upload from the allowance and create the source, store the original
  * privately, then save the page text. If any step fails the upload is undone and given back.
  */
+/** SHA-256 of a file, as hex. Identical files (the same handout) get the same fingerprint. */
+async function fingerprint(file: File) {
+  try {
+    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return null; // Sharing is an optimisation; the upload works without it.
+  }
+}
+
 export async function saveUpload(opts: {
   userId: string;
   subjectId: string;
@@ -116,7 +126,13 @@ export async function saveUpload(opts: {
     }
     const { error: sErr } = await supabase
       .from("sources")
-      .update({ status: "ready_text", page_count: extracted.totalPages, storage_path: storagePath, original_filename: (opts.originalName ?? filename).slice(0, 255) })
+      .update({
+        status: "ready_text",
+        page_count: extracted.totalPages,
+        storage_path: storagePath,
+        original_filename: (opts.originalName ?? filename).slice(0, 255),
+        content_hash: file ? await fingerprint(file) : null,
+      })
       .eq("id", id);
     if (sErr) throw sErr;
     return id;

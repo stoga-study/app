@@ -9,7 +9,7 @@ import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
 import { LLM_FAST_MODEL, LLM_MODEL, llmJson, llmStream, LLMError, type Effort } from "../_lib/llm.ts";
 import { cleanText } from "../_lib/study.ts";
-import { checkCitations, guessMode, ROUTER_SCHEMA, routerMessages, searchTerms, systemPrompt, userTurn, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
+import { checkCitations, CRISIS_LINE, guessMode, obviousMode, ROUTER_SCHEMA, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const MAX_Q = 2000;
@@ -39,13 +39,16 @@ async function ownKey(userId: string) {
 
 /** Pick the reply mode with the fast model; fall back to rules if it fails or is slow. */
 async function route(history: Turn[], message: string, apiKey?: string): Promise<Mode> {
+  const lastMode = [...history].reverse().find((t) => t.role === "assistant")?.mode;
+  const obvious = obviousMode(message, lastMode);
+  if (obvious) return obvious;
   try {
     const out = await llmJson<{ mode: Mode }>({ model: LLM_FAST_MODEL, schemaName: "route", schema: ROUTER_SCHEMA, messages: routerMessages(history, message), effort: "light", maxTokens: 50, timeoutMs: 8000, apiKey, noRetry: true });
     if (["chat", "explain", "hint", "check"].includes(out.mode)) return out.mode;
   } catch (e) {
     console.error("tutor route", e instanceof Error ? e.message.slice(0, 200) : e);
   }
-  return guessMode(message, [...history].reverse().find((t) => t.role === "assistant")?.mode);
+  return guessMode(message, lastMode);
 }
 
 async function makeCard(req: Request, student: { db: SupabaseClient; userId: string }, messageId: string) {
@@ -127,11 +130,14 @@ Deno.serve(async (req) => {
 
     // Sources.
     const previous = [...history].reverse().find((m) => m.role === "user" && m.content !== question)?.content ?? null;
-    const [hits, topics, mode] = await Promise.all([
+    const feeling = body.followup ? null : wellbeing(question);
+    const [hits, topics, routed] = await Promise.all([
       retrieve(student.db, subject.id, searchTerms(question, previous)),
       noteTopics(student.db, subject.id),
       body.followup ? Promise.resolve<Mode>("hint") : route(history, question, apiKey),
     ]);
+    // A student who may be in crisis gets a caring reply, not schoolwork.
+    const mode: Mode = feeling === "crisis" ? "chat" : routed;
     const sources: Src[] = [];
     const blocks: string[] = [];
     for (const h of hits) {
@@ -149,14 +155,14 @@ Deno.serve(async (req) => {
     }
 
     const messages = [
-      { role: "system", content: systemPrompt({ mode, level, className: subject.name, hasSources: sources.length > 0, topics }) },
+      { role: "system", content: systemPrompt({ mode, level, className: subject.name, hasSources: sources.length > 0, topics, feeling }) },
       // Earlier citation markers are dropped: S1 may mean a different file in this turn.
       ...history.map((m) => ({ role: m.role, content: m.content.replace(/\s*(\[S\d+[^\]]*\]|【[^】]*】)/g, "") })),
       { role: "user", content: userTurn(blocks, question, body.followup ? (level === 3 ? 3 : 2) : false) },
     ];
 
     // Small talk is quick; a full worked explanation gets more thinking.
-    const effort: Effort = mode === "chat" ? "light" : mode === "hint" && level === 3 ? "deep" : "normal";
+    const effort: Effort = feeling === "crisis" ? "normal" : mode === "chat" ? "light" : mode === "hint" && level === 3 ? "deep" : "normal";
     let res: Response;
     try {
       res = await llmStream({ messages: messages as { role: "system" | "user" | "assistant"; content: string }[], effort, maxTokens: mode === "chat" ? 300 : 1200, apiKey });
@@ -202,7 +208,10 @@ Deno.serve(async (req) => {
               send(controller, "delta", { text: delta });
             }
           }
-          const { cleaned, used } = checkCitations(full, sources);
+          const checked = checkCitations(full, sources);
+          // The crisis line is never left to chance.
+          const cleaned = feeling === "crisis" && !/\b988\b/.test(checked.cleaned) ? `${checked.cleaned}\n\n${CRISIS_LINE}` : checked.cleaned;
+          const used = checked.used;
           if (!cleaned) throw new Error("empty answer");
           const { data: saved, error } = await student.db.from("chat_messages")
             .insert({ thread_id: threadId, role: "assistant", content: cleaned, mode, hint_level: mode === "hint" || mode === "check" ? level : null, citations: used }).select("id").single();

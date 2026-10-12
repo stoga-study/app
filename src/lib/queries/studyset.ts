@@ -4,7 +4,7 @@ import { supabase } from "../supabase";
 import type { Source } from "./sources";
 
 type Progress = { done: number; total: number };
-export type Steps = { notes?: Progress; cards?: Progress; quiz?: Progress; guide?: Progress; next?: number; failed?: string };
+export type Steps = { notes?: Progress; cards?: Progress; quiz?: Progress; guide?: Progress; next?: number; failed?: string; shared?: boolean };
 
 /** Ask the server to build (or resume) the study set. Safe to call twice: the server ignores repeats. */
 export async function startGeneration(sourceId: string) {
