@@ -63,7 +63,7 @@ function CiteChip({ c }: { c: Pick<Citation, "source_id" | "page" | "kind" | "fi
   return (
     <Link to={`/sources/${c.source_id}`} className="source-chip mx-0.5 !min-h-7 align-middle !text-[0.75rem]" title={c.filename}>
       <FileText aria-hidden="true" />
-      {c.kind === "pdf" ? "p." : "part"} {c.page}
+      {c.kind === "pdf" || c.kind === "image" ? "p." : "part"} {c.page}
     </Link>
   );
 }

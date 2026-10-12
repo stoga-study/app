@@ -134,7 +134,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
     return;
   }
 
-  const word = source.kind === "pdf" ? "page" : "part";
+  const word = source.kind === "pdf" || source.kind === "image" ? "page" : "part";
   const valid = new Set(pages.map((p) => p.page_no));
   // Students on the Independent plan generate with their own key.
   const own = await ownProvider(admin, userId);

@@ -36,3 +36,42 @@ export async function readPdf(data: ArrayBuffer, onProgress?: (done: number, tot
     await task.destroy();
   }
 }
+
+/**
+ * Read pages that have no text (a scan) by rendering each one to an image and sending it to `readPage`.
+ * Up to three pages are read at once. Returns page number → text.
+ */
+export async function scanPdfPages(
+  data: ArrayBuffer,
+  pageNumbers: number[],
+  readPage: (dataUrl: string) => Promise<string>,
+  onProgress?: (done: number, total: number) => void,
+): Promise<Map<number, string>> {
+  const { pdfPageToJpeg, blobToDataUrl } = await import("./image");
+  const task = getDocument({ data: new Uint8Array(data) });
+  const out = new Map<number, string>();
+  const inFlight = new Set<Promise<void>>();
+  let done = 0;
+  let failure: unknown = null;
+  try {
+    const doc = await task.promise;
+    for (const n of pageNumbers) {
+      if (failure) break;
+      const page = await doc.getPage(n);
+      const jpeg = await pdfPageToJpeg(page as never);
+      page.cleanup();
+      const url = await blobToDataUrl(jpeg);
+      const job = readPage(url)
+        .then((text) => { out.set(n, text); onProgress?.(++done, pageNumbers.length); })
+        .catch((e) => { failure ??= e; })
+        .finally(() => inFlight.delete(job));
+      inFlight.add(job);
+      if (inFlight.size >= 3) await Promise.race(inFlight);
+    }
+    await Promise.all(inFlight);
+    if (failure) throw failure;
+    return out;
+  } finally {
+    await task.destroy();
+  }
+}

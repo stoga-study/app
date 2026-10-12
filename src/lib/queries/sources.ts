@@ -72,6 +72,7 @@ const STORAGE_TYPES = {
   pdf: "application/pdf",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   text: "text/plain",
+  image: "image/jpeg",
 } as const;
 
 const safeName = (name: string) => name.normalize("NFKD").replace(/[^\w.-]+/g, "_").replace(/_+/g, "_").slice(-120) || "file";
@@ -112,10 +113,12 @@ export async function saveUpload(opts: {
   let storagePath: string | null = null;
   try {
     if (file) {
-      storagePath = `${userId}/${id}/${safeName(file.name)}`;
+      // A photo is stored as the upright, shrunk JPEG it was read from.
+      const name = extracted.upload ? safeName(file.name).replace(/\.[a-z0-9]+$/i, "") + ".jpg" : safeName(file.name);
+      storagePath = `${userId}/${id}/${name}`;
       const { error: upErr } = await supabase.storage
         .from("sources")
-        .upload(storagePath, file, { contentType: STORAGE_TYPES[extracted.kind], upsert: false });
+        .upload(storagePath, extracted.upload ?? file, { contentType: STORAGE_TYPES[extracted.kind], upsert: false });
       if (upErr) throw upErr;
     }
     const rows = extracted.pages.map((p) => ({ source_id: id, page_no: p.page, text: p.text }));
@@ -186,4 +189,6 @@ export async function openOriginal(source: Source) {
   window.open(data.signedUrl, "_blank", "noopener");
 }
 
-export const pageWord = (kind: string, n: number) => (kind === "pdf" ? (n === 1 ? "page" : "pages") : n === 1 ? "part" : "parts");
+/** PDFs and photos have pages; Word files and pasted text are split into parts. */
+export const isPaged = (kind: string) => kind === "pdf" || kind === "image";
+export const pageWord = (kind: string, n: number) => (isPaged(kind) ? (n === 1 ? "page" : "pages") : n === 1 ? "part" : "parts");

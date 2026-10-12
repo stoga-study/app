@@ -1,13 +1,28 @@
 // Text extraction runs on the student's device, so a file that cannot be read never reaches the
 // server and never counts against their uploads. PDFs keep real page numbers for citations; Word
-// files and pasted text are split into numbered parts.
+// files and pasted text are split into numbered parts. Pages with no text (scans) and photos of notes
+// are rendered to images here and read by the AI (`readPage`), one page at a time.
 
-export type SourceKind = "pdf" | "docx" | "text";
+export type SourceKind = "pdf" | "docx" | "text" | "image";
 export type ExtractedPage = { page: number; text: string };
-export type Extracted = { kind: SourceKind; pages: ExtractedPage[]; totalPages: number; skippedPages: number };
+export type Extracted = {
+  kind: SourceKind;
+  pages: ExtractedPage[];
+  totalPages: number;
+  skippedPages: number;
+  /** Pages that were read from images (scans or a photo). */
+  scannedPages?: number;
+  /** For a photo: the upright, shrunk JPEG, stored instead of the original. */
+  upload?: Blob;
+};
 
 export type ExtractErrorCode =
-  | "password" | "scanned" | "empty" | "too_large" | "too_many_pages" | "unsupported" | "legacy_doc" | "damaged";
+  | "password" | "scanned" | "empty" | "too_large" | "too_many_pages" | "unsupported" | "legacy_doc" | "damaged"
+  | "too_many_scanned" | "scan_limit" | "scan_failed" | "photo_unreadable";
+
+/** Reads one page image (a data URL) and returns its text. Throws ExtractError for limits and failures. */
+export type PageReader = (dataUrl: string) => Promise<string>;
+export type ExtractStage = "text" | "scan";
 
 export class ExtractError extends Error {
   constructor(public code: ExtractErrorCode, message?: string) {
@@ -18,6 +33,8 @@ export class ExtractError extends Error {
 
 export const MAX_BYTES = 25 * 1024 * 1024;
 export const MAX_PAGES = 400;
+/** Most scanned pages read in one upload (each one is an AI call). */
+export const MAX_SCAN_PAGES = 60;
 export const MAX_PAGE_CHARS = 60_000;
 export const PART_CHARS = 3_000;
 const MIN_PAGE_CHARS = 3;
@@ -29,6 +46,7 @@ export function kindOf(file: { name: string; type: string }): SourceKind | "lega
   if (name.endsWith(".docx") || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") return "docx";
   if (name.endsWith(".doc") || file.type === "application/msword") return "legacy_doc";
   if (/\.(txt|md|markdown)$/.test(name) || file.type === "text/plain" || file.type === "text/markdown") return "text";
+  if (/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type) || /\.(jpe?g|png|webp|heic|heif)$/.test(name)) return "image";
   return null;
 }
 
@@ -95,7 +113,7 @@ export function assemblePdf(pageTexts: string[]): Extracted {
   return { kind: "pdf", pages, totalPages: total, skippedPages: total - pages.length };
 }
 
-export async function extractFile(file: File, onProgress?: (done: number, total: number) => void): Promise<Extracted> {
+export async function extractFile(file: File, onProgress?: (done: number, total: number, stage: ExtractStage) => void, readPage?: PageReader): Promise<Extracted> {
   const kind = kindOf(file);
   if (kind === "legacy_doc") throw new ExtractError("legacy_doc");
   if (!kind) throw new ExtractError("unsupported");
@@ -114,8 +132,41 @@ export async function extractFile(file: File, onProgress?: (done: number, total:
     }
   }
 
-  const { readPdf } = await import("./pdf");
-  return assemblePdf(await readPdf(await file.arrayBuffer(), onProgress));
+  if (kind === "image") {
+    if (!readPage) throw new ExtractError("unsupported");
+    const { photoToJpeg, blobToDataUrl } = await import("./image");
+    let jpeg: Blob;
+    try {
+      jpeg = await photoToJpeg(file);
+    } catch {
+      throw new ExtractError("photo_unreadable");
+    }
+    onProgress?.(0, 1, "scan");
+    const text = tidy(await readPage(await blobToDataUrl(jpeg))).slice(0, MAX_PAGE_CHARS);
+    onProgress?.(1, 1, "scan");
+    if (text.length < MIN_PAGE_CHARS) throw new ExtractError("empty");
+    return { kind: "image", pages: [{ page: 1, text }], totalPages: 1, skippedPages: 0, scannedPages: 1, upload: jpeg };
+  }
+
+  // pdf.js takes ownership of the bytes it is given, so each pass gets its own copy.
+  const bytes = await file.arrayBuffer();
+  const { readPdf, scanPdfPages } = await import("./pdf");
+  const texts = await readPdf(bytes.slice(0), (d, t) => onProgress?.(d, t, "text"));
+  try {
+    return assemblePdf(texts);
+  } catch (e) {
+    if (!(e instanceof ExtractError) || e.code !== "scanned" || !readPage) throw e;
+  }
+  // A scan: read the pages that have no text from their images.
+  const blank = texts.flatMap((t, i) => (tidy(t).length < MIN_PAGE_CHARS ? [i + 1] : []));
+  if (blank.length > MAX_SCAN_PAGES) throw new ExtractError("too_many_scanned");
+  onProgress?.(0, blank.length, "scan");
+  const read = await scanPdfPages(bytes.slice(0), blank, readPage, (d, t) => onProgress?.(d, t, "scan"));
+  try {
+    return { ...assemblePdf(texts.map((t, i) => read.get(i + 1) ?? t)), scannedPages: blank.length };
+  } catch (e) {
+    throw e instanceof ExtractError && e.code === "scanned" ? new ExtractError("empty") : e;
+  }
 }
 
 export function extractPasted(text: string): Extracted {

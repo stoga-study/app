@@ -6,7 +6,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
-import { ExtractError, extractFile, extractPasted, MAX_BYTES, type ExtractErrorCode, type Extracted } from "@/lib/extract";
+import { ExtractError, extractFile, extractPasted, MAX_BYTES, MAX_SCAN_PAGES, type ExtractErrorCode, type Extracted, type ExtractStage } from "@/lib/extract";
+import { readPageImage } from "@/lib/readPage";
 import { useSubjects } from "@/lib/queries/profile";
 import { prettyFilename } from "@/lib/extract/filename";
 import { pageWord, saveUpload, suggestTitle, UploadLimitError, useAllowance } from "@/lib/queries/sources";
@@ -15,7 +16,7 @@ import { useOnline } from "@/lib/useOnline";
 
 type Phase =
   | { step: "choose" }
-  | { step: "reading"; name: string; size?: number; done: number; total: number }
+  | { step: "reading"; name: string; size?: number; done: number; total: number; stage: ExtractStage; photo?: boolean }
   | { step: "saving"; name: string; size?: number; extracted: Extracted; done: number; total: number }
   | { step: "error"; name: string; code: ExtractErrorCode | "limit" | "save" };
 
@@ -34,7 +35,15 @@ function errorCopy(code: ErrorCode, name: string, resetsAt?: string, limit?: num
     case "password":
       return { title: `We could not open ${name}`, body: "It is password protected, so we cannot read it.", tips: ["Open it and save a copy without a password", "Print it to PDF, then upload the new file", tips.paste] };
     case "scanned":
-      return { title: `${name} is pages of images`, body: "It looks scanned, so there is no text in it we can read yet. Reading photos of pages is coming later.", tips: [tips.pdf, tips.paste] };
+      return { title: `${name} is pages of images`, body: "It looks scanned, and we could not read it.", tips: [tips.pdf, tips.paste] };
+    case "too_many_scanned":
+      return { title: `${name} has over ${MAX_SCAN_PAGES} scanned pages`, body: "Scanned pages are read one by one, so one upload can hold up to " + MAX_SCAN_PAGES + ".", tips: ["Split it into chapters or units, and upload the ones you are studying", tips.pdf] };
+    case "scan_limit":
+      return { title: "That is a lot of scanned pages for one day", body: "Reading scans and photos has a daily limit. More are available tomorrow.", tips: ["Upload text-based PDFs or Word files, which have no limit like this", tips.paste] };
+    case "scan_failed":
+      return { title: `We could not read ${name}`, body: "Reading the scanned pages did not work this time.", tips: ["Check your connection, then try again in a minute", tips.paste] };
+    case "photo_unreadable":
+      return { title: `We could not open ${name}`, body: "This photo format did not open on this device.", tips: ["Take the photo again, or share it as a JPG or PNG", tips.paste] };
     case "empty":
       return { title: `${name} has no text in it`, body: "We did not find anything to read.", tips: ["Check it is the right file", tips.paste] };
     case "too_large":
@@ -44,7 +53,7 @@ function errorCopy(code: ErrorCode, name: string, resetsAt?: string, limit?: num
     case "legacy_doc":
       return { title: "This is an older Word file (.doc)", body: "We can read .docx files and PDFs.", tips: ["Open it in Word or Google Docs and save it as .docx or PDF", tips.paste] };
     case "unsupported":
-      return { title: "We cannot read this kind of file yet", body: "Use a PDF, a Word file (.docx) or a text file. Photos of notes are coming later.", tips: [tips.paste] };
+      return { title: "We cannot read this kind of file yet", body: "Use a PDF, a Word file (.docx), a text file or a photo (JPG, PNG or HEIC).", tips: [tips.paste] };
     case "damaged":
       return { title: `${name} looks damaged`, body: "We could not open it.", tips: ["Download or export it again, then upload the new copy", tips.paste] };
     case "limit":
@@ -73,6 +82,7 @@ export default function Upload() {
   const [pasteTitle, setPasteTitle] = useState("");
   const [over, setOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const online = useOnline();
 
   const list = subjects.data ?? [];
@@ -127,9 +137,10 @@ export default function Upload() {
   async function onFile(file: File | undefined) {
     if (!file) return;
     const title = prettyFilename(file.name);
-    setPhase({ step: "reading", name: title, size: file.size, done: 0, total: 0 });
+    const photo = /^image\//.test(file.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name);
+    setPhase({ step: "reading", name: title, size: file.size, done: 0, total: 0, stage: photo ? "scan" : "text", photo });
     try {
-      const extracted = await extractFile(file, (done, total) => setPhase({ step: "reading", name: title, size: file.size, done, total }));
+      const extracted = await extractFile(file, (done, total, stage) => setPhase({ step: "reading", name: title, size: file.size, done, total, stage, photo }), readPageImage);
       await save(file.name, extracted, file, file.size);
     } catch (e) {
       setPhase({ step: "error", name: file.name, code: e instanceof ExtractError ? e.code : "damaged" });
@@ -147,7 +158,10 @@ export default function Upload() {
 
   if (phase.step === "reading" || phase.step === "saving") {
     const reading = phase.step === "reading";
-    const pct = reading ? (phase.total ? (phase.done / phase.total) * 60 : 8) : 60 + (phase.total ? (phase.done / phase.total) * 40 : 0);
+    // Reading text is quick; reading scanned pages takes a few seconds each, so it gets most of the bar.
+    const pct = reading
+      ? phase.stage === "scan" ? 12 + (phase.total ? (phase.done / phase.total) * 48 : 0) : phase.total ? (phase.done / phase.total) * 12 : 4
+      : 60 + (phase.total ? (phase.done / phase.total) * 40 : 0);
     return (
       <div className="mx-auto flex max-w-xl flex-col gap-5" aria-busy="true">
         <h1 className="text-[1.75rem]">Adding to {subject!.name}</h1>
@@ -162,10 +176,16 @@ export default function Upload() {
           <span style={{ width: `${pct}%` }} />
         </div>
         <ul className="card divide-y divide-line px-4">
-          <Step state={reading ? "working" : "done"} label="Reading pages" end={reading ? (phase.total ? `${phase.done} of ${phase.total}` : "Opening") : `${phase.extracted.pages.length} ${pageWord(phase.extracted.kind, phase.extracted.pages.length)}`} />
+          <Step
+            state={reading ? "working" : "done"}
+            label={reading && phase.photo ? "Reading your photo" : reading && phase.stage === "scan" ? "Reading scanned pages" : !reading && phase.extracted.scannedPages ? "Read scanned pages" : "Reading pages"}
+            end={reading ? (phase.total && !phase.photo ? `${phase.done} of ${phase.total}` : phase.stage === "scan" ? "A few seconds" : "Opening") : `${phase.extracted.pages.length} ${pageWord(phase.extracted.kind, phase.extracted.pages.length)}`}
+          />
           <Step state={reading ? "waiting" : "working"} label="Saving to your account" end={reading ? "Waiting" : "Working"} />
         </ul>
-        <p className="text-center text-[0.875rem] text-muted">Your file is private to you. Reading happens on this device.</p>
+        <p className="text-center text-[0.875rem] text-muted">
+          {reading && phase.stage === "scan" ? "Pages without text are read by our AI, a few seconds each. Your file stays private to you." : "Your file is private to you. Reading happens on this device."}
+        </p>
       </div>
     );
   }
@@ -251,7 +271,7 @@ export default function Upload() {
           >
             <UploadIcon className="size-8 text-brand" />
             <span className="font-display text-[1.375rem] font-bold">Choose or drop a file</span>
-            <span className="text-[0.9375rem] text-muted">PDF, Word (.docx) or text. Up to {MAX_BYTES / 1024 / 1024} MB.</span>
+            <span className="text-[0.9375rem] text-muted">PDF (scans too), Word (.docx), text or a photo of notes. Up to {MAX_BYTES / 1024 / 1024} MB.</span>
           </button>
           <input
             ref={inputRef}
@@ -259,14 +279,24 @@ export default function Upload() {
             aria-label="Choose a file to upload"
             className="sr-only"
             tabIndex={-1}
-            accept=".pdf,.docx,.doc,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            accept=".pdf,.docx,.doc,.txt,.md,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/jpeg,image/png,image/webp,image/heic,image/heif"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; onFile(f); }}
           />
           <div className="mt-4 flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => setPasting(true)}><ClipboardPaste /> Paste text</Button>
-            <span className="chip chip-neutral !min-h-11 px-4"><Camera /> Photos of notes: coming later</span>
+            <Button variant="secondary" onClick={() => cameraRef.current?.click()}><Camera /> Take a photo</Button>
           </div>
-          <p className="mt-6 text-[0.875rem] text-muted">Your files are private to you. Text is read on this device; the original is stored so you can reopen it.</p>
+          <input
+            ref={cameraRef}
+            type="file"
+            aria-label="Take a photo of your notes"
+            className="sr-only"
+            tabIndex={-1}
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; onFile(f); }}
+          />
+          <p className="mt-6 text-[0.875rem] text-muted">Your files are private to you. Text is read on this device; scanned pages and photos are read by our AI. The original is stored so you can reopen it.</p>
         </>
       )}
     </>

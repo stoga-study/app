@@ -16,7 +16,7 @@ describe("file kinds", () => {
     expect(kindOf({ name: "notes.docx", type: "" })).toBe("docx");
     expect(kindOf({ name: "old.doc", type: "" })).toBe("legacy_doc");
     expect(kindOf({ name: "notes.md", type: "" })).toBe("text");
-    expect(kindOf({ name: "photo.heic", type: "image/heic" })).toBeNull();
+    expect(kindOf({ name: "photo.heic", type: "image/heic" })).toBe("image");
   });
 });
 
@@ -68,5 +68,17 @@ describe("pasted text", () => {
   });
   it("numbers parts from 1", () => {
     expect(extractPasted("Hello there.").pages).toEqual([{ page: 1, text: "Hello there." }]);
+  });
+});
+
+describe("photos and scans", () => {
+  it("recognises photos of notes", () => {
+    expect(kindOf({ name: "IMG_1234.HEIC", type: "" })).toBe("image");
+    expect(kindOf({ name: "notes.jpg", type: "image/jpeg" })).toBe("image");
+    expect(kindOf({ name: "board", type: "image/png" })).toBe("image");
+    expect(kindOf({ name: "anim.gif", type: "image/gif" })).toBeNull();
+  });
+  it("still reports a scan when there is no way to read it", () => {
+    expect(() => assemblePdf(["", "  ", ""])).toThrow(ExtractError);
   });
 });

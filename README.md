@@ -40,6 +40,10 @@ npx supabase@2.120.0 secrets set OPENAI_API_KEY=sk-...
 
 A student can save a key for **any OpenAI-compatible API**: an address (base URL), a model name and the key. `account` checks it before saving (the address must be public https, the key must work, the model must exist, and one tiny test answer must succeed), then stores the key in Vault with the address and model (`store_byok`, `read_byok`). All their tutor answers and study sets then go to that provider. `_lib/llm.ts` sends simpler requests to providers that reject optional settings (strict JSON schema, `max_completion_tokens`, `reasoning_effort` and so on). Answer quality depends on the model the student picks.
 
+### Scans and photos of notes
+
+PDF pages with no text (scans) and photos (JPG, PNG, WebP, HEIC) are rendered to JPEG on the device and read one page at a time by `read-page`, which sends the image to the platform model (`OCR_MODEL`, default the main model) and returns the transcription. It costs about $0.0002 a page with GPT-6 Luna. Each student can read `OCR_PAGES_PER_DAY` pages a day (default 150), and one upload can hold up to 60 scanned pages. Photos are stored as the shrunk JPEG.
+
 ### Switching models
 
 Every AI call goes through `supabase/functions/_lib/llm.ts`, which works with any OpenAI-compatible provider. Change three optional secrets, then redeploy the functions:

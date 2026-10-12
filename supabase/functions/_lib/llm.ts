@@ -54,7 +54,8 @@ export async function recordUsage(meta: UsageMeta | undefined, model: string, us
 
 /** How hard the model should think: light (routing, titles, small talk), normal, or deep (worked math, quizzes). */
 export type Effort = "light" | "normal" | "deep";
-type Message = { role: "system" | "user" | "assistant"; content: string };
+type Part = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail?: "low" | "high" | "auto" } };
+type Message = { role: "system" | "user" | "assistant"; content: string | Part[] };
 type Body = Record<string, unknown>;
 
 export class LLMError extends Error {
@@ -220,6 +221,36 @@ export async function llmJson<T>(opts: {
     const retriable = (err.kind === "rate_limit" || res.status >= 500 || (res.status === 400 && /json_validate_failed|invalid json/i.test(text))) && !opts.noRetry && !flex;
     const wait = res.status === 400 ? 0.2 : err.retryAfter ?? 1;
     if (retriable && wait <= 5 && attempt < (res.status === 400 ? 2 : 1)) {
+      await new Promise((r) => setTimeout(r, wait * 1000));
+      continue;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Read one image of a page (a scan or a photo of notes) and return its text. Uses the platform's
+ * OCR model (OCR_MODEL, default the main model), which must accept images.
+ */
+export async function llmReadImage(opts: { dataUrl: string; prompt: string; usage?: UsageMeta; timeoutMs?: number }): Promise<string> {
+  const t = target(undefined, Deno.env.get("OCR_MODEL") ?? LLM_MODEL);
+  const body = {
+    model: t.model,
+    messages: [{ role: "user", content: [{ type: "text", text: opts.prompt }, { type: "image_url", image_url: { url: opts.dataUrl, detail: "high" } }] }],
+    ...profile(t.model, "light", 3000, t.baseUrl),
+  };
+  for (let attempt = 0; ; attempt++) {
+    const res = await send(t, body, opts.timeoutMs ?? 90_000);
+    if (res.ok) {
+      const data = await res.json();
+      await recordUsage(opts.usage, t.model, data?.usage);
+      const text = data?.choices?.[0]?.message?.content;
+      return typeof text === "string" ? text : "";
+    }
+    const text = (await res.text()).slice(0, 500);
+    const err = new LLMError(res.status, text, retryAfterOf(res));
+    const wait = err.retryAfter ?? 2;
+    if ((err.kind === "rate_limit" || res.status >= 500) && attempt < 2 && wait <= 10) {
       await new Promise((r) => setTimeout(r, wait * 1000));
       continue;
     }
