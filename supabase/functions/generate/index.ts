@@ -1,18 +1,24 @@
-// Builds a study set (notes, flashcards, practice quiz, study guide) from an uploaded source.
+// Builds a study set from an uploaded source: the parts the student chose (notes, flashcards, practice
+// quiz, study guide) in the amounts they chose, within their plan's caps.
 //
-// POST { source_id }                          as the student: start, or resume after a failure.
+// POST { source_id, options }                 as the student: make a study set, or more of one (a new "run").
+// POST { source_id }                          as the student: resume a run that failed.
 // POST { source_id, user_id, task, attempt }  internal (service key): run one job, then start the next.
 //
-// A file that another student already turned into a study set (same bytes, same prompt version) is
-// copied instead of generated: instant, free, and it does not count against the uploads allowance.
+// options = { parts: { notes, cards, quiz, guide }, amounts: { cards, quiz, guide } } (see _lib/options.ts).
+// Saving a file is free; the first study set made from a file counts once against the uploads allowance.
+// A file another student already turned into the same study set (same bytes, same choices, same prompt
+// version) is copied instead of generated: instant, free, and not counted.
 //
-// Work runs as a chain of small jobs, one chunk of pages each, in the background. The student can
-// leave the screen; progress is saved on the source row and streamed to the app.
+// Work runs as a chain of small jobs, one chunk of pages each, in the background. Each run tags what it
+// writes (gen_part = run * 100 + chunk; quizzes.gen_run), so jobs can retry safely and later runs add to
+// earlier ones: more cards, another quiz, or fresh notes and guide.
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
 import { llmJson, LLMError, setUsageLogger } from "../_lib/llm.ts";
 import { ownProvider } from "../_lib/byok.ts";
+import { checkOptions, optionsKey, planTasks, splitAcross, suggestAmounts, type GenOptions, type Part, type Task } from "../_lib/options.ts";
 import {
   CARDS_SCHEMA, cardsPrompt, chunkPages, GEN_VERSION, GUIDE_SCHEMA, guidePrompt, NOTES_SCHEMA, notesDigest, notesPrompt,
   QUIZ_SCHEMA, quizPrompt, tagged, validCards, validGuide, validNotes, validQuiz,
@@ -28,10 +34,11 @@ setUsageLogger((row) => admin.from("ai_usage").insert(row));
 const MAX_ATTEMPTS = 4;
 // Rate limits get patient retries that honour retry-after.
 const MAX_RATE_LIMIT_ATTEMPTS = 10;
+const DIGEST_CHARS = 40_000;
 
-type Task = { kind: "notes" | "cards"; part: number } | { kind: "quiz" | "guide" };
 type Progress = { done: number; total: number };
-type Steps = { notes: Progress; cards: Progress; quiz: Progress; guide: Progress; next: number; failed?: string; shared?: boolean };
+// first: this run is the file's first study set (nothing made before), so it can be shared or copied.
+type Steps = { run?: number; first?: boolean; next: number; failed?: string; shared?: boolean } & Partial<Record<Part, Progress>>;
 
 type SharedPayload = {
   notes: { position: number; gen_part: number | null; title: string; body_md: string; pages: number[] }[];
@@ -40,8 +47,8 @@ type SharedPayload = {
   quiz: { title: string; questions: { position: number; topic: string | null; prompt: string; options: string[]; answer_index: number; hint: string | null; explanation: string; pages: number[] }[] } | null;
 };
 
-/** Snapshot a finished study set for students who upload the same file later. Never throws. */
-async function saveShared(sourceId: string, userId: string) {
+/** Snapshot a finished study set for students who upload the same file and ask for the same thing. Never throws. */
+async function saveShared(sourceId: string, userId: string, key: string) {
   try {
     const { data: source } = await admin.from("sources").select("content_hash, kind, page_count").eq("id", sourceId).eq("user_id", userId).maybeSingle();
     if (!source?.content_hash) return;
@@ -56,11 +63,11 @@ async function saveShared(sourceId: string, userId: string) {
     const questions = quiz
       ? (await admin.from("quiz_questions").select("position, topic, prompt, options, answer_index, hint, explanation, pages").eq("quiz_id", quiz.id).order("position")).data ?? []
       : [];
-    if (!notes.data?.length || !cards.data?.length) return;
-    const payload: SharedPayload = { notes: notes.data, guide: guide.data ?? [], cards: cards.data, quiz: quiz ? { title: quiz.title, questions } : null };
+    if (!notes.data?.length && !cards.data?.length && !questions.length && !guide.data?.length) return;
+    const payload: SharedPayload = { notes: notes.data ?? [], guide: guide.data ?? [], cards: cards.data ?? [], quiz: quiz ? { title: quiz.title, questions } : null };
     await admin.from("shared_sets").upsert(
-      { content_hash: source.content_hash, gen_version: GEN_VERSION, kind: source.kind, page_count: source.page_count, payload },
-      { onConflict: "content_hash,gen_version", ignoreDuplicates: true },
+      { content_hash: source.content_hash, gen_version: GEN_VERSION, options_key: key, kind: source.kind, page_count: source.page_count, payload },
+      { onConflict: "content_hash,gen_version,options_key", ignoreDuplicates: true },
     );
   } catch (e) {
     console.error("saveShared", sourceId, e instanceof Error ? e.message : e);
@@ -81,7 +88,7 @@ async function copyShared(source: { id: string; subject_id: string }, userId: st
     await ins("guide_sections", payload.guide.map((g) => ({ ...g, ...own })));
     await ins("cards", payload.cards.map((c) => ({ ...c, ...own, subject_id: source.subject_id })));
     if (payload.quiz) {
-      const { data: quiz, error } = await admin.from("quizzes").insert({ ...own, subject_id: source.subject_id, title: payload.quiz.title }).select("id").single();
+      const { data: quiz, error } = await admin.from("quizzes").insert({ ...own, subject_id: source.subject_id, title: payload.quiz.title, gen_run: 1 }).select("id").single();
       if (error) throw error;
       await ins("quiz_questions", payload.quiz.questions.map((q) => ({ ...q, user_id: userId, quiz_id: quiz.id })));
     }
@@ -93,18 +100,19 @@ async function copyShared(source: { id: string; subject_id: string }, userId: st
   }
 }
 
-function plan(chunks: number): Task[] {
-  return [
-    ...Array.from({ length: chunks }, (_, part) => ({ kind: "notes" as const, part })),
-    ...Array.from({ length: chunks }, (_, part) => ({ kind: "cards" as const, part })),
-    { kind: "quiz" },
-    { kind: "guide" },
-  ];
+function freshSteps(chunks: number, parts: Record<Part, boolean>, run: number, first: boolean): Steps {
+  const steps: Steps = { run, first, next: 0 };
+  if (parts.notes) steps.notes = { done: 0, total: chunks };
+  if (parts.cards) steps.cards = { done: 0, total: chunks };
+  if (parts.quiz) steps.quiz = { done: 0, total: 1 };
+  if (parts.guide) steps.guide = { done: 0, total: 1 };
+  return steps;
 }
 
-const freshSteps = (chunks: number): Steps => ({
-  notes: { done: 0, total: chunks }, cards: { done: 0, total: chunks }, quiz: { done: 0, total: 1 }, guide: { done: 0, total: 1 }, next: 0,
-});
+/** Sources made before choices existed: everything, in the amounts the old version used. */
+function legacyOptions(chars: number): GenOptions {
+  return { parts: { notes: true, cards: true, quiz: true, guide: true }, amounts: { ...suggestAmounts(chars, { cards: 150, quiz: 10, guide: 8 }), quiz: 10 } };
+}
 
 async function loadPages(sourceId: string): Promise<Page[]> {
   const { data, error } = await admin.from("source_pages").select("page_no, text").eq("source_id", sourceId).order("page_no");
@@ -127,7 +135,11 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
   const steps = source.steps as Steps;
   const pages = await loadPages(sourceId);
   const chunks = chunkPages(pages);
-  const tasks = plan(chunks.length);
+  const chars = chunks.map((c) => c.pages.reduce((n, p) => n + p.text.length, 0));
+  const options = (source.options as GenOptions | null) ?? legacyOptions(chars.reduce((a, b) => a + b, 0));
+  // Run 0 is a source started before runs existed; it keeps the old gen_part numbering.
+  const run = steps.run ?? 0;
+  const tasks: Task[] = planTasks(chunks.length, options.parts);
   const task = tasks[index];
   if (!task) {
     await admin.from("sources").update({ status: "ready" }).eq("id", sourceId);
@@ -143,76 +155,93 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
   const flex = attempt === 0 && Deno.env.get("STUDY_SET_FLEX") !== "off";
   const usage = (feature: string) => ({ feature, userId, byok: !!own });
 
+  /** Notes if this file has them, otherwise the pages themselves, as input for the quiz and guide. */
+  async function material() {
+    const { data: notes } = await admin.from("notes_sections").select("title, body_md, pages").eq("source_id", sourceId).order("position");
+    if (notes?.length) return { text: notesDigest(notes, word, DIGEST_CHARS), fromNotes: true };
+    return { text: tagged(pages, word).slice(0, DIGEST_CHARS), fromNotes: false };
+  }
+
   try {
     if (task.kind === "notes") {
+      const genPart = run * 100 + task.part;
       const chunk = chunks[task.part];
       const out = await llmJson<NotesOut>({
         schemaName: "notes", schema: NOTES_SCHEMA, own, flex, usage: usage("study_notes"), maxTokens: 4096, effort: "normal",
         messages: [{ role: "system", content: notesPrompt(word) }, { role: "user", content: tagged(chunk.pages, word) }],
       });
       const rows = validNotes(out, valid);
-      await admin.from("notes_sections").delete().eq("source_id", sourceId).eq("gen_part", task.part);
+      // New notes replace notes from earlier runs.
+      if (task.part === 0 && run > 0) await admin.from("notes_sections").delete().eq("source_id", sourceId).lt("gen_part", run * 100);
+      await admin.from("notes_sections").delete().eq("source_id", sourceId).eq("gen_part", genPart);
       if (rows.length) {
         const { error } = await admin.from("notes_sections").insert(
-          rows.map((r, i) => ({ ...r, user_id: userId, source_id: sourceId, gen_part: task.part, position: task.part * 100 + i })),
+          rows.map((r, i) => ({ ...r, user_id: userId, source_id: sourceId, gen_part: genPart, position: task.part * 100 + i })),
         );
         if (error) throw error;
       }
     } else if (task.kind === "cards") {
-      const chunk = chunks[task.part];
-      const chars = chunk.pages.reduce((n, p) => n + p.text.length, 0);
-      const target = Math.max(6, Math.min(20, Math.round(chars / 450)));
-      const out = await llmJson<CardsOut>({
-        schemaName: "cards", schema: CARDS_SCHEMA, own, flex, usage: usage("study_cards"), maxTokens: 4096, effort: "normal",
-        messages: [{ role: "system", content: cardsPrompt(word, target) }, { role: "user", content: tagged(chunk.pages, word) }],
-      });
-      const rows = validCards(out, valid);
-      await admin.from("cards").delete().eq("source_id", sourceId).eq("gen_part", task.part).eq("edited", false);
+      const genPart = run * 100 + task.part;
+      const target = splitAcross(options.amounts.cards, chars)[task.part] ?? 0;
+      let rows: ReturnType<typeof validCards> = [];
+      if (target > 0) {
+        // Making more cards for a file: show the model what the student already has.
+        const avoid = run > 1
+          ? ((await admin.from("cards").select("front").eq("source_id", sourceId).neq("gen_part", genPart).limit(200)).data ?? []).map((c) => c.front)
+          : [];
+        const chunk = chunks[task.part];
+        const out = await llmJson<CardsOut>({
+          schemaName: "cards", schema: CARDS_SCHEMA, own, flex, usage: usage("study_cards"), maxTokens: Math.min(16_000, 150 * target + 800), effort: "normal",
+          messages: [{ role: "system", content: cardsPrompt(word, target, avoid) }, { role: "user", content: tagged(chunk.pages, word) }],
+        });
+        rows = validCards(out, valid).slice(0, target);
+      }
+      await admin.from("cards").delete().eq("source_id", sourceId).eq("gen_part", genPart).eq("edited", false);
       if (rows.length) {
         const { error } = await admin.from("cards").insert(
-          rows.map((r) => ({ ...r, user_id: userId, subject_id: source.subject_id, source_id: sourceId, gen_part: task.part })),
+          rows.map((r) => ({ ...r, user_id: userId, subject_id: source.subject_id, source_id: sourceId, gen_part: genPart })),
         );
         if (error) throw error;
       }
+    } else if (task.kind === "quiz") {
+      const count = options.amounts.quiz;
+      const { text, fromNotes } = await material();
+      const out = validQuiz(await llmJson<QuizOut>({
+        schemaName: "quiz", schema: QUIZ_SCHEMA, own, flex, usage: usage("study_quiz"), maxTokens: Math.min(30_000, 350 * count + 1500), effort: "deep", timeoutMs: 140_000,
+        messages: [{ role: "system", content: quizPrompt(word, count, fromNotes) }, { role: "user", content: text }],
+      }), valid);
+      const questions = out.questions.slice(0, count);
+      if (questions.length < Math.min(3, count)) throw new Error("too few valid quiz questions");
+      // A later run adds another quiz; a retry of this run replaces its own.
+      if (run === 0) await admin.from("quizzes").delete().eq("source_id", sourceId);
+      else await admin.from("quizzes").delete().eq("source_id", sourceId).eq("gen_run", run);
+      const { count: earlier } = await admin.from("quizzes").select("id", { count: "exact", head: true }).eq("source_id", sourceId);
+      const title = earlier ? `${out.title} (set ${earlier + 1})` : out.title;
+      const { data: quiz, error } = await admin.from("quizzes")
+        .insert({ user_id: userId, subject_id: source.subject_id, source_id: sourceId, title, gen_run: run || null }).select("id").single();
+      if (error) throw error;
+      const { error: qErr } = await admin.from("quiz_questions").insert(questions.map((q, i) => ({ ...q, user_id: userId, quiz_id: quiz.id, position: i })));
+      if (qErr) throw qErr;
     } else {
-      const { data: notes } = await admin.from("notes_sections").select("title, body_md, pages").eq("source_id", sourceId).order("position");
-      const digest = notesDigest(notes ?? [], word);
-      if (digest) {
-        if (task.kind === "quiz") {
-          const out = validQuiz(await llmJson<QuizOut>({
-            schemaName: "quiz", schema: QUIZ_SCHEMA, own, flex, usage: usage("study_quiz"), maxTokens: 6000, effort: "deep", timeoutMs: 120_000,
-            messages: [{ role: "system", content: quizPrompt(word) }, { role: "user", content: digest }],
-          }), valid);
-          if (out.questions.length < 3) throw new Error("too few valid quiz questions");
-          await admin.from("quizzes").delete().eq("source_id", sourceId);
-          const { data: quiz, error } = await admin.from("quizzes")
-            .insert({ user_id: userId, subject_id: source.subject_id, source_id: sourceId, title: out.title }).select("id").single();
-          if (error) throw error;
-          const { error: qErr } = await admin.from("quiz_questions").insert(
-            out.questions.map((q, i) => ({ ...q, user_id: userId, quiz_id: quiz.id, position: i })),
-          );
-          if (qErr) throw qErr;
-        } else {
-          const rows = validGuide(await llmJson<GuideOut>({
-            schemaName: "guide", schema: GUIDE_SCHEMA, own, flex, usage: usage("study_guide"), maxTokens: 8000, effort: "deep", timeoutMs: 120_000,
-            messages: [{ role: "system", content: guidePrompt(word) }, { role: "user", content: digest }],
-          }), valid);
-          await admin.from("guide_sections").delete().eq("source_id", sourceId);
-          if (rows.length) {
-            const { error } = await admin.from("guide_sections").insert(
-              rows.map((r, i) => ({ ...r, user_id: userId, source_id: sourceId, position: i })),
-            );
-            if (error) throw error;
-          }
-        }
+      const count = options.amounts.guide;
+      const { text, fromNotes } = await material();
+      const rows = validGuide(await llmJson<GuideOut>({
+        schemaName: "guide", schema: GUIDE_SCHEMA, own, flex, usage: usage("study_guide"), maxTokens: Math.min(24_000, 1200 * count + 1000), effort: "deep", timeoutMs: 140_000,
+        messages: [{ role: "system", content: guidePrompt(word, count, fromNotes) }, { role: "user", content: text }],
+      }), valid).slice(0, count);
+      await admin.from("guide_sections").delete().eq("source_id", sourceId);
+      if (rows.length) {
+        const { error } = await admin.from("guide_sections").insert(rows.map((r, i) => ({ ...r, user_id: userId, source_id: sourceId, position: i })));
+        if (error) throw error;
       }
     }
 
-    const next: Steps = { ...steps, [task.kind]: { ...steps[task.kind], done: steps[task.kind].done + 1 }, next: index + 1 };
+    const done = steps[task.kind] ?? { done: 0, total: 1 };
+    const next: Steps = { ...steps, [task.kind]: { ...done, done: done.done + 1 }, next: index + 1 };
     delete next.failed;
     const last = index + 1 >= tasks.length;
     await admin.from("sources").update({ steps: next, status: last ? "ready" : "generating" }).eq("id", sourceId);
-    if (last) await saveShared(sourceId, userId);
+    if (last && steps.first) await saveShared(sourceId, userId, optionsKey(options));
     if (!last) await dispatch({ source_id: sourceId, user_id: userId, task: index + 1, attempt: 0 });
   } catch (e) {
     const status = e instanceof LLMError ? e.status : 0;
@@ -245,38 +274,85 @@ Deno.serve(async (req) => {
     return json(req, { accepted: true }, 202);
   }
 
-  // A student starting (or resuming) their own source.
+  // A student starting a study set (or more of one), or resuming one that failed.
   const student = await studentClient(req);
   if (!student) return json(req, { error: "not_signed_in" }, 401);
   if (typeof body.source_id !== "string") return json(req, { error: "source_id_required" }, 400);
-  const { data: source } = await student.db.from("sources").select("id, status, steps, subject_id, kind, page_count, content_hash").eq("id", body.source_id).maybeSingle();
+  const { data: source } = await student.db.from("sources")
+    .select("id, status, steps, options, counted, subject_id, kind, page_count, content_hash").eq("id", body.source_id).maybeSingle();
   if (!source) return json(req, { error: "not_found" }, 404);
-  if (source.status === "generating" || source.status === "ready") return json(req, { status: source.status });
-  if (source.status !== "ready_text" && source.status !== "failed") return json(req, { error: "not_ready" }, 409);
+  if (source.status === "generating") return json(req, { status: source.status });
+  const previous = (source.steps ?? {}) as Steps;
 
-  const resume = source.status === "failed" && (source.steps as Steps)?.next !== undefined;
-  const steps = resume ? { ...(source.steps as Steps), failed: undefined } : freshSteps(chunkPages(await loadPages(source.id)).length);
-  // Claim the source atomically, so a double tap cannot start two chains.
-  const { data: claimed } = await student.db.from("sources")
-    .update({ status: "generating", error_code: null, steps })
-    .eq("id", source.id).in("status", ["ready_text", "failed"]).select("id");
+  // "Try again" after a failure: pick the same run up where it stopped.
+  if (source.status === "failed" && !body.options && previous.next !== undefined) {
+    const steps = { ...previous };
+    delete steps.failed;
+    const { data: claimed } = await student.db.from("sources").update({ status: "generating", error_code: null, steps })
+      .eq("id", source.id).eq("status", "failed").select("id");
+    if (!claimed?.length) return json(req, { status: "generating" });
+    EdgeRuntime.waitUntil(dispatch({ source_id: source.id, user_id: student.userId, task: steps.next, attempt: 0 }));
+    return json(req, { status: "generating" }, 202);
+  }
+  if (!["ready_text", "ready", "failed"].includes(source.status)) return json(req, { error: "not_ready" }, 409);
+
+  // Check the choices against the student's plan.
+  const own = await ownProvider(admin, student.userId);
+  const { data: profile } = await admin.from("profiles").select("plan").eq("user_id", student.userId).single();
+  const { data: caps } = await admin.from("generation_caps").select("cards, quiz, guide").eq("plan", own ? "independent" : profile?.plan ?? "essential").single();
+  if (!caps) return json(req, { error: "unavailable" }, 503);
+  const pages = await loadPages(source.id);
+  // Older app versions (still cached on some phones) send no choices: make everything, sized to the file.
+  const requested = body.options ?? (source.status === "ready_text"
+    ? { parts: { notes: true, cards: true, quiz: true, guide: true }, amounts: suggestAmounts(pages.reduce((n, p) => n + p.text.length, 0), caps) }
+    : null);
+  const checked = checkOptions(requested, caps);
+  if (!checked.ok) return json(req, { error: checked.error, caps }, 400);
+  const options = checked.options;
+
+  const chunks = chunkPages(pages).length;
+  const run = (previous.run ?? 0) + 1;
+  const first = source.status === "ready_text";
+  const steps = freshSteps(chunks, options.parts, run, first);
+  // Claim the source atomically, so a double tap cannot start two runs.
+  const { data: claimed } = await student.db.from("sources").update({ status: "generating", error_code: null, steps, options })
+    .eq("id", source.id).in("status", ["ready_text", "ready", "failed"]).select("id");
   if (!claimed?.length) return json(req, { status: "generating" });
+  const undo = () => admin.from("sources").update({ status: source.status, steps: source.steps, options: source.options }).eq("id", source.id);
 
-  // Same file as one already prepared: copy it instead of generating.
-  if (!resume && source.content_hash) {
+  // Remember the parts this class usually wants.
+  await admin.from("subjects").update({ study_defaults: { parts: options.parts } }).eq("id", source.subject_id);
+
+  // Same file and same request as one already prepared: copy it. Free, so it is not counted.
+  if (first && source.content_hash) {
+    const key = optionsKey(options);
     const { data: shared } = await admin.from("shared_sets").select("payload, kind, page_count, uses")
-      .eq("content_hash", source.content_hash).eq("gen_version", GEN_VERSION).maybeSingle();
+      .eq("content_hash", source.content_hash).eq("gen_version", GEN_VERSION).eq("options_key", key).maybeSingle();
     if (shared && shared.kind === source.kind && shared.page_count === source.page_count &&
         await copyShared({ id: source.id, subject_id: source.subject_id }, student.userId, shared.payload as SharedPayload)) {
-      const one = { done: 1, total: 1 };
-      await admin.from("sources").update({ status: "ready", steps: { notes: one, cards: one, quiz: one, guide: one, next: 0, shared: true } }).eq("id", source.id);
-      // It cost nothing, so it does not count against the uploads allowance.
-      await admin.rpc("refund_allowance", { p_user: student.userId, p_kind: "upload" });
-      await admin.from("shared_sets").update({ uses: (shared.uses ?? 0) + 1 }).eq("content_hash", source.content_hash).eq("gen_version", GEN_VERSION);
+      const done: Steps = { run, first, next: 0, shared: true };
+      for (const p of Object.keys(options.parts) as Part[]) if (options.parts[p]) done[p] = { done: 1, total: 1 };
+      await admin.from("sources").update({ status: "ready", steps: done }).eq("id", source.id);
+      await admin.from("shared_sets").update({ uses: (shared.uses ?? 0) + 1 })
+        .eq("content_hash", source.content_hash).eq("gen_version", GEN_VERSION).eq("options_key", key);
       return json(req, { status: "ready", shared: true });
     }
   }
 
-  EdgeRuntime.waitUntil(dispatch({ source_id: source.id, user_id: student.userId, task: steps.next, attempt: 0 }));
+  // The first study set made from a file counts once against the uploads allowance.
+  if (!source.counted) {
+    const { data: allowed, error } = await admin.rpc("consume_allowance", { p_user: student.userId, p_kind: "upload", p_byok: !!own });
+    if (error) {
+      await undo();
+      return json(req, { error: "unavailable" }, 503);
+    }
+    if (!allowed) {
+      await undo();
+      return json(req, { error: "limit" }, 429);
+    }
+    await admin.from("sources").update({ counted: true }).eq("id", source.id);
+  }
+
+  EdgeRuntime.waitUntil(dispatch({ source_id: source.id, user_id: student.userId, task: 0, attempt: 0 }));
   return json(req, { status: "generating" }, 202);
 });

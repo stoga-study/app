@@ -2,7 +2,7 @@
 // Every item must point at pages that exist in the source; anything else is dropped.
 
 /** Bump when the study-set prompts or validators change, so shared sets made with older prompts are not reused. */
-export const GEN_VERSION = 1;
+export const GEN_VERSION = 2;
 
 export type Page = { page_no: number; text: string };
 export type Chunk = { part: number; pages: Page[] };
@@ -86,11 +86,11 @@ export const CARDS_SCHEMA = {
   },
 };
 export type CardsOut = { cards: { front: string; back: string; pages: number[] }[] };
-export const cardsPrompt = (word: string, target: number) => `${VOICE}
-Write about ${target} flashcards for the ${word}s below (fewer if there is less to learn).
+export const cardsPrompt = (word: string, target: number, avoid: string[] = []) => `${VOICE}
+Write ${target} flashcards for the ${word}s below. The student chose this number, so write exactly ${target} unless the ${word}s truly do not have enough to learn.
 - One idea per card. The front is a clear question or term; the back is a short, complete answer (one or two sentences, or a formula).
 - Test understanding, not trivia. Skip page headers, names of teachers and other noise.
-- No duplicates, and the answer must not appear in the question.`;
+- No duplicates, and the answer must not appear in the question.${avoid.length ? `\n- The student already has cards with these fronts, so do not repeat them: ${avoid.slice(0, 80).join(" | ")}` : ""}`;
 
 // ---------- Practice quiz ----------
 export const QUIZ_SCHEMA = {
@@ -122,8 +122,8 @@ export type QuizOut = {
   title: string;
   questions: { prompt: string; options: string[]; answer_index: number; hint: string; explanation: string; topic: string; pages: number[] }[];
 };
-export const quizPrompt = (word: string) => `${VOICE}
-Write a practice quiz of 8 to 10 multiple-choice questions from the notes below (each note lists its ${word}s).
+export const quizPrompt = (word: string, count: number, fromNotes: boolean) => `${VOICE}
+Write a practice quiz of exactly ${count} multiple-choice questions from the ${fromNotes ? `notes below (each note lists its ${word}s)` : `${word}s below`}.
 - Exactly 4 options per question and exactly one is correct. No two options may be equivalent (for example (x^(1/2))^3 and (√x)^3 are the same), and no option may be "all of the above" or "none of the above".
 - Wrong options are plausible mistakes a student might make.
 - Mix recall with application (solve, compare, explain why). Vary which option letter is correct.
@@ -155,8 +155,8 @@ export const GUIDE_SCHEMA = {
   },
 };
 export type GuideOut = { sections: { title: string; body: string; minutes: number; pages: number[] }[] };
-export const guidePrompt = (word: string) => `${VOICE}
-Write a study guide from the notes below (each note lists its ${word}s): 3 to 8 sections that teach the material in a sensible order.
+export const guidePrompt = (word: string, count: number, fromNotes: boolean) => `${VOICE}
+Write a study guide from the ${fromNotes ? `notes below (each note lists its ${word}s)` : `${word}s below`}: exactly ${count} sections that teach the material in a sensible order.
 - Each section explains one idea in plain language in 2 to 4 short paragraphs, with a worked example when the material has one.
 - Use **bold** for key terms. Paragraphs are separated by a blank line; you may use "- " bullets.
 - minutes: honest reading time for the section, 2 to 8.`;
