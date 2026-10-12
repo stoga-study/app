@@ -1,0 +1,21 @@
+{
+  "releases": [
+    {
+      "version": "1.1.0",
+      "date": "2026-10-13",
+      "title": "You choose what gets made",
+      "intro": "Uploading no longer makes everything automatically. You pick what you need, and how much.",
+      "highlights": [
+        { "icon": "choose", "title": "Pick what to make", "text": "After you add a file, choose notes, flashcards, a practice quiz or a study guide. Or just save it to read and write your own notes." },
+        { "icon": "amount", "title": "Set how many", "text": "Choose exactly how many flashcards, quiz questions or guide sections you want. We suggest a number that fits each file." },
+        { "icon": "more", "title": "Make more later", "text": "On any file: more flashcards, another practice quiz, or fresh notes. Everything you already have stays." },
+        { "icon": "free", "title": "Saving is free", "text": "Only making a study set counts toward your 10 a month. Saving files never does." },
+        { "icon": "photo", "title": "Scans and photos", "text": "Scanned PDFs and photos of your notes are read now, handwriting and math included. Try Take a photo on the Upload page." }
+      ],
+      "fixes": [
+        "Classes that listed the same level twice (like Accelerated Literary Foundations) now show it once.",
+        "Your own API key can be from any OpenAI-compatible provider, not just OpenAI."
+      ]
+    }
+  ]
+}
