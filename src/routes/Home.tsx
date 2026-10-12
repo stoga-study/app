@@ -68,7 +68,7 @@ export default function Home() {
         <section className="card card-dashed flex flex-col justify-center gap-3 p-6">
           <span className="tile soft"><Upload /></span>
           <h2 className="text-[1.375rem]">Add notes or a PDF</h2>
-          <p className="text-muted">We turn it into notes, flashcards, a practice quiz and a study guide, all linked to your pages.</p>
+          <p className="text-muted">Save it, then choose what to make: notes, flashcards, a practice quiz or a study guide, all linked to your pages.</p>
           <Button asChild className="self-start"><Link to="/upload"><Upload /> {(sources.data?.length ?? 0) > 0 ? "Add notes" : "Add your first notes"}</Link></Button>
         </section>
       </div>

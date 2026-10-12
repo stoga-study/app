@@ -7,7 +7,7 @@ import { useProfile } from "@/lib/queries/profile";
 import { useAllowance } from "@/lib/queries/sources";
 
 const PLANS = [
-  { id: "essential", name: "Essential", price: "Free", desc: "Normal study usage for a full course load.", points: ["50 tutor messages a day", "10 uploads a month", "Every feature, same quality of answers"] },
+  { id: "essential", name: "Essential", price: "Free", desc: "Normal study usage for a full course load.", points: ["50 tutor messages a day", "10 study sets a month (saving files is free)", "Every feature, same quality of answers"] },
   { id: "independent", name: "Independent", price: "Free, plus provider fees", desc: "Bring your own key for any OpenAI-compatible API. Your provider bills the key holder.", points: ["No Stoga.study limits", "Set a spending cap with your provider", "Remove the key any time"] },
   { id: "unlimited", name: "Unlimited", price: "$10 a month", desc: "Heavy use with plain-language fair use. Helps keep Essential free.", points: ["No daily or monthly caps", "A parent or guardian pays", "We email before limiting anything"] },
 ] as const;
@@ -38,8 +38,8 @@ export default function Plans() {
       <section className="card mb-6 flex flex-col gap-5 p-5" aria-labelledby="allow">
         <h2 id="allow" className="text-[1.25rem]">Your allowance</h2>
         {tutor && <Meter label="Tutor messages today" used={tutor.used} limit={tutor.limit} note={`Resets at midnight.`} />}
-        {uploads && <Meter label="Uploads this month" used={uploads.used} limit={uploads.limit} note={`Resets on ${fmt(uploads.resetsAt)}.`} />}
-        <p className="text-[0.9375rem] text-muted">At a limit, your cards, notes and quizzes still work. Only new tutor answers and uploads wait.</p>
+        {uploads && <Meter label="Study sets this month" used={uploads.used} limit={uploads.limit} note={`Resets on ${fmt(uploads.resetsAt)}.`} />}
+        <p className="text-[0.9375rem] text-muted">At a limit, your cards, notes and quizzes still work. Only new tutor answers and study sets wait. You can still save files.</p>
       </section>
 
       <div className="grid gap-4 md:grid-cols-3">
