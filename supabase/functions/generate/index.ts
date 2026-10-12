@@ -320,8 +320,8 @@ Deno.serve(async (req) => {
   if (!claimed?.length) return json(req, { status: "generating" });
   const undo = () => admin.from("sources").update({ status: source.status, steps: source.steps, options: source.options }).eq("id", source.id);
 
-  // Remember the parts this class usually wants.
-  await admin.from("subjects").update({ study_defaults: { parts: options.parts } }).eq("id", source.subject_id);
+  // Remember what this class usually wants, from uploads only (not from "make more").
+  if (first) await admin.from("subjects").update({ study_defaults: { parts: options.parts } }).eq("id", source.subject_id);
 
   // Same file and same request as one already prepared: copy it. Free, so it is not counted.
   if (first && source.content_hash) {
