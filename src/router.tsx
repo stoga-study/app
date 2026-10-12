@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router";
 import { RouteError } from "./components/RouteError";
 import { Shell } from "./components/Shell";
+import { WhatsNewGate } from "./components/WhatsNewGate";
 import { RedirectIfSignedIn, RequireAuth, RequireOnboarded } from "./lib/auth/RequireAuth";
 import Classes from "./routes/Classes";
 import Feedback from "./routes/Feedback";
@@ -21,6 +22,7 @@ import Tutor, { TutorHome } from "./routes/Tutor";
 import Upload from "./routes/Upload";
 import SignIn from "./routes/SignIn";
 import Welcome from "./routes/Welcome";
+import WhatsNew, { Changelog } from "./routes/WhatsNew";
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +43,10 @@ export const router = createBrowserRouter([
         element: <RequireOnboarded />,
         children: [
       {
+        element: <WhatsNewGate />,
+        children: [
+      { path: "whats-new", element: <WhatsNew /> },
+      {
         element: <Shell />,
         children: [
           { index: true, element: <Home /> },
@@ -59,7 +65,10 @@ export const router = createBrowserRouter([
           { path: "plans", element: <Plans /> },
           { path: "feedback", element: <Feedback /> },
           { path: "settings", element: <Settings /> },
+          { path: "changelog", element: <Changelog /> },
           { path: "*", element: <NotFound /> },
+        ],
+      },
         ],
       },
         ],
