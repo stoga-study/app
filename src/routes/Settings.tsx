@@ -1,4 +1,5 @@
-import { ChevronRight, GraduationCap, Heart, LogOut, MessageSquare, Trash2 } from "lucide-react";
+import { ChevronRight, GraduationCap, Heart, LogOut, MessageSquare, Sparkles, Trash2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -162,6 +163,32 @@ function OwnKey() {
   );
 }
 
+/** "Email me what's new": a short email when an update ships. On by default; one tap to stop. */
+function EmailUpdates() {
+  const profile = useProfile();
+  const { session } = useAuth();
+  const qc = useQueryClient();
+  const on = profile.data?.email_updates ?? true;
+  return (
+    <label className="flex items-start gap-3">
+      <input
+        type="checkbox"
+        className="mt-1 size-5 accent-[var(--primary)]"
+        checked={on}
+        onChange={async (e) => {
+          const { error } = await supabase.from("profiles").update({ email_updates: e.target.checked }).eq("user_id", session!.user.id);
+          if (error) toast("We could not save that. Try again.");
+          else qc.invalidateQueries({ queryKey: ["profile"] });
+        }}
+      />
+      <span>
+        <span className="block font-bold">Email me what&apos;s new</span>
+        <span className="block text-[0.9375rem] text-muted">A short email when an update ships. Never ads.</span>
+      </span>
+    </label>
+  );
+}
+
 function DangerZone() {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
@@ -216,10 +243,12 @@ export default function Settings() {
 
       <LinkRow to="/plans" icon={<Heart />} title="Plans and funding" sub={profile.data?.plan === "independent" ? "Independent, your own key" : profile.data?.plan === "unlimited" ? "Unlimited" : "Essential, free"} />
       <LinkRow to="/feedback?from=settings" icon={<MessageSquare />} title="Send feedback" sub="Report a problem or suggest an idea" />
+      <LinkRow to="/changelog" icon={<Sparkles />} title="What's new" sub="Every update, in plain words" />
 
       <Section title="Account">
         <p className="text-muted">Signed in as <b className="break-all text-ink">{session?.user.email}</b></p>
         <p className="field-hint">You stay signed in on this device until you sign out. To sign back in, we email you a new link.</p>
+        <EmailUpdates />
         <Button variant="secondary" className="self-start" onClick={() => supabase.auth.signOut()}><LogOut /> Sign out</Button>
         <DangerZone />
       </Section>
