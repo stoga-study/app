@@ -427,3 +427,7 @@ enabled = true
 # generate checks auth itself: student calls need a valid session, chain calls need the service key.
 [functions.generate]
 verify_jwt = false
+
+# The unsubscribe link in update emails has no sign-in; POST checks ADMIN_TOKEN itself.
+[functions.release-email]
+verify_jwt = false
