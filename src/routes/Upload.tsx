@@ -1,7 +1,10 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Camera, Check, ClipboardPaste, FileText, Upload as UploadIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
+import { StudySetChooser } from "@/components/StudySetChooser";
+import type { GenOptions } from "../../supabase/functions/_lib/options";
 import { Link, useNavigate, useSearchParams } from "react-router";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/States";
 import { Button } from "@/components/ui/button";
@@ -11,11 +14,14 @@ import { readPageImage } from "@/lib/readPage";
 import { useSubjects } from "@/lib/queries/profile";
 import { prettyFilename } from "@/lib/extract/filename";
 import { pageWord, saveUpload, suggestTitle, UploadLimitError, useAllowance } from "@/lib/queries/sources";
-import { startGeneration } from "@/lib/queries/studyset";
+import { startErrorText, startGeneration, useCaps } from "@/lib/queries/studyset";
 import { useOnline } from "@/lib/useOnline";
 
+type Progress = { done: number; total: number; stage: ExtractStage };
 type Phase =
   | { step: "choose" }
+  /** The file is being read while the student picks what to make. */
+  | { step: "options"; name: string; title: string; size?: number; file?: File; photo?: boolean; progress: Progress; extracted?: Extracted; waiting?: boolean }
   | { step: "reading"; name: string; size?: number; done: number; total: number; stage: ExtractStage; photo?: boolean }
   | { step: "saving"; name: string; size?: number; extracted: Extracted; done: number; total: number }
   | { step: "error"; name: string; code: ExtractErrorCode | "limit" | "save" };
@@ -82,6 +88,12 @@ export default function Upload() {
   const [pasteTitle, setPasteTitle] = useState("");
   const [over, setOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const caps = useCaps();
+  // A choice made before the file finished reading; carried out once it has.
+  const queued = useRef<{ make: GenOptions | null } | null>(null);
+  // Which file the screen is about, so a file the student moved on from is ignored.
+  const current = useRef(0);
+  const queuedChoice = () => queued.current;
   const cameraRef = useRef<HTMLInputElement>(null);
   const online = useOnline();
 
@@ -101,7 +113,7 @@ export default function Upload() {
       </>
     );
 
-  async function save(name: string, extracted: Extracted, file?: File, size?: number) {
+  async function save(name: string, extracted: Extracted, make: GenOptions | null, file?: File, size?: number) {
     const title = file ? prettyFilename(file.name) : name;
     setPhase({ step: "saving", name: title, size, extracted, done: 0, total: extracted.pages.length });
     try {
@@ -116,9 +128,10 @@ export default function Upload() {
       });
       qc.invalidateQueries({ queryKey: ["sources"] });
       qc.invalidateQueries({ queryKey: ["allowance"] });
-      // Start the study set straight away; the source page shows its progress.
-      await startGeneration(id).catch(() => undefined);
-      // A file someone already prepared is copied instantly and its upload is given back.
+      // Make what the student chose; the file page shows the progress. Just saving makes nothing.
+      if (make) await startGeneration(id, make).catch((e) => toast(startErrorText(e)));
+      // The class now remembers this choice for next time.
+      qc.invalidateQueries({ queryKey: ["subjects"] });
       qc.invalidateQueries({ queryKey: ["allowance"] });
       // A smarter title arrives a moment later for files; pasted notes keep the title the student typed.
       if (file)
@@ -136,24 +149,84 @@ export default function Upload() {
 
   async function onFile(file: File | undefined) {
     if (!file) return;
+    const run = ++current.current;
+    queued.current = null;
     const title = prettyFilename(file.name);
     const photo = /^image\//.test(file.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name);
-    setPhase({ step: "reading", name: title, size: file.size, done: 0, total: 0, stage: photo ? "scan" : "text", photo });
+    setPhase({ step: "options", name: file.name, title, size: file.size, file, photo, progress: { done: 0, total: 0, stage: photo ? "scan" : "text" } });
     try {
-      const extracted = await extractFile(file, (done, total, stage) => setPhase({ step: "reading", name: title, size: file.size, done, total, stage, photo }), readPageImage);
-      await save(file.name, extracted, file, file.size);
+      const extracted = await extractFile(
+        file,
+        (done, total, stage) => { if (current.current === run) setPhase((p) => (p.step === "options" ? { ...p, progress: { done, total, stage } } : p)); },
+        readPageImage,
+      );
+      if (current.current !== run) return;
+      setPhase((p) => (p.step === "options" ? { ...p, extracted } : p));
+      // TypeScript cannot see that a tap may have queued a choice while we awaited, so read it through a function.
+      const choice = queuedChoice();
+      if (choice) await save(file.name, extracted, choice.make, file, file.size);
     } catch (e) {
-      setPhase({ step: "error", name: file.name, code: e instanceof ExtractError ? e.code : "damaged" });
+      if (current.current === run) setPhase({ step: "error", name: file.name, code: e instanceof ExtractError ? e.code : "damaged" });
     }
   }
 
-  async function onPaste() {
+  /** "Make it" (with choices) or "Just save it" (null). Waits for the file if it is still being read. */
+  function decide(make: GenOptions | null) {
+    if (phase.step !== "options") return;
+    if (phase.extracted) void save(phase.name, phase.extracted, make, phase.file, phase.size);
+    else {
+      queued.current = { make };
+      setPhase({ ...phase, waiting: true });
+    }
+  }
+
+  function onPaste() {
     const name = pasteTitle.trim() || `Pasted notes, ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date())}`;
     try {
-      await save(name, extractPasted(pasted));
+      const extracted = extractPasted(pasted);
+      current.current++;
+      queued.current = null;
+      setPhase({ step: "options", name, title: name, progress: { done: 1, total: 1, stage: "text" }, extracted });
     } catch (e) {
       setPhase({ step: "error", name, code: e instanceof ExtractError ? e.code : "save" });
     }
+  }
+
+  if (phase.step === "options") {
+    const { progress, extracted } = phase;
+    const chars = extracted ? extracted.pages.reduce((n, pg) => n + pg.text.length, 0) : null;
+    const status = extracted
+      ? `${extracted.scannedPages ? "Read scanned" : "Read"} ${extracted.pages.length} ${pageWord(extracted.kind, extracted.pages.length)}`
+      : phase.photo ? "Reading your photo…"
+        : progress.stage === "scan" ? `Reading scanned pages${progress.total ? `, ${progress.done} of ${progress.total}` : "…"}`
+          : progress.total ? `Reading pages, ${progress.done} of ${progress.total}` : "Opening…";
+    return (
+      <div className="mx-auto flex max-w-xl flex-col gap-5">
+        <h1 className="text-[1.75rem]">Adding to {subject!.name}</h1>
+        <div className="card flex items-center gap-4 p-4">
+          <span className="tile soft"><FileText /></span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-bold">{phase.title}</p>
+            <p className="text-[0.875rem] text-muted" aria-live="polite">
+              {phase.size != null && `${fmtSize(phase.size)} · `}{status}{extracted && <Check className="ml-1 inline size-4 text-brand" aria-hidden="true" />}
+            </p>
+          </div>
+        </div>
+        <StudySetChooser
+          key={phase.name}
+          mode="upload"
+          chars={chars}
+          caps={caps.data ?? { cards: 60, quiz: 25, guide: 12 }}
+          initial={(subject!.study_defaults as { parts?: Record<string, boolean> } | null)?.parts}
+          busy={phase.waiting}
+          reading={phase.waiting && !extracted ? "We'll start as soon as the file is read." : null}
+          blocked={atLimit ? `That was this month's ${uploads!.limit} study sets. You can still save files and write your own notes. More on ${fmtDate(uploads!.resetsAt)}.` : null}
+          onMake={(o) => decide(o)}
+          onSave={() => decide(null)}
+          onCancel={() => { current.current++; queued.current = null; setPhase({ step: "choose" }); }}
+        />
+      </div>
+    );
   }
 
   if (phase.step === "reading" || phase.step === "saving") {
@@ -197,7 +270,7 @@ export default function Upload() {
         <span className="tile t4"><AlertCircle /></span>
         <h1 className="break-words text-[1.75rem]">{c.title}</h1>
         <p className="text-ink-2">
-          {c.body} {"noRefundLine" in c ? "" : `Nothing was counted against your ${uploads?.limit ?? 10} uploads.`}
+          {c.body} {"noRefundLine" in c ? "" : "Nothing was counted."}
         </p>
         <div className="card p-4">
           <p className="font-bold">What usually works</p>
@@ -217,7 +290,7 @@ export default function Upload() {
     <>
       <PageHeader title={`Add to ${subject!.name}`}>
         {uploads?.limit != null ? (
-          <span className="tabular">{uploads.used} of {uploads.limit} uploads used this month. Reviewing never counts.</span>
+          <span className="tabular">{uploads.used} of {uploads.limit} study sets made this month. Saving files and reviewing never count.</span>
         ) : (
           "Add notes, slides or a reading."
         )}
@@ -239,8 +312,6 @@ export default function Upload() {
 
       {!online ? (
         <div className="callout neutral"><span><b>Uploading needs a connection.</b> Your saved cards, notes and quizzes still work offline.</span></div>
-      ) : atLimit ? (
-        <div className="callout"><span><b>That was this month&apos;s {uploads!.limit} uploads.</b> More arrive on {fmtDate(uploads!.resetsAt)}. Your notes, cards and quizzes still work.</span></div>
       ) : pasting ? (
         <section className="card flex flex-col gap-4 p-5" aria-labelledby="paste-title">
           <h2 id="paste-title" className="text-[1.25rem]">Paste your notes</h2>
