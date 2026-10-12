@@ -370,6 +370,27 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_caps: {
+        Row: {
+          cards: number
+          guide: number
+          plan: Database["public"]["Enums"]["plan"]
+          quiz: number
+        }
+        Insert: {
+          cards: number
+          guide: number
+          plan: Database["public"]["Enums"]["plan"]
+          quiz: number
+        }
+        Update: {
+          cards?: number
+          guide?: number
+          plan?: Database["public"]["Enums"]["plan"]
+          quiz?: number
+        }
+        Relationships: []
+      }
       guide_sections: {
         Row: {
           body_md: string
@@ -710,6 +731,7 @@ export type Database = {
       quizzes: {
         Row: {
           created_at: string
+          gen_run: number | null
           id: string
           source_id: string | null
           subject_id: string
@@ -718,6 +740,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          gen_run?: number | null
           id?: string
           source_id?: string | null
           subject_id: string
@@ -726,6 +749,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          gen_run?: number | null
           id?: string
           source_id?: string | null
           subject_id?: string
@@ -762,6 +786,7 @@ export type Database = {
           created_at: string
           gen_version: number
           kind: string
+          options_key: string
           page_count: number
           payload: Json
           uses: number
@@ -771,6 +796,7 @@ export type Database = {
           created_at?: string
           gen_version: number
           kind: string
+          options_key?: string
           page_count: number
           payload: Json
           uses?: number
@@ -780,6 +806,7 @@ export type Database = {
           created_at?: string
           gen_version?: number
           kind?: string
+          options_key?: string
           page_count?: number
           payload?: Json
           uses?: number
@@ -829,11 +856,13 @@ export type Database = {
         Row: {
           bytes: number | null
           content_hash: string | null
+          counted: boolean
           created_at: string
           error_code: string | null
           filename: string
           id: string
           kind: string
+          options: Json | null
           original_filename: string | null
           page_count: number
           status: Database["public"]["Enums"]["source_status"]
@@ -846,11 +875,13 @@ export type Database = {
         Insert: {
           bytes?: number | null
           content_hash?: string | null
+          counted?: boolean
           created_at?: string
           error_code?: string | null
           filename: string
           id?: string
           kind: string
+          options?: Json | null
           original_filename?: string | null
           page_count?: number
           status?: Database["public"]["Enums"]["source_status"]
@@ -863,11 +894,13 @@ export type Database = {
         Update: {
           bytes?: number | null
           content_hash?: string | null
+          counted?: boolean
           created_at?: string
           error_code?: string | null
           filename?: string
           id?: string
           kind?: string
+          options?: Json | null
           original_filename?: string | null
           page_count?: number
           status?: Database["public"]["Enums"]["source_status"]
@@ -906,6 +939,7 @@ export type Database = {
           level: string | null
           name: string
           school_year: string | null
+          study_defaults: Json | null
           user_id: string
         }
         Insert: {
@@ -919,6 +953,7 @@ export type Database = {
           level?: string | null
           name: string
           school_year?: string | null
+          study_defaults?: Json | null
           user_id?: string
         }
         Update: {
@@ -932,6 +967,7 @@ export type Database = {
           level?: string | null
           name?: string
           school_year?: string | null
+          study_defaults?: Json | null
           user_id?: string
         }
         Relationships: []
