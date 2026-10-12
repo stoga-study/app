@@ -73,7 +73,7 @@ export default function WhatsNew() {
   }
 
   return (
-    <div className="min-h-dvh bg-bg px-5 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[calc(1.25rem+env(safe-area-inset-top))] md:px-8">
+    <div className="min-h-dvh bg-bg px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] md:px-8">
       <div className="mx-auto flex max-w-3xl flex-col gap-6">
         <Brand descriptor={false} />
         {shown.map((r, i) => (
@@ -90,8 +90,9 @@ export default function WhatsNew() {
             <ReleaseBody r={r} big={i === 0} />
           </section>
         ))}
-        <div className="sticky bottom-4 flex flex-wrap items-center gap-3">
-          <Button onClick={done} className="shadow-lg">Continue <ArrowRight /></Button>
+        {/* A solid band, so the cards scroll underneath the buttons instead of showing through. */}
+        <div className="sticky bottom-0 -mx-5 flex flex-wrap items-center gap-3 border-t border-line bg-bg px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] md:-mx-8 md:px-8">
+          <Button onClick={done}>Continue <ArrowRight /></Button>
           <Link to="/changelog" onClick={() => latest && markSeen(latest.version)} className="font-bold">All updates</Link>
         </div>
       </div>
