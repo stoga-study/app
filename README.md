@@ -2,7 +2,7 @@
 
 The Stoga.study progressive web app: free, calm study help from your own notes.
 
-**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), OpenAI (`gpt-6-luna`, swappable for any OpenAI-compatible model), hosted on Cloudflare Pages.
+**Stack:** Vite + React + TypeScript, Tailwind CSS, shadcn-style components, vite-plugin-pwa, Supabase (Auth, Postgres, Storage, Edge Functions), OpenAI (`gpt-6-luna`, swappable for any OpenAI-compatible model), hosted on Cloudflare Workers (static assets).
 
 ## Develop
 
