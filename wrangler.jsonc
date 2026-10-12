@@ -1,0 +1,13 @@
+// Cloudflare Workers static assets: the app is plain files in dist/, with no server code.
+// "name" must match the Worker's name in the Cloudflare dashboard (Workers Builds checks this).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "app",
+  "compatibility_date": "2026-10-06",
+  "assets": {
+    "directory": "./dist",
+    // Any path that is not a file (like /sources/123) gets index.html, so the app's router handles it.
+    "not_found_handling": "single-page-application"
+  },
+  "observability": { "enabled": true }
+}

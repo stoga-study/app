@@ -19,15 +19,16 @@ npm run dev                  # http://localhost:5173
 | `npm test` | Vitest unit tests |
 | `npm run build` | Production build to `dist/`, including the service worker |
 
-## Deploy (Cloudflare Pages)
+## Deploy (Cloudflare Workers)
 
-1. In Cloudflare, go to **Workers & Pages → Create → Pages → Connect to Git** and pick `stoga-study/app`.
-2. Name the project **`stoga-study-app`**. The Edge Function CORS list (`supabase/functions/_lib/cors.ts`) and the Supabase auth redirect URLs (`supabase/config.toml`) allow `*.stoga-study-app.pages.dev`. If you choose another name, update both.
-3. Use framework preset **None**, build command `npm run build` and output directory `dist`. `.node-version` pins Node 22.
-4. Add the environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` for Production and Preview, then deploy.
-5. Under **Custom domains**, add `app.stoga.study`. Cloudflare creates the CNAME if the domain's DNS is on Cloudflare. Otherwise, add `CNAME app → stoga-study-app.pages.dev` at your DNS provider.
+The app is static files served by a Cloudflare Worker (`wrangler.jsonc`). It has no server code; the backend is Supabase.
 
-`public/_redirects` handles routing in the single-page app. `public/_headers` sets the Content Security Policy (network calls only to `*.supabase.co`), the other security headers, and caching. Run `npx wrangler@4 pages dev dist --port 8788` after a build to try it exactly as Cloudflare serves it.
+1. In Cloudflare, go to **Workers & Pages → Create → Import a repository** and pick `stoga-study/app`. The Worker's name must match `name` in `wrangler.jsonc` (currently `app`).
+2. Build command `npm run build`. Deploy command `npx wrangler deploy` (it uses the pinned `wrangler` dev dependency). `.node-version` pins Node 22.
+3. Under **Settings → Build → Variables and secrets**, add `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY`. They are *build* variables, because Vite bakes them into the files.
+4. Under **Settings → Domains & Routes**, add the custom domain `app.stoga.study`. stoga.study's DNS is on Cloudflare, so the record and certificate are created automatically.
+
+Every push to `main` deploys. `wrangler.jsonc` sends unknown paths (like `/sources/123`) to `index.html` for the app's router. `public/_headers` sets the Content Security Policy (network calls only to `*.supabase.co`), the other security headers, and caching. Run `npx wrangler dev` after a build to try it exactly as Cloudflare serves it.
 
 The AI key is never shipped to the browser. It is stored as a Supabase Edge Function secret:
 
