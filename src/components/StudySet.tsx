@@ -29,7 +29,9 @@ function StepRow({ state, label, end }: { state: "done" | "working" | "waiting";
 export function Processing({ source }: { source: Source }) {
   const steps = (source.steps ?? {}) as Steps;
   const { pct, remainingJobs } = progressOf(steps);
-  const order: [keyof Steps, string][] = [["notes", "Writing notes"], ["cards", "Making flashcards"], ["quiz", "Building a practice quiz"], ["guide", "Writing the study guide"]];
+  // Only the parts this run makes.
+  const order = ([["notes", "Writing notes"], ["cards", "Making flashcards"], ["quiz", "Building a practice quiz"], ["guide", "Writing the study guide"]] as const)
+    .filter(([k]) => steps[k]);
   const firstOpen = order.findIndex(([k]) => {
     const p = steps[k] as { done: number; total: number } | undefined;
     return !p || p.done < p.total;
@@ -56,7 +58,7 @@ export function Processing({ source }: { source: Source }) {
           return <StepRow key={k} state={state} label={label} end={end} />;
         })}
       </ul>
-      <p className="text-center text-[0.875rem] text-muted">It keeps going if you leave this screen. Your uploads allowance was already counted; this costs nothing extra.</p>
+      <p className="text-center text-[0.875rem] text-muted">It keeps going if you leave this screen.</p>
     </section>
   );
 }
@@ -79,19 +81,6 @@ export function Failed({ source, onRetry, retrying }: { source: Source; onRetry:
   );
 }
 
-export function NotStarted({ onStart, starting }: { onStart: () => void; starting: boolean }) {
-  return (
-    <div className="card card-dashed mt-4 flex flex-col items-start gap-3 p-5">
-      <span className="tile soft"><Sparkles /></span>
-      <div>
-        <p className="font-bold">Make a study set from this file</p>
-        <p className="text-[0.9375rem] text-muted">Notes, flashcards, a practice quiz and a study guide, each linked to its pages. Takes about a minute.</p>
-      </div>
-      <Button onClick={onStart} disabled={starting}><Sparkles /> {starting ? "Starting…" : "Make study set"}</Button>
-    </div>
-  );
-}
-
 type Tab = "notes" | "cards" | "quiz" | "guide" | "pages";
 
 /** The finished study set: what was made, then each part to read. */
@@ -102,24 +91,26 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
   if (set.isPending) return <div className="skeleton mt-4 h-64 rounded-[1.5rem]" />;
   if (set.isError) return <p className="callout mt-4">We could not load the study set. Check your connection, then try again.</p>;
   const d = set.data;
-  const tabs: [Tab, string, ReactNode, number][] = [
+  // Only the parts this file has, then its pages.
+  const tabs = ([
     ["notes", "Notes", <NotebookPen key="n" />, d.notes.length],
     ["cards", "Cards", <Layers key="c" />, d.cards.length],
-    ["quiz", "Quiz", <ListChecks key="q" />, d.questions.length],
+    ["quiz", d.quizzes.length > 1 ? "Quizzes" : "Quiz", <ListChecks key="q" />, d.questions.length],
     ["guide", "Guide", <BookOpen key="g" />, d.guide.length],
     ["pages", pageWord(source.kind, 2).replace(/^./, (c) => c.toUpperCase()), <FileText key="p" />, source.page_count],
-  ];
+  ] as [Tab, string, ReactNode, number][]).filter(([key, , , n]) => key === "pages" || n > 0);
+  const shown = tabs.some(([k]) => k === tab) ? tab : tabs[0][0];
   const minutes = d.guide.reduce((n, g) => n + (g.minutes ?? 0), 0);
 
   return (
     <section className="mt-4" aria-label="Study set">
       <ul className="card divide-y divide-line px-4">
-        {[
+        {([
           [<NotebookPen key="n" />, d.notes.length, "note sections"],
           [<Layers key="c" />, d.cards.length, "flashcards"],
-          [<ListChecks key="q" />, d.questions.length, "quiz questions"],
+          [<ListChecks key="q" />, d.questions.length, d.quizzes.length > 1 ? `quiz questions in ${d.quizzes.length} quizzes` : "quiz questions"],
           [<BookOpen key="g" />, d.guide.length, `study guide sections${minutes ? `, about ${minutes} minutes` : ""}`],
-        ].map(([icon, n, label], i) => (
+        ] as [ReactNode, number, string][]).filter(([, n]) => n > 0).map(([icon, n, label], i) => (
           <li key={i} className="flex items-center gap-3 py-3 [&_svg]:size-5 [&_svg]:text-brand">
             {icon}
             <span><b className="tabular">{n as number}</b> {label as string}</span>
@@ -127,7 +118,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
         ))}
       </ul>
       {(source.steps as Steps | null)?.shared && (
-        <p className="callout mt-3"><Sparkles /> <span>This file was already prepared on Stoga.study, so your study set was ready instantly. It did not count toward your uploads.</span></p>
+        <p className="callout mt-3"><Sparkles /> <span>This file was already prepared on Stoga.study, so your study set was ready instantly. It did not count toward your study sets.</span></p>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         {d.cards.length > 0 && <Button asChild variant="secondary" size="sm"><Link to="/review"><Layers /> Review cards</Link></Button>}
@@ -136,7 +127,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
 
       <div role="tablist" aria-label="Study set parts" className="-mx-5 mt-6 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
         {tabs.map(([key, label, icon, n]) => (
-          <button key={key} type="button" role="tab" aria-selected={tab === key} aria-controls={`panel-${key}`} id={`tab-${key}`} onClick={() => setTab(key)} className="pill-option flex-none">
+          <button key={key} type="button" role="tab" aria-selected={shown === key} aria-controls={`panel-${key}`} id={`tab-${key}`} onClick={() => setTab(key)} className="pill-option flex-none">
             {icon}
             {label}
             <span className="tabular font-normal text-muted">{n}</span>
@@ -144,8 +135,8 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
         ))}
       </div>
 
-      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="mt-4 flex flex-col gap-3">
-        {tab === "notes" && d.notes.map((n) => (
+      <div role="tabpanel" id={`panel-${shown}`} aria-labelledby={`tab-${shown}`} className="mt-4 flex flex-col gap-3">
+        {shown === "notes" && d.notes.map((n) => (
           <article key={n.id} className="card p-5">
             <h3 className="text-[1.25rem]">{n.title}</h3>
             <Markdown text={n.body_md} className="text-ink-2" />
@@ -153,7 +144,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           </article>
         ))}
 
-        {tab === "cards" && d.cards.map((c) => (
+        {shown === "cards" && d.cards.map((c) => (
           <button
             key={c.id}
             type="button"
@@ -167,10 +158,13 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           </button>
         ))}
 
-        {tab === "quiz" && (
-          <>
-            {d.quiz && <h3 className="text-[1.25rem]">{d.quiz.title}</h3>}
-            {d.questions.map((q, i) => (
+        {shown === "quiz" && d.quizzes.map((quiz) => (
+          <section key={quiz.id} className="flex flex-col gap-3" aria-label={quiz.title}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="text-[1.25rem]">{quiz.title}</h3>
+              <Button asChild variant="secondary" size="sm"><Link to={`/quiz/${quiz.id}`}><ListChecks /> Take this quiz</Link></Button>
+            </div>
+            {quiz.questions.map((q, i) => (
               <article key={q.id} className="card p-5">
                 <p className="text-[0.8125rem] font-bold text-muted">Question {i + 1}</p>
                 <p className="mt-1 font-display text-[1.125rem] font-bold"><MathText text={q.prompt} /></p>
@@ -194,10 +188,10 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
                 <PageChips pages={q.pages} kind={source.kind} />
               </article>
             ))}
-          </>
-        )}
+          </section>
+        ))}
 
-        {tab === "guide" && d.guide.map((g, i) => (
+        {shown === "guide" && d.guide.map((g, i) => (
           <article key={g.id} className="card p-5">
             <p className="text-[0.8125rem] font-bold text-muted">Section {i + 1} of {d.guide.length}{g.minutes ? `, about ${g.minutes} minutes` : ""}</p>
             <h3 className="mt-1 text-[1.25rem]">{g.title}</h3>
@@ -206,7 +200,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           </article>
         ))}
 
-        {tab === "pages" && pagesSlot}
+        {shown === "pages" && pagesSlot}
       </div>
     </section>
   );

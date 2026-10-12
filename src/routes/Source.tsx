@@ -1,14 +1,25 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ExternalLink, FileText, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, FileText, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { ErrorState, PageSkeleton } from "@/components/States";
-import { Failed, NotStarted, Processing, SetView } from "@/components/StudySet";
+import { Failed, Processing, SetView } from "@/components/StudySet";
+import { StudySetChooser } from "@/components/StudySetChooser";
 import { Button } from "@/components/ui/button";
 import { useSubjects } from "@/lib/queries/profile";
 import { openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages } from "@/lib/queries/sources";
-import { startGeneration, useLiveSource, useStudySet } from "@/lib/queries/studyset";
+import { startErrorText, startGeneration, useCaps, useLiveSource, useStudySet } from "@/lib/queries/studyset";
+import type { GenOptions } from "../../supabase/functions/_lib/options";
+
+/** The biggest thing a study set has, for the header: cards first, then questions, notes or guide. */
+function headline(d: { cards: unknown[]; questions: unknown[]; notes: unknown[]; guide: unknown[] }): [number, string] | null {
+  if (d.cards.length) return [d.cards.length, "flashcards"];
+  if (d.questions.length) return [d.questions.length, "quiz questions"];
+  if (d.notes.length) return [d.notes.length, "note sections"];
+  if (d.guide.length) return [d.guide.length, "guide sections"];
+  return null;
+}
 
 export default function SourcePage() {
   const { id } = useParams();
@@ -26,14 +37,21 @@ export default function SourcePage() {
   useLiveSource(id, source.data?.status);
   const ready = source.data?.status === "ready";
   const set = useStudySet(id, ready);
+  const caps = useCaps();
+  const [more, setMore] = useState(false);
 
-  async function start() {
+  /** Make a study set (or more of one) with these choices, or resume a failed one (no choices). */
+  async function start(options?: GenOptions) {
     setStarting(true);
     try {
-      await startGeneration(id!);
+      await startGeneration(id!, options);
+      setMore(false);
       await qc.invalidateQueries({ queryKey: ["source", id] });
-    } catch {
-      toast("We could not start your study set. Check your connection, then try again.");
+      qc.invalidateQueries({ queryKey: ["studyset", id] });
+      qc.invalidateQueries({ queryKey: ["allowance"] });
+      qc.invalidateQueries({ queryKey: ["subjects"] });
+    } catch (e) {
+      toast(startErrorText(e));
     } finally {
       setStarting(false);
     }
@@ -71,6 +89,8 @@ export default function SourcePage() {
   );
   const subject = subjects.data?.find((x) => x.id === s.subject_id);
   const read = pages.data?.length ?? 0;
+  // Amounts in the chooser are suggested from how much text the file has.
+  const chars = pages.data ? pages.data.reduce((n, p) => n + p.text.length, 0) : null;
   const word = pageWord(s.kind, s.page_count);
 
   return (
@@ -82,7 +102,7 @@ export default function SourcePage() {
       <section className={`ink-panel p-6 ${justUploaded ? "pop" : ""}`} aria-labelledby="source-title">
         <span className="circle circle-big right-[-5rem] top-[-6rem] size-60" aria-hidden="true" />
         <span className="circle circle-hot right-8 top-8 size-9" aria-hidden="true" />
-        <p className="ink-muted text-[0.9375rem]">{ready ? "Study set ready. We made" : justUploaded ? "Added and read." : "Source"}</p>
+        <p className="ink-muted text-[0.9375rem]">{ready ? "Study set ready" : s.status === "ready_text" ? "Saved" : justUploaded ? "Added and read." : "Source"}</p>
         {editing === null ? (
           <div className="mt-1 flex items-start gap-2">
             <h1 id="source-title" className="max-w-[30rem] break-words text-[1.75rem]">{s.filename}</h1>
@@ -108,10 +128,10 @@ export default function SourcePage() {
         {s.original_filename && s.original_filename !== s.filename && (
           <p className="ink-muted mt-1 max-w-[30rem] truncate text-[0.8125rem]" title={s.original_filename}>Original file: {s.original_filename}</p>
         )}
-        {ready && set.data ? (
+        {ready && set.data && headline(set.data) ? (
           <p className="big-num pop mt-4 text-[4.5rem]">
-            {set.data.cards.length}
-            <span className="ml-2 font-body text-[1.125rem] tracking-normal">flashcards</span>
+            {headline(set.data)![0]}
+            <span className="ml-2 font-body text-[1.125rem] tracking-normal">{headline(set.data)![1]}</span>
           </p>
         ) : (
           <p className="big-num mt-4 text-[4.5rem]">
@@ -125,8 +145,35 @@ export default function SourcePage() {
       </section>
 
       {s.status === "generating" && <Processing source={s} />}
-      {s.status === "failed" && <Failed source={s} onRetry={start} retrying={starting} />}
-      {s.status === "ready_text" && <NotStarted onStart={start} starting={starting} />}
+      {s.status === "failed" && <Failed source={s} onRetry={() => start()} retrying={starting} />}
+      {s.status === "ready_text" && caps.data && (
+        <div className="card mt-4 p-5">
+          <StudySetChooser
+            mode="upload"
+            chars={chars}
+            caps={caps.data}
+            initial={(subjects.data?.find((x) => x.id === s.subject_id)?.study_defaults as { parts?: Record<string, boolean> } | null)?.parts}
+            busy={starting}
+            onMake={(o) => start(o)}
+          />
+        </div>
+      )}
+      {ready && more && caps.data && set.data && (
+        <div className="card mt-4 p-5">
+          <StudySetChooser
+            mode="more"
+            chars={chars}
+            caps={caps.data}
+            existing={{ notes: set.data.notes.length > 0, cards: set.data.cards.length > 0, quiz: set.data.quizzes.length > 0, guide: set.data.guide.length > 0 }}
+            busy={starting}
+            onMake={(o) => start(o)}
+            onCancel={() => setMore(false)}
+          />
+        </div>
+      )}
+      {ready && !more && (
+        <Button variant="secondary" className="mt-4" onClick={() => setMore(true)}><Plus /> Make more from this file</Button>
+      )}
       {ready && <SetView source={s} pagesSlot={pagesList} />}
 
       <div className="mt-4 flex flex-wrap gap-2">
