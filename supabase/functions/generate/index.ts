@@ -12,6 +12,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
 import { llmJson, LLMError, setUsageLogger } from "../_lib/llm.ts";
+import { ownProvider } from "../_lib/byok.ts";
 import {
   CARDS_SCHEMA, cardsPrompt, chunkPages, GEN_VERSION, GUIDE_SCHEMA, guidePrompt, NOTES_SCHEMA, notesDigest, notesPrompt,
   QUIZ_SCHEMA, quizPrompt, tagged, validCards, validGuide, validNotes, validQuiz,
@@ -136,18 +137,17 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
   const word = source.kind === "pdf" ? "page" : "part";
   const valid = new Set(pages.map((p) => p.page_no));
   // Students on the Independent plan generate with their own key.
-  const { data: ownKey } = await admin.rpc("read_api_key", { p_user: userId });
-  const apiKey = typeof ownKey === "string" && ownKey ? ownKey : undefined;
+  const own = await ownProvider(admin, userId);
   // Half-price Flex processing first; any retry of this job uses standard processing.
   // STUDY_SET_FLEX=off turns it off (faster sets, full price).
   const flex = attempt === 0 && Deno.env.get("STUDY_SET_FLEX") !== "off";
-  const usage = (feature: string) => ({ feature, userId, byok: !!apiKey });
+  const usage = (feature: string) => ({ feature, userId, byok: !!own });
 
   try {
     if (task.kind === "notes") {
       const chunk = chunks[task.part];
       const out = await llmJson<NotesOut>({
-        schemaName: "notes", schema: NOTES_SCHEMA, apiKey, flex, usage: usage("study_notes"), maxTokens: 4096, effort: "normal",
+        schemaName: "notes", schema: NOTES_SCHEMA, own, flex, usage: usage("study_notes"), maxTokens: 4096, effort: "normal",
         messages: [{ role: "system", content: notesPrompt(word) }, { role: "user", content: tagged(chunk.pages, word) }],
       });
       const rows = validNotes(out, valid);
@@ -163,7 +163,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       const chars = chunk.pages.reduce((n, p) => n + p.text.length, 0);
       const target = Math.max(6, Math.min(20, Math.round(chars / 450)));
       const out = await llmJson<CardsOut>({
-        schemaName: "cards", schema: CARDS_SCHEMA, apiKey, flex, usage: usage("study_cards"), maxTokens: 4096, effort: "normal",
+        schemaName: "cards", schema: CARDS_SCHEMA, own, flex, usage: usage("study_cards"), maxTokens: 4096, effort: "normal",
         messages: [{ role: "system", content: cardsPrompt(word, target) }, { role: "user", content: tagged(chunk.pages, word) }],
       });
       const rows = validCards(out, valid);
@@ -180,7 +180,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       if (digest) {
         if (task.kind === "quiz") {
           const out = validQuiz(await llmJson<QuizOut>({
-            schemaName: "quiz", schema: QUIZ_SCHEMA, apiKey, flex, usage: usage("study_quiz"), maxTokens: 6000, effort: "deep", timeoutMs: 120_000,
+            schemaName: "quiz", schema: QUIZ_SCHEMA, own, flex, usage: usage("study_quiz"), maxTokens: 6000, effort: "deep", timeoutMs: 120_000,
             messages: [{ role: "system", content: quizPrompt(word) }, { role: "user", content: digest }],
           }), valid);
           if (out.questions.length < 3) throw new Error("too few valid quiz questions");
@@ -194,7 +194,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
           if (qErr) throw qErr;
         } else {
           const rows = validGuide(await llmJson<GuideOut>({
-            schemaName: "guide", schema: GUIDE_SCHEMA, apiKey, flex, usage: usage("study_guide"), maxTokens: 8000, effort: "deep", timeoutMs: 120_000,
+            schemaName: "guide", schema: GUIDE_SCHEMA, own, flex, usage: usage("study_guide"), maxTokens: 8000, effort: "deep", timeoutMs: 120_000,
             messages: [{ role: "system", content: guidePrompt(word) }, { role: "user", content: digest }],
           }), valid);
           await admin.from("guide_sections").delete().eq("source_id", sourceId);
@@ -227,7 +227,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
     }
     // Out of retries: stop here. "Try again" resumes from this job, keeping everything already made.
     await admin.from("sources")
-      .update({ status: "failed", error_code: status === 401 ? "key_invalid" : status === 429 ? "rate_limited" : "generation_failed", steps: { ...steps, failed: task.kind } })
+      .update({ status: "failed", error_code: status === 401 || status === 403 || (own && outOfCredit) ? "key_invalid" : status === 429 ? "rate_limited" : "generation_failed", steps: { ...steps, failed: task.kind } })
       .eq("id", sourceId);
   }
 }

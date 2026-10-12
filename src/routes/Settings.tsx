@@ -8,7 +8,7 @@ import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { describeGrade } from "@/lib/grade";
 import { TEXT_LABEL, THEME_LABEL, useTextSize, useTheme, type TextSize, type ThemeChoice } from "@/lib/preferences";
-import { deleteAccount, useApiKey, useRemoveKey, useSaveKey, useUpdateName } from "@/lib/queries/account";
+import { deleteAccount, hostOf, PROVIDER_PRESETS, useApiKey, useRemoveKey, useSaveKey, useUpdateName } from "@/lib/queries/account";
 import { useProfile } from "@/lib/queries/profile";
 import { supabase } from "@/lib/supabase";
 
@@ -80,47 +80,80 @@ function OwnKey() {
   const key = useApiKey();
   const save = useSaveKey();
   const remove = useRemoveKey();
+  const [preset, setPreset] = useState<string>(PROVIDER_PRESETS[0].name);
+  const [baseUrl, setBaseUrl] = useState<string>(PROVIDER_PRESETS[0].baseUrl);
+  const [model, setModel] = useState<string>(PROVIDER_PRESETS[0].model);
   const [value, setValue] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (key.data)
+  if (key.data) {
+    const host = hostOf(key.data.base_url);
     return (
       <>
         <p>
-          An OpenAI key ending in <b className="tabular">{key.data.last4}</b> is in use, added {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(key.data.created_at))}.
+          A key for <b>{host}</b> ending in <b className="tabular">{key.data.last4}</b> is in use with the model <b className="break-all">{key.data.model}</b>, added {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(key.data.created_at))}.
           Your tutor answers and study sets run on it, with no Stoga.study limits.
         </p>
-        <p className="field-hint">It is stored encrypted and never shown again. Charges come from OpenAI, so set a monthly budget limit there.</p>
+        <p className="field-hint">The key is stored encrypted and never shown again. Charges come from {host}, so set a monthly budget limit there. Answer quality depends on the model you chose.</p>
         <Button variant="secondary" className="self-start" disabled={remove.isPending} onClick={() => remove.mutate(undefined, { onSuccess: () => toast("Key removed. You are back on Essential."), onError: () => toast("We could not remove it. Try again.") })}>
           Remove key
         </Button>
       </>
     );
+  }
 
+  const other = preset === PROVIDER_PRESETS[PROVIDER_PRESETS.length - 1].name;
   return (
     <form
       className="flex flex-col gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         setError(null);
-        save.mutate(value, {
+        save.mutate({ key: value.trim(), baseUrl: baseUrl.trim(), model: model.trim() }, {
           onSuccess: () => { setValue(""); toast("Key checked and saved. You are on the Independent plan."); },
           onError: (err) => { setValue(""); setError(err.message); },
         });
       }}
     >
-      <p className="text-muted">On the Independent plan, the tutor and study sets use your own OpenAI key instead of shared limits. OpenAI bills the key holder, and most AI providers need an adult account holder, so a parent or guardian usually sets this up.</p>
+      <p className="text-muted">On the Independent plan, the tutor and study sets use your own API key instead of shared limits. Any OpenAI-compatible provider works. The provider bills the key holder, and most need an adult account holder, so a parent or guardian usually sets this up.</p>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="key" className="field-label">OpenAI API key</label>
+        <label htmlFor="provider" className="field-label">Provider</label>
+        <select
+          id="provider"
+          className="input"
+          value={preset}
+          onChange={(e) => {
+            const p = PROVIDER_PRESETS.find((x) => x.name === e.target.value)!;
+            setPreset(p.name);
+            setBaseUrl(p.baseUrl);
+            setModel(p.model);
+            setError(null);
+          }}
+        >
+          {PROVIDER_PRESETS.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
+        </select>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="base-url" className="field-label">API address</label>
+        <input id="base-url" className="input" type="url" inputMode="url" value={baseUrl} onChange={(e) => { setBaseUrl(e.target.value); if (!other) setPreset(PROVIDER_PRESETS[PROVIDER_PRESETS.length - 1].name); }} placeholder="https://api.example.com/v1" autoComplete="off" spellCheck={false} aria-describedby="url-hint" />
+        <p id="url-hint" className="field-hint">The provider's OpenAI-compatible base URL. It usually ends in /v1.</p>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="model" className="field-label">Model</label>
+        <input id="model" className="input" value={model} onChange={(e) => setModel(e.target.value)} placeholder="e.g. openai/gpt-oss-120b" autoComplete="off" spellCheck={false} aria-describedby="model-hint" />
+        <p id="model-hint" className="field-hint">The exact model name from your provider. Larger models give better answers.</p>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="key" className="field-label">API key</label>
         <div className="flex gap-2">
-          <input id="key" className="input flex-1" type={show ? "text" : "password"} value={value} onChange={(e) => setValue(e.target.value)} placeholder="sk-…" autoComplete="off" spellCheck={false} aria-invalid={!!error} aria-describedby="key-hint key-error" />
+          <input id="key" className="input flex-1" type={show ? "text" : "password"} value={value} onChange={(e) => setValue(e.target.value)} placeholder="Paste your key" autoComplete="off" spellCheck={false} aria-invalid={!!error} aria-describedby="key-hint key-error" />
           <Button variant="secondary" onClick={() => setShow((s) => !s)} aria-pressed={show}>{show ? "Hide" : "Show"}</Button>
         </div>
-        <p id="key-hint" className="field-hint">We check it with OpenAI, then store it encrypted. It is never shown again.</p>
+        <p id="key-hint" className="field-hint">We check it with a tiny test request (a fraction of a cent on your account), then store it encrypted. It is never shown again.</p>
       </div>
       {error && <p id="key-error" role="alert" className="callout">{error}</p>}
-      <Button type="submit" className="self-start" disabled={!value.trim() || save.isPending}>{save.isPending ? "Checking…" : "Check and save key"}</Button>
+      <Button type="submit" className="self-start" disabled={!value.trim() || !baseUrl.trim() || !model.trim() || save.isPending}>{save.isPending ? "Checking…" : "Check and save key"}</Button>
     </form>
   );
 }

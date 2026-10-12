@@ -7,7 +7,8 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { LLM_FAST_MODEL, LLM_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort } from "../_lib/llm.ts";
+import { LLM_FAST_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort, type OwnProvider } from "../_lib/llm.ts";
+import { ownProvider } from "../_lib/byok.ts";
 import { cleanText } from "../_lib/study.ts";
 import { checkCitations, CRISIS_LINE, guessMode, obviousMode, ROUTER_SCHEMA, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
@@ -32,19 +33,14 @@ async function noteTopics(db: SupabaseClient, subjectId: string) {
   return [...new Set((data ?? []).map((n) => String(n.title).trim()))].slice(0, 25);
 }
 
-/** The student's own key, if they added one. */
-async function ownKey(userId: string) {
-  const { data } = await admin.rpc("read_api_key", { p_user: userId });
-  return typeof data === "string" && data ? data : undefined;
-}
 
 /** Pick the reply mode with the fast model; fall back to rules if it fails or is slow. */
-async function route(history: Turn[], message: string, apiKey: string | undefined, userId: string): Promise<Mode> {
+async function route(history: Turn[], message: string, own: OwnProvider | undefined, userId: string): Promise<Mode> {
   const lastMode = [...history].reverse().find((t) => t.role === "assistant")?.mode;
   const obvious = obviousMode(message, lastMode);
   if (obvious) return obvious;
   try {
-    const out = await llmJson<{ mode: Mode }>({ model: LLM_FAST_MODEL, schemaName: "route", schema: ROUTER_SCHEMA, messages: routerMessages(history, message), effort: "light", maxTokens: 50, timeoutMs: 8000, apiKey, noRetry: true, usage: { feature: "tutor_route", userId, byok: !!apiKey } });
+    const out = await llmJson<{ mode: Mode }>({ model: LLM_FAST_MODEL, schemaName: "route", schema: ROUTER_SCHEMA, messages: routerMessages(history, message), effort: "light", maxTokens: 50, timeoutMs: 8000, own, noRetry: true, usage: { feature: "tutor_route", userId, byok: !!own } });
     if (["chat", "explain", "hint", "check"].includes(out.mode)) return out.mode;
   } catch (e) {
     console.error("tutor route", e instanceof Error ? e.message.slice(0, 200) : e);
@@ -61,7 +57,7 @@ async function makeCard(req: Request, student: { db: SupabaseClient; userId: str
   ]);
   const out = await llmJson<{ front: string; back: string }>({
     effort: "light",
-    ...(await ownKey(student.userId).then((apiKey) => ({ apiKey, usage: { feature: "tutor_card", userId: student.userId, byok: !!apiKey } }))),
+    ...(await ownProvider(admin, student.userId).then((own) => ({ own, usage: { feature: "tutor_card", userId: student.userId, byok: !!own } }))),
     schemaName: "card",
     schema: { type: "object", additionalProperties: false, required: ["front", "back"], properties: { front: { type: "string" }, back: { type: "string" } } },
     messages: [
@@ -104,8 +100,8 @@ Deno.serve(async (req) => {
   if (!subject) return json(req, { error: "not_found" }, 404);
 
   // Allowance: one message per answer. Students with their own key are not limited.
-  const apiKey = await ownKey(student.userId);
-  const { data: allowed, error: allowErr } = await admin.rpc("consume_allowance", { p_user: student.userId, p_kind: "tutor_message", p_byok: !!apiKey });
+  const own = await ownProvider(admin, student.userId);
+  const { data: allowed, error: allowErr } = await admin.rpc("consume_allowance", { p_user: student.userId, p_kind: "tutor_message", p_byok: !!own });
   if (allowErr) return json(req, { error: "unavailable" }, 503);
   if (!allowed) {
     const { data: status } = await student.db.rpc("allowance_status");
@@ -135,7 +131,7 @@ Deno.serve(async (req) => {
     const [hits, topics, routed] = await Promise.all([
       retrieve(student.db, subject.id, searchTerms(question, previous)),
       noteTopics(student.db, subject.id),
-      body.followup ? Promise.resolve<Mode>("hint") : route(history, question, apiKey, student.userId),
+      body.followup ? Promise.resolve<Mode>("hint") : route(history, question, own, student.userId),
     ]);
     // A student who may be in crisis gets a caring reply, not schoolwork.
     const mode: Mode = feeling === "crisis" ? "chat" : routed;
@@ -165,13 +161,14 @@ Deno.serve(async (req) => {
     // Small talk is quick; a full worked explanation gets more thinking.
     const effort: Effort = feeling === "crisis" ? "normal" : mode === "chat" ? "light" : mode === "hint" && level === 3 ? "deep" : "normal";
     let res: Response;
+    let model: string;
     try {
-      res = await llmStream({ messages: messages as { role: "system" | "user" | "assistant"; content: string }[], effort, maxTokens: mode === "chat" ? 300 : 1200, apiKey });
+      ({ res, model } = await llmStream({ messages: messages as { role: "system" | "user" | "assistant"; content: string }[], effort, maxTokens: mode === "chat" ? 300 : 1200, own }));
     } catch (e) {
       await refund();
       const err = e instanceof LLMError ? e : null;
       console.error("tutor llm", err?.status, err?.message.slice(0, 200));
-      const code = err?.kind === "auth" ? (apiKey ? "key_invalid" : "unavailable") : err?.kind === "rate_limit" ? "busy" : "unavailable";
+      const code = err?.kind === "auth" || (own && err?.kind === "quota") ? (own ? "key_invalid" : "unavailable") : err?.kind === "rate_limit" ? "busy" : "unavailable";
       return json(req, { error: code, retry_after: err?.retryAfter }, code === "busy" ? 503 : 502);
     }
     // Saved only once the answer is on its way, so a retry after "busy" does not repeat the question.
@@ -186,7 +183,7 @@ Deno.serve(async (req) => {
     const publicSources = sources.map(({ key, source_id, filename, kind, pages }) => ({ key, source_id, filename, kind, pages }));
     const stream = new ReadableStream({
       async start(controller) {
-        send(controller, "meta", { thread_id: threadId, sources: publicSources, uncovered: sources.length === 0, model: LLM_MODEL });
+        send(controller, "meta", { thread_id: threadId, sources: publicSources, uncovered: sources.length === 0, model });
         send(controller, "mode", { mode });
         let full = "";
         // deno-lint-ignore no-explicit-any
@@ -213,7 +210,7 @@ Deno.serve(async (req) => {
               send(controller, "delta", { text: delta });
             }
           }
-          await recordUsage({ feature: "tutor", userId: student.userId, byok: !!apiKey }, LLM_MODEL, usage);
+          await recordUsage({ feature: "tutor", userId: student.userId, byok: !!own }, model, usage);
           const checked = checkCitations(full, sources);
           // The crisis line is never left to chance.
           const cleaned = feeling === "crisis" && !/\b988\b/.test(checked.cleaned) ? `${checked.cleaned}\n\n${CRISIS_LINE}` : checked.cleaned;

@@ -36,6 +36,10 @@ The AI key is never shipped to the browser. It is stored as a Supabase Edge Func
 npx supabase@2.120.0 secrets set OPENAI_API_KEY=sk-...
 ```
 
+### Students' own keys (Independent plan)
+
+A student can save a key for **any OpenAI-compatible API**: an address (base URL), a model name and the key. `account` checks it before saving (the address must be public https, the key must work, the model must exist, and one tiny test answer must succeed), then stores the key in Vault with the address and model (`store_byok`, `read_byok`). All their tutor answers and study sets then go to that provider. `_lib/llm.ts` sends simpler requests to providers that reject optional settings (strict JSON schema, `max_completion_tokens`, `reasoning_effort` and so on). Answer quality depends on the model the student picks.
+
 ### Switching models
 
 Every AI call goes through `supabase/functions/_lib/llm.ts`, which works with any OpenAI-compatible provider. Change three optional secrets, then redeploy the functions:

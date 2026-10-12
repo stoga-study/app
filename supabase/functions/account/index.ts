@@ -1,10 +1,11 @@
 // Account actions that need the server's own key.
-// POST { action: "save_key", key }   check an OpenAI key with OpenAI, then store it encrypted in Vault
+// POST { action: "save_key", key, base_url?, model? }   check a key for any OpenAI-compatible API, then store it
+//      encrypted in Vault (base_url defaults to OpenAI; model is required for other providers)
 // POST { action: "delete_account", confirm: "delete" }   remove every file, then the account (cascades all data)
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { checkKey } from "../_lib/llm.ts";
+import { checkProvider, LLM_MODEL, safeBaseUrl } from "../_lib/llm.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
@@ -25,12 +26,17 @@ Deno.serve(async (req) => {
 
   if (body.action === "save_key") {
     const key = typeof body.key === "string" ? body.key.trim() : "";
-    if (!/^sk-[A-Za-z0-9_-]{20,}$/.test(key)) return json(req, { error: "format" }, 400);
-    const check = await checkKey(key);
-    if (check !== "ok") return json(req, { error: check }, check === "invalid" ? 400 : 503);
-    const { error } = await admin.rpc("store_api_key", { p_user: student.userId, p_provider: "openai", p_key: key });
+    if (key.length < 16 || key.length > 400 || /\s/.test(key)) return json(req, { error: "format" }, 400);
+    const baseUrl = safeBaseUrl(typeof body.base_url === "string" && body.base_url.trim() ? body.base_url : "https://api.openai.com/v1");
+    if (!baseUrl) return json(req, { error: "bad_url" }, 400);
+    const openai = baseUrl.startsWith("https://api.openai.com/");
+    const model = typeof body.model === "string" && body.model.trim() ? body.model.trim().slice(0, 120) : openai ? LLM_MODEL : "";
+    if (!model) return json(req, { error: "model_required" }, 400);
+    const check = await checkProvider({ apiKey: key, baseUrl, model });
+    if (check.result !== "ok") return json(req, { error: check.result, suggestions: check.suggestions }, check.result === "unreachable" ? 503 : 400);
+    const { error } = await admin.rpc("store_byok", { p_user: student.userId, p_key: key, p_base_url: baseUrl, p_model: model });
     if (error) return json(req, { error: "save_failed" }, 500);
-    return json(req, { last4: key.slice(-4) });
+    return json(req, { last4: key.slice(-4), base_url: baseUrl, model });
   }
 
   if (body.action === "delete_account") {

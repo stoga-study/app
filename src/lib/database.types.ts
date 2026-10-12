@@ -39,24 +39,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_usage: {
+        Row: {
+          byok: boolean
+          cached_tokens: number
+          created_at: string
+          feature: string
+          flex: boolean
+          id: number
+          input_tokens: number
+          model: string
+          output_tokens: number
+          reasoning_tokens: number
+          user_id: string | null
+        }
+        Insert: {
+          byok?: boolean
+          cached_tokens?: number
+          created_at?: string
+          feature: string
+          flex?: boolean
+          id?: never
+          input_tokens?: number
+          model: string
+          output_tokens?: number
+          reasoning_tokens?: number
+          user_id?: string | null
+        }
+        Update: {
+          byok?: boolean
+          cached_tokens?: number
+          created_at?: string
+          feature?: string
+          flex?: boolean
+          id?: never
+          input_tokens?: number
+          model?: string
+          output_tokens?: number
+          reasoning_tokens?: number
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       api_keys: {
         Row: {
+          base_url: string
           created_at: string
           last4: string
+          model: string
           provider: string
           user_id: string
           vault_secret_id: string
         }
         Insert: {
+          base_url: string
           created_at?: string
           last4: string
+          model: string
           provider?: string
           user_id: string
           vault_secret_id: string
         }
         Update: {
+          base_url?: string
           created_at?: string
           last4?: string
+          model?: string
           provider?: string
           user_id?: string
           vault_secret_id?: string
@@ -421,6 +469,33 @@ export type Database = {
             referencedColumns: ["id", "user_id"]
           },
         ]
+      }
+      model_prices: {
+        Row: {
+          cached_per_m: number
+          input_per_m: number
+          model: string
+          note: string | null
+          output_per_m: number
+          updated_at: string
+        }
+        Insert: {
+          cached_per_m: number
+          input_per_m: number
+          model: string
+          note?: string | null
+          output_per_m: number
+          updated_at?: string
+        }
+        Update: {
+          cached_per_m?: number
+          input_per_m?: number
+          model?: string
+          note?: string | null
+          output_per_m?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       notes_sections: {
         Row: {
@@ -887,7 +962,39 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      ai_usage_costed: {
+        Row: {
+          byok: boolean | null
+          cached_tokens: number | null
+          cost_usd: number | null
+          created_at: string | null
+          feature: string | null
+          flex: boolean | null
+          id: number | null
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          priced: boolean | null
+          reasoning_tokens: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      ai_usage_daily: {
+        Row: {
+          byok: boolean | null
+          cached_tokens: number | null
+          calls: number | null
+          cost_usd: number | null
+          day: string | null
+          feature: string | null
+          input_tokens: number | null
+          model: string | null
+          output_tokens: number | null
+          reasoning_tokens: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       allowance_status: {
@@ -919,7 +1026,14 @@ export type Database = {
       }
       period_end: { Args: { p_period: string }; Returns: string }
       period_start: { Args: { p_period: string }; Returns: string }
-      read_api_key: { Args: { p_user: string }; Returns: string }
+      read_byok: {
+        Args: { p_user: string }
+        Returns: {
+          api_key: string
+          base_url: string
+          model: string
+        }[]
+      }
       refund_allowance: {
         Args: {
           p_kind: Database["public"]["Enums"]["usage_kind"]
@@ -938,8 +1052,13 @@ export type Database = {
           text: string
         }[]
       }
-      store_api_key: {
-        Args: { p_key: string; p_provider: string; p_user: string }
+      store_byok: {
+        Args: {
+          p_base_url: string
+          p_key: string
+          p_model: string
+          p_user: string
+        }
         Returns: undefined
       }
     }
