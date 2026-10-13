@@ -72,7 +72,7 @@ export default function Subject() {
         );
       })()}
       {!!units.data?.length && <NowStudying subjectId={subject.id} units={units.data} currentId={subject.current_unit_id} pinned={subject.current_unit_pinned} />}
-      <h2 className="mb-3 text-[1.375rem]">Sources</h2>
+      <h2 className="mb-3 text-[1.375rem]">Files and notes</h2>
       {sources.isPending ? (
         <div className="skeleton h-24 rounded-[1.5rem]" />
       ) : mine.length === 0 && !myNotes.length ? (
