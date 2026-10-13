@@ -596,6 +596,7 @@ export type Database = {
           last_seen_version: string | null
           onboarded: boolean
           plan: Database["public"]["Enums"]["plan"]
+          review_retention: number
           school: string | null
           updated_at: string
           user_id: string
@@ -608,6 +609,7 @@ export type Database = {
           last_seen_version?: string | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
+          review_retention?: number
           school?: string | null
           updated_at?: string
           user_id: string
@@ -620,6 +622,7 @@ export type Database = {
           last_seen_version?: string | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
+          review_retention?: number
           school?: string | null
           updated_at?: string
           user_id?: string
