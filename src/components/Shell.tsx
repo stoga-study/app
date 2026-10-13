@@ -4,6 +4,7 @@ import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
 import { Brand } from "./Brand";
 import { OfflineBanner } from "./OfflineBanner";
+import { useNoteSync } from "@/lib/queries/notes";
 
 type Item = { to: string; label: string; icon: ReactNode; end?: boolean };
 
@@ -43,6 +44,7 @@ function SideLink({ item }: { item: Item }) {
 }
 
 export function Shell({ aside }: { aside?: ReactNode }) {
+  useNoteSync();
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr]">
       <a href="#main" className="sr-only-focusable btn btn-primary fixed left-4 top-4 z-50">Skip to content</a>
