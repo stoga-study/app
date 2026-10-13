@@ -86,7 +86,7 @@ function NowStudying({ subjectId, units, currentId, pinned }: { subjectId: strin
   return (
     <section className="card mb-8 flex flex-col gap-3 p-5" aria-labelledby="now-title">
       <div className="flex flex-wrap items-center gap-3">
-        <span className="min-w-0 flex-1">
+        <span className="w-full min-w-0 sm:w-auto sm:flex-1">
           <span id="now-title" className="block text-[0.8125rem] font-bold text-muted">Now studying</span>
           <span className="block font-display text-[1.25rem] font-bold">{current ? unitName(current) : "No unit yet"}</span>
           <span className="block text-[0.875rem] text-muted">{pinned ? "Pinned by you." : "Follows your newest upload."}</span>
