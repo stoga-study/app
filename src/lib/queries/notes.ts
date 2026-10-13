@@ -110,6 +110,9 @@ export function useNote(id: string | undefined) {
     enabled: !!id,
     // Always check for a newer copy (another device); the editor waits for that check before it starts.
     staleTime: 0,
+    // Offline, still read the device's draft instead of waiting for a connection.
+    networkMode: "always",
+    retry: 0,
     queryFn: async (): Promise<NoteDraft | null> => {
       const draft = await readDraft(id!);
       const { data, error } = await supabase

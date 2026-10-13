@@ -12,6 +12,7 @@ import Quiz from "./routes/Quiz";
 import Review from "./routes/Review";
 import ReviewSession from "./routes/ReviewSession";
 import Home from "./routes/Home";
+import NotePage from "./routes/Note";
 import NotFound from "./routes/NotFound";
 import Onboarding from "./routes/Onboarding";
 import Settings from "./routes/Settings";
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
           { path: "subjects", element: <Subjects /> },
           { path: "subjects/:id", element: <Subject /> },
           { path: "sources/:id", element: <SourcePage /> },
+          { path: "notes/:id", element: <NotePage /> },
           { path: "classes", element: <Classes /> },
           { path: "upload", element: <Upload /> },
           { path: "tutor", element: <TutorHome /> },
