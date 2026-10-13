@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyFactCheck, factCheckBlocks, type FactCheckOut } from "../../supabase/functions/_lib/study";
+import { applyFactCheck, factCheckBlocks, validSummary, validTerms, type FactCheckOut } from "../../supabase/functions/_lib/study";
 
 describe("fact-check", () => {
   it("builds one block per item, with only the pages it cites", () => {
@@ -29,5 +29,23 @@ describe("fact-check", () => {
   it("only drops an item the model explicitly marked unsupported", () => {
     const items = [{ front: "a" }];
     expect(applyFactCheck(items, { results: [{ index: 0, supported: false, quote: "" }] })).toEqual([]);
+  });
+});
+
+describe("summary and key terms", () => {
+  it("cleans the summary body and drops an empty one", () => {
+    expect(validSummary({ body: " The French Revolution began in 1789.  " })).toBe("The French Revolution began in 1789.");
+    expect(validSummary({ body: "" })).toBe("");
+  });
+  it("validates terms, drops duplicates and keeps only real pages", () => {
+    const valid = new Set([1, 2]);
+    const out = {
+      terms: [
+        { term: "Estates-General", definition: "The French legislative assembly.", pages: [1, 9] },
+        { term: "estates-general", definition: "A duplicate, different case.", pages: [2] },
+        { term: "", definition: "No term given.", pages: [1] },
+      ],
+    };
+    expect(validTerms(out, valid)).toEqual([{ term: "Estates-General", definition: "The French legislative assembly.", pages: [1] }]);
   });
 });

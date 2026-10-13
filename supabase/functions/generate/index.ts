@@ -21,8 +21,9 @@ import { ownProvider } from "../_lib/byok.ts";
 import { checkOptions, optionsKey, planTasks, splitAcross, suggestAmounts, type GenOptions, type Part, type Task } from "../_lib/options.ts";
 import {
   applyFactCheck, CARDS_SCHEMA, cardsPrompt, chunkPages, FACTCHECK_SCHEMA, factCheckBlocks, factCheckPrompt, GEN_VERSION, GUIDE_SCHEMA, guidePrompt,
-  NOTES_SCHEMA, notesDigest, notesPrompt, QUIZ_SCHEMA, quizPrompt, tagged, validCards, validGuide, validNotes, validQuiz,
-  type CardsOut, type FactCheckOut, type GuideOut, type NotesOut, type Page, type QuizOut,
+  NOTES_SCHEMA, notesDigest, notesPrompt, QUIZ_SCHEMA, quizPrompt, SUMMARY_SCHEMA, summaryPrompt, tagged, TERMS_SCHEMA, termsPrompt,
+  validCards, validGuide, validNotes, validQuiz, validSummary, validTerms,
+  type CardsOut, type FactCheckOut, type GuideOut, type NotesOut, type Page, type QuizOut, type SummaryOut, type TermsOut,
 } from "../_lib/study.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
@@ -45,6 +46,8 @@ type SharedPayload = {
   guide: { position: number; title: string; body_md: string; minutes: number | null; pages: number[] }[];
   cards: { gen_part: number | null; front: string; back: string; pages: number[]; quote: string | null }[];
   quiz: { title: string; questions: { position: number; topic: string | null; prompt: string; options: string[]; answer_index: number; hint: string | null; explanation: string; pages: number[]; quote: string | null }[] } | null;
+  summary: string | null;
+  terms: { position: number; term: string; definition: string; pages: number[] }[];
 };
 
 /** Snapshot a finished study set for students who upload the same file and ask for the same thing. Never throws. */
@@ -52,19 +55,24 @@ async function saveShared(sourceId: string, userId: string, key: string) {
   try {
     const { data: source } = await admin.from("sources").select("content_hash, kind, page_count").eq("id", sourceId).eq("user_id", userId).maybeSingle();
     if (!source?.content_hash) return;
-    const [notes, guide, cards, quizzes] = await Promise.all([
+    const [notes, guide, cards, quizzes, summary, terms] = await Promise.all([
       admin.from("notes_sections").select("position, gen_part, title, body_md, pages").eq("source_id", sourceId).eq("hidden", false).order("position"),
       admin.from("guide_sections").select("position, title, body_md, minutes, pages").eq("source_id", sourceId).eq("hidden", false).order("position"),
       // Only untouched, unreported cards: a student's own edits stay private, and a flagged card never spreads.
       admin.from("cards").select("gen_part, front, back, pages, quote").eq("source_id", sourceId).eq("edited", false).eq("hidden", false),
       admin.from("quizzes").select("id, title").eq("source_id", sourceId).limit(1),
+      admin.from("summaries").select("body_md").eq("source_id", sourceId).eq("hidden", false).maybeSingle(),
+      admin.from("key_terms").select("position, term, definition, pages").eq("source_id", sourceId).eq("hidden", false).order("position"),
     ]);
     const quiz = quizzes.data?.[0];
     const questions = quiz
       ? (await admin.from("quiz_questions").select("position, topic, prompt, options, answer_index, hint, explanation, pages, quote").eq("quiz_id", quiz.id).eq("hidden", false).order("position")).data ?? []
       : [];
-    if (!notes.data?.length && !cards.data?.length && !questions.length && !guide.data?.length) return;
-    const payload: SharedPayload = { notes: notes.data ?? [], guide: guide.data ?? [], cards: cards.data ?? [], quiz: quiz ? { title: quiz.title, questions } : null };
+    if (!notes.data?.length && !cards.data?.length && !questions.length && !guide.data?.length && !summary.data && !terms.data?.length) return;
+    const payload: SharedPayload = {
+      notes: notes.data ?? [], guide: guide.data ?? [], cards: cards.data ?? [], quiz: quiz ? { title: quiz.title, questions } : null,
+      summary: summary.data?.body_md ?? null, terms: terms.data ?? [],
+    };
     await admin.from("shared_sets").upsert(
       { content_hash: source.content_hash, gen_version: GEN_VERSION, options_key: key, kind: source.kind, page_count: source.page_count, payload },
       { onConflict: "content_hash,gen_version,options_key", ignoreDuplicates: true },
@@ -87,6 +95,11 @@ async function copyShared(source: { id: string; subject_id: string }, userId: st
     await ins("notes_sections", payload.notes.map((n) => ({ ...n, ...own })));
     await ins("guide_sections", payload.guide.map((g) => ({ ...g, ...own })));
     await ins("cards", payload.cards.map((c) => ({ ...c, ...own, subject_id: source.subject_id })));
+    await ins("key_terms", payload.terms.map((t) => ({ ...t, ...own })));
+    if (payload.summary) {
+      const { error } = await admin.from("summaries").insert({ ...own, body_md: payload.summary });
+      if (error) throw error;
+    }
     if (payload.quiz) {
       const { data: quiz, error } = await admin.from("quizzes").insert({ ...own, subject_id: source.subject_id, title: payload.quiz.title, gen_run: 1 }).select("id").single();
       if (error) throw error;
@@ -95,7 +108,7 @@ async function copyShared(source: { id: string; subject_id: string }, userId: st
     return true;
   } catch (e) {
     console.error("copyShared", sourceId, e instanceof Error ? e.message : e);
-    await Promise.all(["notes_sections", "guide_sections", "cards", "quizzes"].map((t) => admin.from(t).delete().eq("source_id", sourceId)));
+    await Promise.all(["notes_sections", "guide_sections", "cards", "quizzes", "summaries", "key_terms"].map((t) => admin.from(t).delete().eq("source_id", sourceId)));
     return false;
   }
 }
@@ -106,12 +119,18 @@ function freshSteps(chunks: number, parts: Record<Part, boolean>, run: number, f
   if (parts.cards) steps.cards = { done: 0, total: chunks };
   if (parts.quiz) steps.quiz = { done: 0, total: 1 };
   if (parts.guide) steps.guide = { done: 0, total: 1 };
+  if (parts.summary) steps.summary = { done: 0, total: 1 };
+  if (parts.terms) steps.terms = { done: 0, total: 1 };
   return steps;
 }
 
-/** Sources made before choices existed: everything, in the amounts the old version used. */
+/** Sources made before choices existed: everything, in the amounts the old version used. Summary and
+ * key terms did not exist yet, so they are never backfilled here. */
 function legacyOptions(chars: number): GenOptions {
-  return { parts: { notes: true, cards: true, quiz: true, guide: true }, amounts: { ...suggestAmounts(chars, { cards: 150, quiz: 10, guide: 8 }), quiz: 10 } };
+  return {
+    parts: { notes: true, cards: true, quiz: true, guide: true, summary: false, terms: false },
+    amounts: { ...suggestAmounts(chars, { cards: 150, quiz: 10, guide: 8, terms: 40 }), quiz: 10 },
+  };
 }
 
 async function loadPages(sourceId: string): Promise<Page[]> {
@@ -262,16 +281,35 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       if (error) throw error;
       const { error: qErr } = await admin.from("quiz_questions").insert(checkedQuestions.map(({ item: q, quote }, i) => ({ ...q, quote, user_id: userId, quiz_id: quiz.id, position: i })));
       if (qErr) throw qErr;
-    } else {
+    } else if (task.kind === "guide") {
       const count = options.amounts.guide;
       const { text, fromNotes } = await material();
       const rows = validGuide(await llmJson<GuideOut>({
         schemaName: "guide", schema: GUIDE_SCHEMA, own, flex, usage: usage("study_guide"), maxTokens: Math.min(24_000, 1200 * count + 1000), effort: "deep", timeoutMs: 140_000,
-        messages: [{ role: "system", content: guidePrompt(word, count, fromNotes) }, { role: "user", content: text }],
+        messages: [{ role: "system", content: guidePrompt(word, count, fromNotes, options.focus) }, { role: "user", content: text }],
       }), valid).slice(0, count);
       await admin.from("guide_sections").delete().eq("source_id", sourceId);
       if (rows.length) {
         const { error } = await admin.from("guide_sections").insert(rows.map((r, i) => ({ ...r, user_id: userId, source_id: sourceId, position: i })));
+        if (error) throw error;
+      }
+    } else if (task.kind === "summary") {
+      const { text, fromNotes } = await material();
+      const body = validSummary(await llmJson<SummaryOut>({
+        schemaName: "summary", schema: SUMMARY_SCHEMA, own, flex, usage: usage("study_summary"), maxTokens: 600, effort: "normal",
+        messages: [{ role: "system", content: summaryPrompt(word, fromNotes) }, { role: "user", content: text }],
+      }));
+      if (body) await admin.from("summaries").upsert({ source_id: sourceId, user_id: userId, body_md: body }, { onConflict: "source_id" });
+    } else {
+      const count = options.amounts.terms;
+      const { text, fromNotes } = await material();
+      const rows = validTerms(await llmJson<TermsOut>({
+        schemaName: "terms", schema: TERMS_SCHEMA, own, flex, usage: usage("study_terms"), maxTokens: Math.min(10_000, 120 * count + 500), effort: "normal",
+        messages: [{ role: "system", content: termsPrompt(word, count) }, { role: "user", content: text }],
+      }), valid).slice(0, count);
+      await admin.from("key_terms").delete().eq("source_id", sourceId);
+      if (rows.length) {
+        const { error } = await admin.from("key_terms").insert(rows.map((r, i) => ({ ...r, user_id: userId, source_id: sourceId, position: i })));
         if (error) throw error;
       }
     }
@@ -339,7 +377,7 @@ Deno.serve(async (req) => {
   // Check the choices against the student's plan.
   const own = await ownProvider(admin, student.userId);
   const { data: profile } = await admin.from("profiles").select("plan").eq("user_id", student.userId).single();
-  const { data: caps } = await admin.from("generation_caps").select("cards, quiz, guide").eq("plan", own ? "independent" : profile?.plan ?? "essential").single();
+  const { data: caps } = await admin.from("generation_caps").select("cards, quiz, guide, terms").eq("plan", own ? "independent" : profile?.plan ?? "essential").single();
   if (!caps) return json(req, { error: "unavailable" }, 503);
   const pages = await loadPages(source.id);
   // Older app versions (still cached on some phones) send no choices: make everything, sized to the file.

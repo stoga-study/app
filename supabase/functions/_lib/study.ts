@@ -155,11 +155,50 @@ export const GUIDE_SCHEMA = {
   },
 };
 export type GuideOut = { sections: { title: string; body: string; minutes: number; pages: number[] }[] };
-export const guidePrompt = (word: string, count: number, fromNotes: boolean) => `${VOICE}
+export const guidePrompt = (word: string, count: number, fromNotes: boolean, focus?: string) => `${VOICE}
 Write a study guide from the ${fromNotes ? `notes below (each note lists its ${word}s)` : `${word}s below`}: exactly ${count} sections that teach the material in a sensible order.
 - Each section explains one idea in plain language in 2 to 4 short paragraphs, with a worked example when the material has one.
 - Use **bold** for key terms. Paragraphs are separated by a blank line; you may use "- " bullets.
-- minutes: honest reading time for the section, 2 to 8.`;
+- minutes: honest reading time for the section, 2 to 8.${focus ? `\n- Focus: the student asked for this guide shaped around "${focus}". Choose and order sections to serve that, and say in one line at the very start of the first section's body how this guide is focused around it. Stay grounded in the material; do not invent anything it does not cover.` : ""}`;
+
+// ---------- Summary ----------
+export const SUMMARY_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["body"],
+  properties: { body: { type: "string" } },
+};
+export type SummaryOut = { body: string };
+export const summaryPrompt = (word: string, fromNotes: boolean) => `${VOICE}
+Write a short summary of the ${fromNotes ? `notes below (each note lists its ${word}s)` : `${word}s below`}: 120 to 220 words, 2 to 4 short paragraphs, giving the shape of the whole thing (what it covers and how the parts relate), not a list of facts. Use **bold** for the 3 to 6 terms that matter most.`;
+
+// ---------- Key terms ----------
+export const TERMS_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["terms"],
+  properties: {
+    terms: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["term", "definition", "pages"],
+        properties: {
+          term: { type: "string" },
+          definition: { type: "string" },
+          pages: { type: "array", items: { type: "integer" } },
+        },
+      },
+    },
+  },
+};
+export type TermsOut = { terms: { term: string; definition: string; pages: number[] }[] };
+export const termsPrompt = (word: string, target: number) => `${VOICE}
+Write a glossary of ${target} key terms for the ${word}s below. The student chose this number, so write exactly ${target} unless the ${word}s truly do not name that many distinct terms worth knowing.
+- term: the word or short phrase exactly as it would appear on a test, not a question.
+- definition: one clear sentence, in your own words, specific enough to tell it apart from a similar term.
+- No duplicate or near-duplicate terms.`;
 
 // ---------- Validation ----------
 const MAXLEN = { title: 120, bullet: 400, front: 300, back: 600, prompt: 600, option: 200, hint: 300, explanation: 600, topic: 40, body: 4000 };
@@ -281,6 +320,22 @@ export function validGuide(out: GuideOut, valid: Set<number>) {
       pages: realPages(s.pages, valid),
     }))
     .filter((s) => s.title && s.body_md);
+}
+
+export function validSummary(out: SummaryOut): string {
+  return typeof out.body === "string" ? plainMath(out.body.replace(/\u0000/g, "")).trim().slice(0, MAXLEN.body) : "";
+}
+
+export function validTerms(out: TermsOut, valid: Set<number>) {
+  const seen = new Set<string>();
+  return (out.terms ?? [])
+    .map((t) => ({ term: cleanText(t.term, MAXLEN.title), definition: cleanText(t.definition, MAXLEN.explanation), pages: realPages(t.pages, valid) }))
+    .filter((t) => {
+      const key = t.term.toLowerCase();
+      if (!t.term || !t.definition || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 }
 
 // ---------- Fact-check ----------

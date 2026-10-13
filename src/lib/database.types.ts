@@ -484,18 +484,21 @@ export type Database = {
           guide: number
           plan: Database["public"]["Enums"]["plan"]
           quiz: number
+          terms: number
         }
         Insert: {
           cards: number
           guide: number
           plan: Database["public"]["Enums"]["plan"]
           quiz: number
+          terms: number
         }
         Update: {
           cards?: number
           guide?: number
           plan?: Database["public"]["Enums"]["plan"]
           quiz?: number
+          terms?: number
         }
         Relationships: []
       }
@@ -543,6 +546,47 @@ export type Database = {
           },
           {
             foreignKeyName: "guide_sections_source_owner"
+            columns: ["source_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      key_terms: {
+        Row: {
+          definition: string
+          hidden: boolean
+          id: string
+          pages: number[]
+          position: number
+          source_id: string
+          term: string
+          user_id: string
+        }
+        Insert: {
+          definition: string
+          hidden?: boolean
+          id?: string
+          pages?: number[]
+          position: number
+          source_id: string
+          term: string
+          user_id?: string
+        }
+        Update: {
+          definition?: string
+          hidden?: boolean
+          id?: string
+          pages?: number[]
+          position?: number
+          source_id?: string
+          term?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "key_terms_source_id_user_id_fkey"
             columns: ["source_id", "user_id"]
             isOneToOne: false
             referencedRelation: "sources"
@@ -1185,6 +1229,41 @@ export type Database = {
             columns: ["current_unit_id", "user_id"]
             isOneToOne: false
             referencedRelation: "units"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      summaries: {
+        Row: {
+          body_md: string
+          created_at: string
+          hidden: boolean
+          id: string
+          source_id: string
+          user_id: string
+        }
+        Insert: {
+          body_md: string
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          source_id: string
+          user_id?: string
+        }
+        Update: {
+          body_md?: string
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          source_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "summaries_source_id_user_id_fkey"
+            columns: ["source_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
             referencedColumns: ["id", "user_id"]
           },
         ]
