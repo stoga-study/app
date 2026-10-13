@@ -113,7 +113,7 @@ export default function ReviewSession() {
   }, [queue, qc]);
 
   // Wait for the fresh list when online, so cards do not change under the student a moment later.
-  if (due.isPending || queue === null || (!ownQueue && !due.isFetchedAfterMount && due.isFetching)) return <PageSkeleton label="Getting your cards ready." />;
+  if (due.isPending || queue === null || (!ownQueue && !due.isFetchedAfterMount && due.isFetching) || (unitId && units.isPending)) return <PageSkeleton label="Getting your cards ready." />;
   if (due.isError) return <ErrorState title="We could not load your cards" onRetry={() => due.refetch()}>Check your connection, then try again.</ErrorState>;
 
   const scopeName = weakMode ? "Weak cards" : unitId ? unitName(units.data?.find((u) => u.id === unitId) ?? { number: null, title: "This unit" }) : subjectId ? subjectName(subjectId) : "";
