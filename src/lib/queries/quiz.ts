@@ -119,7 +119,7 @@ export function useUnfinishedQuiz() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("quiz_attempts")
-        .select("id, quiz_id, total, answers, finished_at, created_at, quizzes(title)")
+        .select("id, quiz_id, total, answers, finished_at, created_at, quizzes!quiz_attempts_quiz_id_fkey(title)")
         .neq("answers", "[]")
         .gte("created_at", new Date(Date.now() - 7 * 86400_000).toISOString())
         .order("created_at", { ascending: false })
