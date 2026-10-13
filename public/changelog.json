@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "1.3.0",
+      "date": "2026-10-13",
+      "title": "Search everything",
+      "intro": "One bar for anything you've got: files, pages, your own notes, cards and quiz questions.",
+      "highlights": [
+        {
+          "icon": "search",
+          "title": "Search",
+          "text": "Find a file, a page, a note you wrote, a flashcard or a quiz question, all from one search bar. Tap the search icon at the top of the app."
+        }
+      ]
+    },
+    {
       "version": "1.2.6",
       "date": "2026-10-13",
       "title": "AI help for your own notes",
