@@ -1,16 +1,62 @@
 {
   "releases": [
     {
+      "version": "1.1.1",
+      "date": "2026-10-13",
+      "title": "Your files, sorted by unit",
+      "intro": "Stoga now knows which unit each file belongs to, and which unit your class is on.",
+      "highlights": [
+        {
+          "icon": "unit",
+          "title": "Units found for you",
+          "text": "Names like Unit 11.1, U2L6 or Chapter 7 are spotted when you upload. Check it and tap Change if it is wrong. If a file does not say, we ask."
+        },
+        {
+          "icon": "group",
+          "title": "Classes grouped by unit",
+          "text": "Each class lists its files by unit, in lesson order. Tap the pencil to name a unit."
+        },
+        {
+          "icon": "pin",
+          "title": "Now studying",
+          "text": "Your class follows the unit of your newest upload. Pin a unit to keep it there."
+        }
+      ],
+      "fixes": [
+        "Files you added before this update have no unit yet. Open one and tap Change to file it."
+      ]
+    },
+    {
       "version": "1.1.0",
       "date": "2026-10-13",
       "title": "You choose what gets made",
       "intro": "Uploading no longer makes everything automatically. You pick what you need, and how much.",
       "highlights": [
-        { "icon": "choose", "title": "Pick what to make", "text": "After you add a file, choose notes, flashcards, a practice quiz or a study guide. Or just save it to read and write your own notes." },
-        { "icon": "amount", "title": "Set how many", "text": "Choose exactly how many flashcards, quiz questions or guide sections you want. We suggest a number that fits each file." },
-        { "icon": "more", "title": "Make more later", "text": "On any file: more flashcards, another practice quiz, or fresh notes. Everything you already have stays." },
-        { "icon": "free", "title": "Saving is free", "text": "Only making a study set counts toward your 10 a month. Saving files never does." },
-        { "icon": "photo", "title": "Scans and photos", "text": "Scanned PDFs and photos of your notes are read now, handwriting and math included. Try Take a photo on the Upload page." }
+        {
+          "icon": "choose",
+          "title": "Pick what to make",
+          "text": "After you add a file, choose notes, flashcards, a practice quiz or a study guide. Or just save it to read and write your own notes."
+        },
+        {
+          "icon": "amount",
+          "title": "Set how many",
+          "text": "Choose exactly how many flashcards, quiz questions or guide sections you want. We suggest a number that fits each file."
+        },
+        {
+          "icon": "more",
+          "title": "Make more later",
+          "text": "On any file: more flashcards, another practice quiz, or fresh notes. Everything you already have stays."
+        },
+        {
+          "icon": "free",
+          "title": "Saving is free",
+          "text": "Only making a study set counts toward your 10 a month. Saving files never does."
+        },
+        {
+          "icon": "photo",
+          "title": "Scans and photos",
+          "text": "Scanned PDFs and photos of your notes are read now, handwriting and math included. Try Take a photo on the Upload page."
+        }
       ],
       "fixes": [
         "Classes that listed the same level twice (like Accelerated Literary Foundations) now show it once.",

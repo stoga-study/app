@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Camera, Check, Gift, Layers, ListChecks, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Camera, Check, FolderOpen, FolderTree, Gift, Layers, ListChecks, Pin, Sparkles, Wand2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Brand } from "@/components/Brand";
@@ -13,6 +13,7 @@ import { supabase } from "@/lib/supabase";
 
 const ICONS: Record<string, ReactNode> = {
   choose: <Wand2 />, amount: <ListChecks />, more: <Layers />, free: <Gift />, photo: <Camera />,
+  unit: <FolderOpen />, group: <FolderTree />, pin: <Pin />,
 };
 const fmtDate = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(`${iso}T12:00:00`));
 
