@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Camera, Search, Tag, Flame, Gauge, History, Check, CheckSquare, CloudOff, Columns2, FolderOpen, FolderTree, Gift, Layers, ListChecks, NotebookPen, Pin, Sparkles, Wand2 } from "lucide-react";
+import { ArrowRight, Camera, PenLine, UserCheck, Search, Tag, Flame, Gauge, History, Check, CheckSquare, CloudOff, Columns2, FolderOpen, FolderTree, Gift, Layers, ListChecks, NotebookPen, Pin, Sparkles, Wand2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Brand } from "@/components/Brand";
@@ -17,6 +17,7 @@ const ICONS: Record<string, ReactNode> = {
   notes: <NotebookPen />, side: <Columns2 />, checklist: <CheckSquare />, offline: <CloudOff />,
   continue: <History />, weak: <Flame />, retention: <Gauge />,
   browse: <Search />, tag: <Tag />, deck: <Layers />, select: <CheckSquare />,
+  type: <PenLine />, check: <Sparkles />, self: <UserCheck />, review: <Layers />,
 };
 const fmtDate = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(`${iso}T12:00:00`));
 

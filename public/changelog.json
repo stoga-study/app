@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "1.1.5",
+      "date": "2026-10-13",
+      "title": "Short-answer practice",
+      "intro": "Writing an answer out is one of the best ways to remember it. Now you can, with any of your cards.",
+      "highlights": [
+        {
+          "icon": "type",
+          "title": "Type your answers",
+          "text": "Pick a class or a deck from Review, or tap Type answers. Cards that are due come first, then weak ones."
+        },
+        {
+          "icon": "check",
+          "title": "The AI checks them",
+          "text": "You get Right, Partly right or Not yet, what was missing, and the page it came from. Spelling slips and your own wording are fine."
+        },
+        {
+          "icon": "self",
+          "title": "Or check them yourself",
+          "text": "Switch to I check to see the answer and grade yourself. If the AI got it wrong, tap I was right."
+        },
+        {
+          "icon": "review",
+          "title": "It counts as review",
+          "text": "A card that is due today counts as reviewed, so you do not have to do it twice."
+        }
+      ]
+    },
+    {
       "version": "1.1.4",
       "date": "2026-10-13",
       "title": "Organise your cards",
