@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.2.4",
+      "date": "2026-10-13",
+      "title": "Summaries, key terms and a focused guide",
+      "intro": "Two new things to make from a file, and a way to steer your study guide.",
+      "highlights": [
+        {
+          "icon": "summary",
+          "title": "Summary",
+          "text": "A short overview of the whole file, choosable on upload like notes or flashcards. Good for a quick refresher before diving into the details."
+        },
+        {
+          "icon": "terms",
+          "title": "Key terms",
+          "text": "A glossary of the words that matter, each with a clear definition and a page chip back to where it came from."
+        },
+        {
+          "icon": "focus",
+          "title": "Regenerate the guide with a focus",
+          "text": "On the Guide tab, tell it what to focus on, like \"the midterm\" or \"shorter\", and it remakes the guide around that."
+        }
+      ]
+    },
+    {
       "version": "1.2.3",
       "date": "2026-10-13",
       "title": "Worked examples and one more like it",
