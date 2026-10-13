@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, Pencil } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
@@ -16,6 +16,7 @@ import { useRetention, useSubjects } from "@/lib/queries/profile";
 import { inScope, useDueQueue, useEditCard, useNextDue, useWeakCards, type ReviewCard } from "@/lib/queries/review";
 import { useUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
+import { clearRecent, setRecent } from "@/lib/recent";
 
 const REQUEUE_MINUTES = 20; // cards marked Again that are due within this window come back in this session
 
@@ -90,6 +91,17 @@ export default function ReviewSession() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [card, flipped, editing, onRate]);
+
+  // A session left part-way is offered on Home; a finished one is forgotten.
+  const here = useLocation();
+  const href = here.pathname + here.search;
+  const leftInSession = queue?.length ?? 0;
+  const label = weakMode ? "Weak cards" : unitId ? unitName(units.data?.find((u) => u.id === unitId) ?? { number: null, title: "Unit review" }) : subjectId ? subjectName(subjectId) || "Flashcard review" : "Flashcard review";
+  useEffect(() => {
+    if (!ratings.length) return;
+    if (leftInSession > 0) setRecent({ kind: "review", href, label, sub: `${leftInSession} ${leftInSession === 1 ? "card" : "cards"} left` });
+    else clearRecent(href);
+  }, [ratings.length, leftInSession, href, label]);
 
   // Refresh counts elsewhere once the session ends.
   useEffect(() => {

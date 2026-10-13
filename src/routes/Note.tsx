@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { Markdown } from "@/components/Markdown";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
-import { insert, toggleCheck, toggleLines, wrap, type Edit } from "@/lib/noteEdit";
+import { insert, noteTitle, toggleCheck, toggleLines, wrap, type Edit } from "@/lib/noteEdit";
+import { setRecent } from "@/lib/recent";
 import { pushNote, saveDraft, useDeleteNote, useNote, type NoteDraft } from "@/lib/queries/notes";
 import { useAllSubjects } from "@/lib/queries/profile";
 import { pageWord, useSource, useSourcePages } from "@/lib/queries/sources";
@@ -49,6 +50,12 @@ function Editor({ start, isNew }: { start: NoteDraft; isNew: boolean }) {
   const remove = useDeleteNote();
   const subject = subjects.data?.find((s) => s.id === note.subject_id);
   const back = note.source_id ? `/sources/${note.source_id}` : `/subjects/${note.subject_id}`;
+  const label = noteTitle(note);
+
+  // "Continue studying" on Home offers this note (once it has something in it).
+  useEffect(() => {
+    if (status !== "new") setRecent({ kind: "note", href: `/notes/${note.id}`, label, sub: subject ? `My notes · ${subject.name}` : "My notes" });
+  }, [note.id, label, status, subject]);
 
   // Only reads refs and stable setters, so one copy serves the whole visit.
   const send = useCallback(async () => {

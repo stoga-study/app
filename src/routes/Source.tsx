@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Check, ExternalLink, FileText, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { ErrorState, PageSkeleton } from "@/components/States";
@@ -15,6 +15,7 @@ import { startErrorText, startGeneration, useCaps, useLiveSource, useStudySet } 
 import { newNoteUrl, useNotes } from "@/lib/queries/notes";
 import { useFileUnder, useUnits } from "@/lib/queries/units";
 import { findUnit } from "@/lib/units";
+import { setRecent } from "@/lib/recent";
 import type { GenOptions } from "../../supabase/functions/_lib/options";
 
 /** The biggest thing a study set has, for the header: cards first, then questions, notes or guide. */
@@ -47,6 +48,11 @@ export default function SourcePage() {
   const units = useUnits(source.data?.subject_id);
   const fileUnder = useFileUnder();
   const notes = useNotes(source.data?.subject_id);
+  const fileName = source.data?.filename;
+  const className = subjects.data?.find((x) => x.id === source.data?.subject_id)?.name;
+  useEffect(() => {
+    if (id && fileName) setRecent({ kind: "file", href: `/sources/${id}`, label: fileName, sub: className });
+  }, [id, fileName, className]);
 
   /** Make a study set (or more of one) with these choices, or resume a failed one (no choices). */
   async function start(options?: GenOptions) {
