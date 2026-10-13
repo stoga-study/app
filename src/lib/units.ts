@@ -26,7 +26,9 @@ function titleAfter(rest: string): string | null {
     .split(/\n|\s{2,}|\s[|•]\s/)[0]
     .replace(/\.(pdf|docx?|pptx?|txt|md|jpe?g|png|heic)$/i, "")
     .replace(/[_]+/g, " ")
-    .trim();
+    .trim()
+    // "French Revolution notes" names the unit "French Revolution".
+    .replace(/\s+(notes?|slides?|worksheet|handout|packet|review)$/i, "");
   if (t.length < 3 || /^\d+$/.test(t) || /^(notes?|slides?|worksheet|handout|review|packet|pdf)$/i.test(t)) return null;
   return t.slice(0, 60).replace(/\s+\S*$/, (m) => (t.length > 60 ? "" : m)).trim() || null;
 }

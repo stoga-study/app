@@ -5,8 +5,9 @@ describe("findUnit", () => {
   it("reads unit and lesson numbers from file names", () => {
     expect(findUnit("Unit 11.1 notes world history.pdf")).toMatchObject({ number: "11", lesson: "11.1" });
     expect(findUnit("11.1 notes world history.pdf")).toBeNull();
+    expect(findUnit("Unit 11.1 French Revolution notes.txt")).toMatchObject({ title: "French Revolution" });
     expect(findUnit("U2L6 + U2L7 Exponential Functions.pdf")).toMatchObject({ number: "2", lesson: "2.6", title: "Exponential Functions" });
-    expect(findUnit("Unit 3 & 4 Review Packet.pdf")).toMatchObject({ number: "3", title: "Review Packet" });
+    expect(findUnit("Unit 3 & 4 Review Packet.pdf")).toMatchObject({ number: "3", title: null });
     expect(findUnit("Chapter 7 - Cell Respiration.pdf")).toEqual({ number: "7", lesson: null, title: "Cell Respiration", word: "Chapter" });
     expect(findUnit("Ch.7 review.docx")).toMatchObject({ number: "7", word: "Chapter", title: null });
     expect(findUnit("ch12_stoichiometry.pdf")).toMatchObject({ number: "12", title: "stoichiometry" });
