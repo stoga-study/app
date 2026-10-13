@@ -8,22 +8,33 @@ import { PageChips } from "@/components/PageChips";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import type { Json } from "@/lib/database.types";
-import { loadAttempt, recordAnswer, startAttempt, useMistakes, useQuiz, type Question } from "@/lib/queries/quiz";
+import { topicBreakdown } from "@/lib/mastery";
+import { loadAttempt, recordAnswer, startAttempt, useMistakes, useQuiz, useUnitQuestions, type Question } from "@/lib/queries/quiz";
+import { useSources } from "@/lib/queries/sources";
+import { useAllUnits } from "@/lib/queries/units";
+import { unitName } from "@/lib/units";
 
 type Item = Question & { kind: string };
 
-/** Practice quiz (/quiz/:id) or mistake practice (/quiz/mistakes?topic=). */
+/** Practice quiz (/quiz/:id), mistake practice (/quiz/mistakes?topic=) or a unit's mix (/quiz/unit?unit=). */
 export default function Quiz() {
   const { id } = useParams();
   const [params] = useSearchParams();
+  const unitMode = id === "unit";
   const mistakesMode = id === "mistakes";
+  const unitId = params.get("unit") ?? undefined;
   const topic = params.get("topic");
-  const quiz = useQuiz(mistakesMode ? undefined : id);
+  const quiz = useQuiz(mistakesMode || unitMode ? undefined : id);
+  const unitQs = useUnitQuestions(unitMode ? unitId : undefined);
+  const units = useAllUnits();
+  const unit = units.data?.find((u) => u.id === unitId);
+  const sources = useSources();
   const mistakes = useMistakes();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
   const items: Item[] | null = useMemo(() => {
+    if (unitMode) return unitQs.data ?? null;
     if (mistakesMode) {
       if (!mistakes.data) return null;
       return mistakes.data.filter((m) => !topic || (m.question.topic ?? "Other") === topic).map((m) => m.question);
@@ -32,7 +43,7 @@ export default function Quiz() {
     return quiz.data.questions.map((q) => ({ ...q, kind: quiz.data!.kind }));
     // Freeze the list for the session: answering changes the mistakes query underneath.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mistakesMode ? !!mistakes.data : quiz.data, topic]);
+  }, [unitMode ? !!unitQs.data : mistakesMode ? !!mistakes.data : quiz.data, topic]);
 
   const [i, setI] = useState(0);
   const [pick, setPick] = useState<number | null>(null);
@@ -44,7 +55,7 @@ export default function Quiz() {
   // ?attempt= picks up a quiz left part-way ("Continue studying"); otherwise a new try starts.
   const resume = params.get("attempt");
   useEffect(() => {
-    if (mistakesMode || !quiz.data || !items?.length || attemptId !== null) return;
+    if (mistakesMode || unitMode || !quiz.data || !items?.length || attemptId !== null) return;
     const quizId = quiz.data.quiz.id;
     const fresh = () => startAttempt(quizId, items.length).then(setAttemptId).catch(() => setAttemptId(""));
     if (!resume) return void fresh();
@@ -57,12 +68,12 @@ export default function Quiz() {
         setAttemptId(a.id);
       })
       .catch(fresh);
-  }, [mistakesMode, quiz.data, items, attemptId, resume]);
+  }, [mistakesMode, unitMode, quiz.data, items, attemptId, resume]);
 
-  const loading = mistakesMode ? mistakes.isPending : quiz.isPending;
-  if (loading || items === null || (resume && attemptId === null && !mistakesMode)) return <PageSkeleton label="Getting your questions ready." />;
-  if (quiz.isError || mistakes.isError) return <ErrorState title="We could not load this quiz" onRetry={() => (mistakesMode ? mistakes.refetch() : quiz.refetch())}>Check your connection, then try again.</ErrorState>;
-  if (!mistakesMode && !quiz.data) return <ErrorState title="This quiz is not here anymore">It may have been deleted. <Link to="/review">Back to review</Link>.</ErrorState>;
+  const loading = unitMode ? unitQs.isPending : mistakesMode ? mistakes.isPending : quiz.isPending;
+  if (loading || items === null || (resume && attemptId === null && !mistakesMode && !unitMode)) return <PageSkeleton label="Getting your questions ready." />;
+  if (quiz.isError || mistakes.isError || unitQs.isError) return <ErrorState title="We could not load this quiz" onRetry={() => (mistakesMode ? mistakes.refetch() : quiz.refetch())}>Check your connection, then try again.</ErrorState>;
+  if (!mistakesMode && !unitMode && !quiz.data) return <ErrorState title="This quiz is not here anymore">It may have been deleted. <Link to="/review">Back to review</Link>.</ErrorState>;
   if (items.length === 0)
     return (
       <section className="mx-auto flex max-w-xl flex-col gap-4">
@@ -72,7 +83,7 @@ export default function Quiz() {
       </section>
     );
 
-  const title = mistakesMode ? `Mistake review${topic ? `: ${topic}` : ""}` : quiz.data!.quiz.title;
+  const title = unitMode ? `Practise ${unit ? unitName(unit) : "this unit"}` : mistakesMode ? `Mistake review${topic ? `: ${topic}` : ""}` : quiz.data!.quiz.title;
 
   // ----- Results -----
   if (i >= items.length) {
@@ -82,6 +93,11 @@ export default function Quiz() {
     const last = quiz.data?.last;
     const lastPct = last && last.total ? Math.round((last.correct / last.total) * 100) : null;
     const delta = lastPct === null ? null : pct - lastPct;
+    // Weak spots by topic (rules only), and the unit to practise next.
+    const topics = topicBreakdown(answers, (qid) => items.find((x) => x.id === qid)?.topic);
+    const weakest = topics.length > 1 && topics[0].pct < 100 ? topics[0] : null;
+    const quizUnit = unitMode ? unitId : sources.data?.find((x) => x.id === quiz.data?.quiz.source_id)?.unit_id ?? null;
+    const unitOfQuiz = units.data?.find((u) => u.id === quizUnit);
     return (
       <section className="mx-auto flex max-w-xl flex-col gap-4">
         <div className="ink-panel pop p-6">
@@ -98,8 +114,31 @@ export default function Quiz() {
                 ].filter(Boolean).join(" ")}
           </p>
         </div>
-        {missed > 0 && <Button asChild><Link to="/mistakes"><RotateCcw /> See mistake review</Link></Button>}
-        <Button variant="secondary" onClick={() => { setI(0); setPick(null); setChecked(false); setHint(false); setAnswers([]); setAttemptId(null); qc.invalidateQueries({ queryKey: ["quiz", id] }); }}>Try again</Button>
+        {topics.length > 1 && (
+          <div className="card p-5">
+            <p className="font-bold">By topic</p>
+            <div className="mt-3 flex flex-col gap-2">
+              {topics.map((t) => (
+                <div key={t.topic} className="grid grid-cols-[1fr_6rem_3rem] items-center gap-3 text-[0.9375rem]">
+                  <span className="truncate">{t.topic}{weakest?.topic === t.topic && <span className="ml-2 rounded-full bg-tint px-2 py-0.5 text-[0.75rem] font-bold text-brand">Weak spot</span>}</span>
+                  <div className="bar" role="img" aria-label={`${t.topic}: ${t.right} of ${t.total}`}><span style={{ width: `${t.pct}%` }} /></div>
+                  <b className="text-right tabular">{t.right}/{t.total}</b>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <p className="callout neutral">
+          <span>
+            <b>Next step: </b>
+            {missed === 0
+              ? unitOfQuiz && !unitMode ? `try the mixed quiz for ${unitName(unitOfQuiz)} to check it all fits together.` : "you know this well. Come back in a few days to keep it fresh."
+              : weakest ? `look again at ${weakest.topic}, then retry what you missed in mistake review.` : "retry what you missed in mistake review while it is fresh."}
+          </span>
+        </p>
+        {missed > 0 && !mistakesMode && <Button asChild><Link to="/mistakes"><RotateCcw /> See mistake review</Link></Button>}
+        {missed === 0 && unitOfQuiz && !unitMode && <Button asChild><Link to={`/quiz/unit?unit=${unitOfQuiz.id}`}>Practise {unitName(unitOfQuiz)}</Link></Button>}
+        <Button variant="secondary" onClick={() => { setI(0); setPick(null); setChecked(false); setHint(false); setAnswers([]); setAttemptId(null); qc.invalidateQueries({ queryKey: ["quiz", id] }); if (unitMode) void unitQs.refetch(); }}>{unitMode ? "New mix" : "Try again"}</Button>
         <Button variant="ghost" asChild><Link to="/review">Back to review</Link></Button>
       </section>
     );

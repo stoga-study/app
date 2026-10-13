@@ -68,7 +68,7 @@ export function useQuizList() {
     enabled: !!session,
     queryFn: async () => {
       const [qz, at] = await Promise.all([
-        supabase.from("quizzes").select("id, title, subject_id, created_at, quiz_questions!quiz_questions_quiz_id_fkey(count)").order("created_at", { ascending: false }),
+        supabase.from("quizzes").select("id, title, subject_id, source_id, created_at, quiz_questions!quiz_questions_quiz_id_fkey(count)").order("created_at", { ascending: false }),
         supabase.from("quiz_attempts").select("quiz_id, correct, total, finished_at").not("finished_at", "is", null).order("finished_at", { ascending: false }),
       ]);
       if (qz.error) throw qz.error;
@@ -76,7 +76,7 @@ export function useQuizList() {
       const latest = new Map<string, { correct: number; total: number }>();
       for (const a of at.data) if (!latest.has(a.quiz_id)) latest.set(a.quiz_id, a);
       return qz.data.map((q) => ({
-        id: q.id, title: q.title, subject_id: q.subject_id,
+        id: q.id, title: q.title, subject_id: q.subject_id, source_id: q.source_id,
         count: ((q as unknown as { quiz_questions: { count: number }[] }).quiz_questions)[0]?.count ?? 0,
         last: latest.get(q.id) ?? null,
       }));
@@ -138,4 +138,50 @@ export async function loadAttempt(id: string) {
   const { data, error } = await supabase.from("quiz_attempts").select("id, quiz_id, answers, finished_at").eq("id", id).maybeSingle();
   if (error) throw error;
   return data;
+}
+
+/**
+ * "Practise this unit": questions from every quiz made from the unit's files. Open mistakes come
+ * first, then the rest in a fresh order each time; at most `limit`.
+ */
+export function useUnitQuestions(unitId: string | undefined, limit = 15) {
+  return useQuery({
+    queryKey: ["unit-questions", unitId],
+    enabled: !!unitId,
+    queryFn: async () => {
+      const { data: files, error: fErr } = await supabase.from("sources").select("id, kind").eq("unit_id", unitId!);
+      if (fErr) throw fErr;
+      if (!files.length) return [];
+      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, source_id").in("source_id", files.map((f) => f.id));
+      if (zErr) throw zErr;
+      if (!quizzes.length) return [];
+      const { data: qs, error } = await supabase.from("quiz_questions").select(Q_FIELDS).in("quiz_id", quizzes.map((z) => z.id));
+      if (error) throw error;
+      const { data: open } = await supabase.from("mistakes").select("question_id").is("resolved_at", null).in("question_id", qs.map((q) => q.id));
+      const missed = new Set((open ?? []).map((m) => m.question_id));
+      const kindOf = new Map(quizzes.map((z) => [z.id, files.find((f) => f.id === z.source_id)?.kind ?? "pdf"]));
+      const shuffled = asQuestions(qs).map((q) => ({ q, r: Math.random() })).sort((a, b) => Number(missed.has(b.q.id)) - Number(missed.has(a.q.id)) || a.r - b.r);
+      return shuffled.slice(0, limit).map(({ q }) => ({ ...q, kind: kindOf.get(q.quiz_id) ?? "pdf" }));
+    },
+  });
+}
+
+/** How many questions each unit has to practise (for showing the button only where it works). */
+export function useUnitQuestionCounts(subjectId: string | undefined) {
+  return useQuery({
+    queryKey: ["unit-question-counts", subjectId],
+    enabled: !!subjectId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("source_id, sources!inner(unit_id), quiz_questions!quiz_questions_quiz_id_fkey(count)")
+        .eq("subject_id", subjectId!)
+        .not("sources.unit_id", "is", null);
+      if (error) throw error;
+      const out: Record<string, number> = {};
+      for (const z of data as unknown as { sources: { unit_id: string }; quiz_questions: { count: number }[] }[])
+        out[z.sources.unit_id] = (out[z.sources.unit_id] ?? 0) + (z.quiz_questions[0]?.count ?? 0);
+      return out;
+    },
+  });
 }
