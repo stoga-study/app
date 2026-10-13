@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, Pencil } from "lucide-react";
+import { ArrowLeft, Check, MessageCircleQuestion, Pencil } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -261,17 +261,15 @@ export default function ReviewSession() {
           </div>
         </form>
       ) : (
-        <button
-          type="button"
-          onClick={() => setFlipped((f) => !f)}
-          aria-live="polite"
-          className={`card flex min-h-64 w-full flex-col gap-3 p-6 text-left ${flipped ? "!border-tint-line !bg-tint" : ""}`}
-        >
-          <span className="chip self-start !text-[0.8125rem]">{flipped ? "Answer" : "Question"}</span>
-          <span className={flipped ? "text-[1.125rem] text-ink" : "font-display text-[1.5rem] font-bold leading-tight"}>{flipped ? <MathText text={card.back} /> : <MathText text={card.front} />}</span>
-          {flipped && <span className="text-[0.9375rem] text-muted"><MathText text={card.front} /></span>}
-          <span className="mt-auto"><PageChips pages={card.pages} kind={kind} /></span>
-        </button>
+        <div className={`card flex min-h-64 w-full flex-col gap-3 p-6 ${flipped ? "!border-tint-line !bg-tint" : ""}`}>
+          <button type="button" onClick={() => setFlipped((f) => !f)} aria-live="polite" className="flex flex-1 flex-col gap-3 text-left">
+            <span className="chip self-start !text-[0.8125rem]">{flipped ? "Answer" : "Question"}</span>
+            <span className={flipped ? "text-[1.125rem] text-ink" : "font-display text-[1.5rem] font-bold leading-tight"}>{flipped ? <MathText text={card.back} /> : <MathText text={card.front} />}</span>
+            {flipped && <span className="text-[0.9375rem] text-muted"><MathText text={card.front} /></span>}
+          </button>
+          {/* The quote would give the answer away before the card is flipped, so it only shows after. */}
+          <span className="mt-auto"><PageChips pages={card.pages} kind={kind} quote={flipped ? card.quote : null} sourceId={card.source_id} /></span>
+        </div>
       )}
 
       {!editing && (
@@ -279,6 +277,11 @@ export default function ReviewSession() {
           <Button variant="ghost" size="sm" onClick={() => setEditing({ front: card.front, back: card.back })}>
             <Pencil /> Edit card
           </Button>
+          {flipped && (
+            <Button variant="ghost" size="sm" asChild>
+              <Link to={`/tutor/${card.subject_id}?explain=card:${card.id}`}><MessageCircleQuestion /> Explain this</Link>
+            </Button>
+          )}
           {flipped && <ReportButton itemType="card" itemId={card.id} subjectId={card.subject_id} />}
         </div>
       )}

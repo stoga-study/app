@@ -5,9 +5,9 @@ import { supabase } from "../supabase";
 
 export type Question = {
   id: string; quiz_id: string; prompt: string; options: string[]; answer_index: number; hint: string | null;
-  explanation: string; topic: string | null; pages: number[];
+  explanation: string; topic: string | null; pages: number[]; quote: string | null;
 };
-const Q_FIELDS = "id, quiz_id, prompt, options, answer_index, hint, explanation, topic, pages";
+const Q_FIELDS = "id, quiz_id, prompt, options, answer_index, hint, explanation, topic, pages, quote";
 const asQuestions = (rows: unknown[]) => (rows as (Omit<Question, "options"> & { options: unknown })[]).map((q) => ({ ...q, options: q.options as string[] }));
 
 /** A quiz with its questions, the source kind (for page chips) and the last finished attempt. */
@@ -31,7 +31,7 @@ export function useQuiz(id: string | undefined) {
   });
 }
 
-export type Mistake = { id: string; question_id: string; chosen_index: number | null; created_at: string; question: Question & { kind: string; subject_id: string } };
+export type Mistake = { id: string; question_id: string; chosen_index: number | null; created_at: string; question: Question & { kind: string; subject_id: string; source_id: string | null } };
 
 /** Unresolved mistakes with their questions, newest first. */
 export function useMistakes() {
@@ -46,7 +46,7 @@ export function useMistakes() {
       const { data: qs, error: qErr } = await supabase.from("quiz_questions").select(Q_FIELDS).in("id", ms.map((m) => m.question_id)).eq("hidden", false);
       if (qErr) throw qErr;
       const quizIds = [...new Set(qs.map((q) => q.quiz_id))];
-      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, subject_id, sources(kind)").in("id", quizIds);
+      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, subject_id, source_id, sources(kind)").in("id", quizIds);
       if (zErr) throw zErr;
       const byQuiz = new Map(quizzes.map((z) => [z.id, z]));
       const byQ = new Map(asQuestions(qs).map((q) => [q.id, q]));
@@ -54,7 +54,7 @@ export function useMistakes() {
         const q = byQ.get(m.question_id);
         if (!q) return [];
         const z = byQuiz.get(q.quiz_id);
-        return [{ ...m, question: { ...q, subject_id: z?.subject_id ?? "", kind: (z?.sources as unknown as { kind: string } | null)?.kind ?? "pdf" } }];
+        return [{ ...m, question: { ...q, subject_id: z?.subject_id ?? "", source_id: z?.source_id ?? null, kind: (z?.sources as unknown as { kind: string } | null)?.kind ?? "pdf" } }];
       });
     },
   });
@@ -160,8 +160,9 @@ export function useUnitQuestions(unitId: string | undefined, limit = 15) {
       const { data: open } = await supabase.from("mistakes").select("question_id").is("resolved_at", null).in("question_id", qs.map((q) => q.id));
       const missed = new Set((open ?? []).map((m) => m.question_id));
       const kindOf = new Map(quizzes.map((z) => [z.id, files.find((f) => f.id === z.source_id)?.kind ?? "pdf"]));
+      const srcOf = new Map(quizzes.map((z) => [z.id, z.source_id]));
       const shuffled = asQuestions(qs).map((q) => ({ q, r: Math.random() })).sort((a, b) => Number(missed.has(b.q.id)) - Number(missed.has(a.q.id)) || a.r - b.r);
-      return shuffled.slice(0, limit).map(({ q }) => ({ ...q, kind: kindOf.get(q.quiz_id) ?? "pdf" }));
+      return shuffled.slice(0, limit).map(({ q }) => ({ ...q, kind: kindOf.get(q.quiz_id) ?? "pdf", source_id: srcOf.get(q.quiz_id) ?? null }));
     },
   });
 }

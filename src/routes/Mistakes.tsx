@@ -1,9 +1,10 @@
-import { RotateCcw } from "lucide-react";
+import { MessageCircleQuestion, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router";
 import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
 import { PageHeader } from "@/components/PageHeader";
+import { ReportButton } from "@/components/ReportButton";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useSubjects } from "@/lib/queries/profile";
@@ -47,7 +48,14 @@ export default function Mistakes() {
                 {m.chosen_index !== null && m.question.options[m.chosen_index] && (
                   <p className="mt-2 text-[0.9375rem] text-muted">You chose: <MathText text={m.question.options[m.chosen_index]} /></p>
                 )}
-                <PageChips pages={m.question.pages} kind={m.question.kind} />
+                {/* No quote here: it would give away the answer before a retry in mistake review. */}
+                <PageChips pages={m.question.pages} kind={m.question.kind} sourceId={m.question.source_id} />
+                <div className="mt-2 flex flex-wrap items-center gap-1 -ml-3">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link to={`/tutor/${m.question.subject_id}?explain=quiz_question:${m.question.id}`}><MessageCircleQuestion /> Explain this</Link>
+                  </Button>
+                  <ReportButton itemType="quiz_question" itemId={m.question.id} subjectId={m.question.subject_id} />
+                </div>
               </li>
             ))}
           </ul>

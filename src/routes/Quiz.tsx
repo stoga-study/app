@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Info, Lightbulb, RotateCcw, X } from "lucide-react";
+import { Check, Info, Lightbulb, MessageCircleQuestion, RotateCcw, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -15,7 +15,7 @@ import { useSources } from "@/lib/queries/sources";
 import { useAllUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
 
-type Item = Question & { kind: string };
+type Item = Question & { kind: string; source_id?: string | null };
 
 /** Practice quiz (/quiz/:id), mistake practice (/quiz/mistakes?topic=) or a unit's mix (/quiz/unit?unit=). */
 export default function Quiz() {
@@ -41,7 +41,7 @@ export default function Quiz() {
       return mistakes.data.filter((m) => !topic || (m.question.topic ?? "Other") === topic).map((m) => m.question);
     }
     if (!quiz.data) return null;
-    return quiz.data.questions.map((q) => ({ ...q, kind: quiz.data!.kind }));
+    return quiz.data.questions.map((q) => ({ ...q, kind: quiz.data!.kind, source_id: quiz.data!.quiz.source_id }));
     // Freeze the list for the session: answering changes the mistakes query underneath.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unitMode ? !!unitQs.data : mistakesMode ? !!mistakes.data : quiz.data, topic]);
@@ -221,8 +221,15 @@ export default function Quiz() {
             {isRight ? "Correct" : "Not quite, and that is useful to know"}
           </p>
           <p className="mt-1"><MathText text={q.explanation} />{!isRight && " Added to your mistake review."}</p>
-          <PageChips pages={q.pages} kind={q.kind} />
-          <ReportButton itemType="quiz_question" itemId={q.id} subjectId={qSubjectId} className="mt-2 -ml-3" />
+          <PageChips pages={q.pages} kind={q.kind} quote={q.quote} sourceId={q.source_id ?? null} />
+          <div className="mt-2 flex flex-wrap items-center gap-1 -ml-3">
+            {!isRight && qSubjectId && (
+              <Button variant="ghost" size="sm" asChild>
+                <Link to={`/tutor/${qSubjectId}?explain=quiz_question:${q.id}`}><MessageCircleQuestion /> Explain this</Link>
+              </Button>
+            )}
+            <ReportButton itemType="quiz_question" itemId={q.id} subjectId={qSubjectId} />
+          </div>
         </div>
       )}
 

@@ -6,10 +6,10 @@ import { pendingSchedules } from "../offline/outbox";
 import { endOfToday } from "./cards";
 
 export const CARD_FIELDS =
-  "id, subject_id, source_id, front, back, pages, edited, due, stability, difficulty, elapsed_days, scheduled_days, learning_steps, reps, lapses, state, last_review, sources(kind, unit_id)";
+  "id, subject_id, source_id, front, back, pages, quote, edited, due, stability, difficulty, elapsed_days, scheduled_days, learning_steps, reps, lapses, state, last_review, sources(kind, unit_id)";
 
 export type ReviewCard = {
-  id: string; subject_id: string; source_id: string | null; front: string; back: string; pages: number[]; edited: boolean;
+  id: string; subject_id: string; source_id: string | null; front: string; back: string; pages: number[]; quote: string | null; edited: boolean;
   due: string; stability: number; difficulty: number; elapsed_days: number; scheduled_days: number; learning_steps: number;
   reps: number; lapses: number; state: number; last_review: string | null; sources: { kind: string; unit_id: string | null } | null;
 };

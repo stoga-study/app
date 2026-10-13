@@ -141,7 +141,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           <article key={n.id} className="card p-5">
             <h3 className="text-[1.25rem]">{n.title}</h3>
             <Markdown text={n.body_md} className="text-ink-2" />
-            <PageChips pages={n.pages} kind={source.kind} />
+            <PageChips pages={n.pages} kind={source.kind} sourceId={source.id} />
             <ReportButton itemType="notes_section" itemId={n.id} subjectId={source.subject_id} className="mt-2 -ml-3" />
           </article>
         ))}
@@ -151,8 +151,9 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
             <button type="button" onClick={() => setOpen((o) => ({ ...o, [c.id]: !o[c.id] }))} aria-expanded={!!open[c.id]} className="w-full text-left">
               <span className="chip !text-[0.8125rem]">{open[c.id] ? "Answer" : "Question"}</span>
               <span className="mt-2 block font-display text-[1.125rem] font-bold">{open[c.id] ? <MathText text={c.back} /> : <MathText text={c.front} />}</span>
-              <PageChips pages={c.pages} kind={source.kind} />
             </button>
+            {/* The quote would give the answer away before the card is open, so it only shows after. */}
+            <PageChips pages={c.pages} kind={source.kind} quote={open[c.id] ? c.quote : null} sourceId={source.id} />
             {open[c.id] && <ReportButton itemType="card" itemId={c.id} subjectId={source.subject_id} className="mt-2 -ml-3" />}
           </div>
         ))}
@@ -184,7 +185,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
                 ) : (
                   <Button variant="ghost" size="sm" className="mt-2" onClick={() => setOpen((o) => ({ ...o, [q.id]: true }))}>Show answer</Button>
                 )}
-                <PageChips pages={q.pages} kind={source.kind} />
+                <PageChips pages={q.pages} kind={source.kind} quote={open[q.id] ? q.quote : null} sourceId={source.id} />
                 {open[q.id] && <ReportButton itemType="quiz_question" itemId={q.id} subjectId={source.subject_id} className="mt-2 -ml-3" />}
               </article>
             ))}
@@ -196,7 +197,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
             <p className="text-[0.8125rem] font-bold text-muted">Section {i + 1} of {d.guide.length}{g.minutes ? `, about ${g.minutes} minutes` : ""}</p>
             <h3 className="mt-1 text-[1.25rem]">{g.title}</h3>
             <Markdown text={g.body_md} className="text-ink-2" />
-            <PageChips pages={g.pages} kind={source.kind} />
+            <PageChips pages={g.pages} kind={source.kind} sourceId={source.id} />
             <ReportButton itemType="guide_section" itemId={g.id} subjectId={source.subject_id} className="mt-2 -ml-3" />
           </article>
         ))}

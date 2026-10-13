@@ -225,7 +225,7 @@ function Session({ start, title, back }: { start: OrgCard[]; title: string; back
           <div className="rounded-2xl bg-soft p-4">
             <p className="text-[0.8125rem] font-bold text-muted">Answer</p>
             <p className="mt-1"><MathText text={card.back} /></p>
-            {card.pages.length > 0 && <div className="mt-2"><PageChips pages={card.pages} kind={kind} /></div>}
+            {card.pages.length > 0 && <div className="mt-2"><PageChips pages={card.pages} kind={kind} quote={card.quote} sourceId={card.source_id} /></div>}
           </div>
           {phase === "reveal" && (
             <div>
