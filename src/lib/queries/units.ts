@@ -15,6 +15,8 @@ export function useUnits(subjectId: string | undefined) {
   return useQuery({
     queryKey: ["units", subjectId],
     enabled: !!subjectId,
+    // Small, and changed by uploads moments earlier: always check when a page opens.
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase.from("units").select("*").eq("subject_id", subjectId!);
       if (error) throw error;
