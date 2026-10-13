@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.2.1",
+      "date": "2026-10-13",
+      "title": "Explain this",
+      "intro": "A confusing card or a quiz question you missed can now explain itself.",
+      "highlights": [
+        {
+          "icon": "explain",
+          "title": "Explain this",
+          "text": "On a card back and on a quiz question you got wrong, tap Explain this to open the tutor already talking about that exact item, grounded in the page it came from."
+        },
+        {
+          "icon": "quote",
+          "title": "Tap a page chip",
+          "text": "After you see a card's answer or a quiz question's explanation, tap its page chip for the exact sentence it came from, and a link to open the page."
+        }
+      ]
+    },
+    {
       "version": "1.2.0",
       "date": "2026-10-13",
       "title": "Report anything wrong",
