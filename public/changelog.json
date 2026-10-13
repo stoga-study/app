@@ -28,7 +28,8 @@
         }
       ],
       "fixes": [
-        "Starting a second review in one visit could show cards you had just reviewed. It no longer does."
+        "Starting a second review in one visit could show cards you had just reviewed. It no longer does.",
+        "Updates now install by themselves the next time you switch away from the app, so you always have the latest fixes."
       ]
     },
     {
