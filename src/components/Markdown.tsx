@@ -1,7 +1,8 @@
 import { Fragment, type ReactNode } from "react";
 import { mathNodes } from "./MathText";
 
-// A small, safe renderer for generated study text: paragraphs, "- " bullets, "1." lists and **bold**.
+// A small, safe renderer for study text: paragraphs, headings (#), "- " bullets, "1." lists, "- [ ]" checklists
+// and **bold**.
 // It builds React elements, never HTML strings, so generated text cannot inject markup.
 
 export type CiteRenderer = (key: string, page: number, i: number) => ReactNode;
@@ -24,25 +25,77 @@ function inline(text: string, cite?: CiteRenderer): ReactNode[] {
   });
 }
 
-export function Markdown({ text, className, cite }: { text: string; className?: string; cite?: CiteRenderer }) {
-  const blocks = text.replace(/\r/g, "").split(/\n{2,}/);
+type Block =
+  | { kind: "h"; level: number; text: string }
+  | { kind: "ul" | "ol" | "p"; lines: string[] }
+  | { kind: "check"; items: { done: boolean; text: string }[] };
+
+const BULLET = /^\s*[-*•]\s+/, NUMBER = /^\s*\d+[.)]\s+/, CHECKBOX = /^\s*[-*]\s+\[([ xX])\]\s?/, HEADING = /^(#{1,3})\s+/;
+
+/** Lines into blocks: headings, bullet, numbered and check lists, and paragraphs (split by blank lines). */
+export function blocks(text: string): Block[] {
+  const out: Block[] = [];
+  for (const line of text.replace(/\r/g, "").split("\n")) {
+    const last = out[out.length - 1];
+    if (!line.trim()) {
+      out.push({ kind: "p", lines: [] });
+      continue;
+    }
+    const h = HEADING.exec(line);
+    const c = CHECKBOX.exec(line);
+    if (h) out.push({ kind: "h", level: h[1].length, text: line.slice(h[0].length) });
+    else if (c) {
+      const item = { done: c[1] !== " ", text: line.slice(c[0].length) };
+      if (last?.kind === "check") last.items.push(item);
+      else out.push({ kind: "check", items: [item] });
+    } else {
+      const kind = BULLET.test(line) ? "ul" : NUMBER.test(line) ? "ol" : "p";
+      const body = line.replace(kind === "ul" ? BULLET : kind === "ol" ? NUMBER : /^/, "");
+      if (last && last.kind === kind) last.lines.push(body);
+      else out.push({ kind, lines: [body] });
+    }
+  }
+  return out.filter((b) => b.kind !== "p" || b.lines.length);
+}
+
+/**
+ * Notes as formatted text. `onCheck(n)` makes checklist boxes tappable (n counts boxes in reading
+ * order); without it they are shown read-only.
+ */
+export function Markdown({ text, className, cite, onCheck }: { text: string; className?: string; cite?: CiteRenderer; onCheck?: (n: number) => void }) {
+  let box = 0;
   return (
     <div className={className}>
-      {blocks.map((block, b) => {
-        const lines = block.split("\n").filter((l) => l.trim());
-        if (lines.length && lines.every((l) => /^\s*[-*•]\s+/.test(l)))
+      {blocks(text).map((b, i) => {
+        if (b.kind === "h") {
+          const Tag = b.level === 1 ? "h3" : b.level === 2 ? "h4" : "h5";
+          return <Tag key={i} className={`mb-1 mt-4 font-display font-bold text-ink first:mt-0 ${b.level === 1 ? "text-[1.25rem]" : b.level === 2 ? "text-[1.125rem]" : "text-[1rem]"}`}>{inline(b.text, cite)}</Tag>;
+        }
+        if (b.kind === "ul") return <ul key={i} className="my-2 list-disc space-y-1.5 pl-5">{b.lines.map((l, j) => <li key={j}>{inline(l, cite)}</li>)}</ul>;
+        if (b.kind === "ol") return <ol key={i} className="my-2 list-decimal space-y-1.5 pl-5">{b.lines.map((l, j) => <li key={j}>{inline(l, cite)}</li>)}</ol>;
+        if (b.kind === "check")
           return (
-            <ul key={b} className="my-2 list-disc space-y-1.5 pl-5">
-              {lines.map((l, i) => <li key={i}>{inline(l.replace(/^\s*[-*•]\s+/, ""), cite)}</li>)}
+            <ul key={i} className="my-2 space-y-1.5">
+              {b.items.map((it, j) => {
+                const n = box++;
+                return (
+                  <li key={j} className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      className="mt-1 size-4 flex-none accent-primary"
+                      checked={it.done}
+                      readOnly={!onCheck}
+                      disabled={!onCheck}
+                      aria-label={it.text || "Checklist item"}
+                      onChange={() => onCheck?.(n)}
+                    />
+                    <span className={it.done ? "text-muted line-through" : undefined}>{inline(it.text, cite)}</span>
+                  </li>
+                );
+              })}
             </ul>
           );
-        if (lines.length && lines.every((l) => /^\s*\d+[.)]\s+/.test(l)))
-          return (
-            <ol key={b} className="my-2 list-decimal space-y-1.5 pl-5">
-              {lines.map((l, i) => <li key={i}>{inline(l.replace(/^\s*\d+[.)]\s+/, ""), cite)}</li>)}
-            </ol>
-          );
-        return <p key={b} className="my-2">{inline(lines.join(" "), cite)}</p>;
+        return <p key={i} className="my-2">{inline(b.lines.join(" "), cite)}</p>;
       })}
     </div>
   );
