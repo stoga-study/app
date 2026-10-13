@@ -166,11 +166,13 @@ export type Database = {
           elapsed_days: number
           front: string
           gen_part: number | null
+          hidden: boolean
           id: string
           lapses: number
           last_review: string | null
           learning_steps: number
           pages: number[]
+          quote: string | null
           reps: number
           scheduled_days: number
           source_id: string | null
@@ -189,11 +191,13 @@ export type Database = {
           elapsed_days?: number
           front: string
           gen_part?: number | null
+          hidden?: boolean
           id?: string
           lapses?: number
           last_review?: string | null
           learning_steps?: number
           pages?: number[]
+          quote?: string | null
           reps?: number
           scheduled_days?: number
           source_id?: string | null
@@ -212,11 +216,13 @@ export type Database = {
           elapsed_days?: number
           front?: string
           gen_part?: number | null
+          hidden?: boolean
           id?: string
           lapses?: number
           last_review?: string | null
           learning_steps?: number
           pages?: number[]
+          quote?: string | null
           reps?: number
           scheduled_days?: number
           source_id?: string | null
@@ -343,6 +349,48 @@ export type Database = {
           },
         ]
       }
+      content_reports: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["report_item"]
+          reason: string
+          resolved_at: string | null
+          snapshot: Json
+          source_id: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          subject_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: Database["public"]["Enums"]["report_item"]
+          reason?: string
+          resolved_at?: string | null
+          snapshot: Json
+          source_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          subject_id?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: Database["public"]["Enums"]["report_item"]
+          reason?: string
+          resolved_at?: string | null
+          snapshot?: Json
+          source_id?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          subject_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       deck_cards: {
         Row: {
           added_at: string
@@ -454,6 +502,7 @@ export type Database = {
       guide_sections: {
         Row: {
           body_md: string
+          hidden: boolean
           id: string
           minutes: number | null
           pages: number[]
@@ -464,6 +513,7 @@ export type Database = {
         }
         Insert: {
           body_md: string
+          hidden?: boolean
           id?: string
           minutes?: number | null
           pages?: number[]
@@ -474,6 +524,7 @@ export type Database = {
         }
         Update: {
           body_md?: string
+          hidden?: boolean
           id?: string
           minutes?: number | null
           pages?: number[]
@@ -582,6 +633,7 @@ export type Database = {
         Row: {
           body_md: string
           gen_part: number | null
+          hidden: boolean
           id: string
           pages: number[]
           position: number
@@ -592,6 +644,7 @@ export type Database = {
         Insert: {
           body_md: string
           gen_part?: number | null
+          hidden?: boolean
           id?: string
           pages?: number[]
           position: number
@@ -602,6 +655,7 @@ export type Database = {
         Update: {
           body_md?: string
           gen_part?: number | null
+          hidden?: boolean
           id?: string
           pages?: number[]
           position?: number
@@ -741,6 +795,7 @@ export type Database = {
         Row: {
           answer_index: number
           explanation: string
+          hidden: boolean
           hint: string | null
           id: string
           options: Json
@@ -748,12 +803,14 @@ export type Database = {
           position: number
           prompt: string
           quiz_id: string
+          quote: string | null
           topic: string | null
           user_id: string
         }
         Insert: {
           answer_index: number
           explanation: string
+          hidden?: boolean
           hint?: string | null
           id?: string
           options: Json
@@ -761,12 +818,14 @@ export type Database = {
           position: number
           prompt: string
           quiz_id: string
+          quote?: string | null
           topic?: string | null
           user_id?: string
         }
         Update: {
           answer_index?: number
           explanation?: string
+          hidden?: boolean
           hint?: string | null
           id?: string
           options?: Json
@@ -774,6 +833,7 @@ export type Database = {
           position?: number
           prompt?: string
           quiz_id?: string
+          quote?: string | null
           topic?: string | null
           user_id?: string
         }
@@ -1274,6 +1334,15 @@ export type Database = {
         Returns: undefined
       }
       remove_api_key: { Args: never; Returns: undefined }
+      report_content: {
+        Args: {
+          p_item_id: string
+          p_item_type: Database["public"]["Enums"]["report_item"]
+          p_reason: string
+          p_subject_id?: string
+        }
+        Returns: undefined
+      }
       search_pages: {
         Args: { p_limit?: number; p_query: string; p_subject: string }
         Returns: {
@@ -1304,6 +1373,13 @@ export type Database = {
     }
     Enums: {
       plan: "essential" | "independent" | "unlimited"
+      report_item:
+        | "card"
+        | "quiz_question"
+        | "notes_section"
+        | "guide_section"
+        | "tutor_message"
+      report_status: "open" | "fixed" | "dismissed"
       source_status:
         | "uploaded"
         | "ready_text"
@@ -1442,6 +1518,14 @@ export const Constants = {
   public: {
     Enums: {
       plan: ["essential", "independent", "unlimited"],
+      report_item: [
+        "card",
+        "quiz_question",
+        "notes_section",
+        "guide_section",
+        "tutor_message",
+      ],
+      report_status: ["open", "fixed", "dismissed"],
       source_status: [
         "uploaded",
         "ready_text",
