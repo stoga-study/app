@@ -21,6 +21,7 @@ import { GradeError, gradeAnswer } from "@/lib/queries/grade";
 import { useClassCards, useDeckCardList, useDecks, type OrgCard } from "@/lib/queries/organise";
 import { useRetention, useSubjects } from "@/lib/queries/profile";
 import type { ReviewCard } from "@/lib/queries/review";
+import { SimilarError, similarCard } from "@/lib/queries/similar";
 import { useUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
 
@@ -36,6 +37,13 @@ const GRADE_ERROR: Record<GradeError["code"], string> = {
   busy: "AI checking is busy. Grade this one yourself.",
   unavailable: "AI checking did not work this time. Grade this one yourself.",
   offline: "You are offline. Grade this one yourself.",
+};
+const SIMILAR_ERROR: Record<SimilarError["code"], string> = {
+  limit: "That is today's follow-up questions. More tomorrow.",
+  key_invalid: "Your own key did not work. Check it in Settings.",
+  busy: "Stoga.study is busy right now. Try again in a minute.",
+  unavailable: "We could not make one right now. Try again in a moment.",
+  offline: "You are offline. This needs a connection.",
 };
 
 /** /practice: type your answers to cards from a class, a unit or a deck, then check them. */
@@ -108,7 +116,22 @@ function Session({ start, title, back }: { start: OrgCard[]; title: string; back
   const [results, setResults] = useState<Result[]>([]);
   // Cards whose review was already recorded this visit ("Practise these again" does not count twice).
   const [reviewed, setReviewed] = useState<Set<string>>(() => new Set());
+  const [makingSimilar, setMakingSimilar] = useState(false);
   const card = cards[i];
+
+  /** "Give me one like this": a fresh variant slotted in right after this card, so it comes up next. */
+  async function giveMeOneLikeThis() {
+    setMakingSimilar(true);
+    try {
+      const made = await similarCard(card.id);
+      setCards((c) => [...c.slice(0, i + 1), made, ...c.slice(i + 1)]);
+      next();
+    } catch (e) {
+      toast(SIMILAR_ERROR[e instanceof SimilarError ? e.code : "unavailable"]);
+    } finally {
+      setMakingSimilar(false);
+    }
+  }
 
   async function check() {
     if (mode === "self") return setPhase("reveal");
@@ -243,6 +266,9 @@ function Session({ start, title, back }: { start: OrgCard[]; title: string; back
               {grade.by === "ai" && grade.verdict !== "right" && (
                 <Button variant="ghost" onClick={() => setGrade({ ...grade, verdict: "right", missing: [] })}>I was right</Button>
               )}
+              <Button variant="ghost" onClick={giveMeOneLikeThis} disabled={makingSimilar}>
+                <Sparkles /> {makingSimilar ? "Making one…" : "Give me one like this"}
+              </Button>
             </div>
           )}
         </div>
