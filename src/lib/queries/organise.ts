@@ -17,7 +17,7 @@ export function useClassCards(subjectId: string | undefined) {
     enabled: !!subjectId,
     refetchOnMount: "always",
     queryFn: async () => {
-      const { data, error } = await supabase.from("cards").select(FIELDS).eq("subject_id", subjectId!).order("created_at").limit(5000);
+      const { data, error } = await supabase.from("cards").select(FIELDS).eq("subject_id", subjectId!).eq("hidden", false).order("created_at").limit(5000);
       if (error) throw error;
       return data as OrgCard[];
     },
@@ -41,7 +41,7 @@ export function useDecks() {
 async function fetchDeck(id: string) {
   const [deck, links] = await Promise.all([
     supabase.from("decks").select("id, name, created_at").eq("id", id).maybeSingle(),
-    supabase.from("deck_cards").select(`added_at, cards(${FIELDS})`).eq("deck_id", id).order("added_at").limit(5000),
+    supabase.from("deck_cards").select(`added_at, cards(${FIELDS})`).eq("deck_id", id).eq("cards.hidden", false).order("added_at").limit(5000),
   ]);
   if (deck.error) throw deck.error;
   if (links.error) throw links.error;

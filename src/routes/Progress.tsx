@@ -17,7 +17,7 @@ function useCardStats() {
     queryKey: ["card-stats", session?.user.id],
     enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase.from("cards").select("state");
+      const { data, error } = await supabase.from("cards").select("state").eq("hidden", false);
       if (error) throw error;
       return { total: data.length, learning: data.filter((c) => c.state === 1 || c.state === 3).length, learned: data.filter((c) => c.state === 2).length };
     },

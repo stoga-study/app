@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Markdown } from "@/components/Markdown";
 import { PageHeader } from "@/components/PageHeader";
+import { ReportButton } from "@/components/ReportButton";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useSubjects } from "@/lib/queries/profile";
@@ -75,7 +76,7 @@ function labelFor(mode: TutorMode, level: number | null, fromNotes: boolean) {
   return fromNotes ? step : `${step}, general knowledge`;
 }
 
-function Answer({ m, live }: { m: { content: string; hint_level: number | null; mode: TutorMode | null; citations: Citation[] }; live?: SourceRef[] }) {
+function Answer({ m, subjectId, live }: { m: { id?: string; content: string; hint_level: number | null; mode: TutorMode | null; citations: Citation[] }; subjectId: string; live?: SourceRef[] }) {
   const lookup = (key: string, page: number) => {
     const c = m.citations.find((x) => x.key === key && x.page === page);
     if (c) return c;
@@ -89,6 +90,7 @@ function Answer({ m, live }: { m: { content: string; hint_level: number | null; 
     <div className={`max-w-[94%] rounded-[1.25rem] rounded-bl-md p-4 ${full ? "bg-ink-panel text-white" : "bg-tint"}`}>
       {label && <p className={`text-[0.8125rem] font-bold ${full ? "text-[#F2A8BA]" : "text-brand"}`}>{label}</p>}
       <Markdown text={displayText(m.content)} className="text-[0.9875rem] leading-relaxed" cite={(key, page, i) => { const c = lookup(key, page); return c ? <CiteChip key={i} c={c} /> : null; }} />
+      {m.id && <ReportButton itemType="tutor_message" itemId={m.id} subjectId={subjectId} className={`mt-1 -ml-3 ${full ? "!text-white/80" : ""}`} />}
     </div>
   );
 }
@@ -197,13 +199,13 @@ export default function Tutor() {
           m.role === "user" ? (
             <div key={m.id} className="max-w-[88%] self-end rounded-[1.25rem] rounded-br-md border-2 border-line bg-card p-3">{m.content}</div>
           ) : (
-            <Answer key={m.id} m={m} />
+            <Answer key={m.id} m={m} subjectId={subject.id} />
           ),
         )}
         {live && (
           <>
             {live.question && <div className="max-w-[88%] self-end rounded-[1.25rem] rounded-br-md border-2 border-line bg-card p-3">{live.question}</div>}
-            {live.text && live.mode ? <Answer m={{ content: live.text, hint_level: live.level, mode: live.mode, citations: [] }} live={live.sources} /> : <div className="skeleton h-16 w-2/3 rounded-[1.25rem]" aria-label="The tutor is writing" />}
+            {live.text && live.mode ? <Answer m={{ content: live.text, hint_level: live.level, mode: live.mode, citations: [] }} subjectId={subject.id} live={live.sources} /> : <div className="skeleton h-16 w-2/3 rounded-[1.25rem]" aria-label="The tutor is writing" />}
           </>
         )}
         {!live && lastAnswer && lastUser && modeOf(lastAnswer) !== "chat" && (

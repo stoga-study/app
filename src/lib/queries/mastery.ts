@@ -12,7 +12,7 @@ export function useMastery() {
     queryKey: ["mastery-cards", session?.user.id],
     enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase.from("cards").select("subject_id, state, stability, sources(unit_id)").limit(20000);
+      const { data, error } = await supabase.from("cards").select("subject_id, state, stability, sources(unit_id)").eq("hidden", false).limit(20000);
       if (error) throw error;
       return data.map((c) => ({ subject_id: c.subject_id, state: c.state, stability: c.stability, unit_id: (c.sources as unknown as { unit_id: string | null } | null)?.unit_id ?? null }));
     },

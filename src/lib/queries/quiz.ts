@@ -20,7 +20,7 @@ export function useQuiz(id: string | undefined) {
       if (error) throw error;
       if (!quiz) return null;
       const [qs, last] = await Promise.all([
-        supabase.from("quiz_questions").select(Q_FIELDS).eq("quiz_id", id!).order("position"),
+        supabase.from("quiz_questions").select(Q_FIELDS).eq("quiz_id", id!).eq("hidden", false).order("position"),
         supabase.from("quiz_attempts").select("correct, total, finished_at").eq("quiz_id", id!).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1),
       ]);
       if (qs.error) throw qs.error;
@@ -43,7 +43,7 @@ export function useMistakes() {
       const { data: ms, error } = await supabase.from("mistakes").select("id, question_id, chosen_index, created_at").is("resolved_at", null).order("created_at", { ascending: false });
       if (error) throw error;
       if (!ms.length) return [] as Mistake[];
-      const { data: qs, error: qErr } = await supabase.from("quiz_questions").select(Q_FIELDS).in("id", ms.map((m) => m.question_id));
+      const { data: qs, error: qErr } = await supabase.from("quiz_questions").select(Q_FIELDS).in("id", ms.map((m) => m.question_id)).eq("hidden", false);
       if (qErr) throw qErr;
       const quizIds = [...new Set(qs.map((q) => q.quiz_id))];
       const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, subject_id, sources(kind)").in("id", quizIds);
@@ -155,7 +155,7 @@ export function useUnitQuestions(unitId: string | undefined, limit = 15) {
       const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, source_id").in("source_id", files.map((f) => f.id));
       if (zErr) throw zErr;
       if (!quizzes.length) return [];
-      const { data: qs, error } = await supabase.from("quiz_questions").select(Q_FIELDS).in("quiz_id", quizzes.map((z) => z.id));
+      const { data: qs, error } = await supabase.from("quiz_questions").select(Q_FIELDS).in("quiz_id", quizzes.map((z) => z.id)).eq("hidden", false);
       if (error) throw error;
       const { data: open } = await supabase.from("mistakes").select("question_id").is("resolved_at", null).in("question_id", qs.map((q) => q.id));
       const missed = new Set((open ?? []).map((m) => m.question_id));

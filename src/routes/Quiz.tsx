@@ -5,6 +5,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
+import { ReportButton } from "@/components/ReportButton";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import type { Json } from "@/lib/database.types";
@@ -147,6 +148,7 @@ export default function Quiz() {
   // ----- Question -----
   const q = items[i];
   const isRight = pick === q.answer_index;
+  const qSubjectId = mistakesMode ? (q as Item & { subject_id?: string }).subject_id ?? null : quiz.data?.quiz.subject_id ?? unit?.subject_id ?? null;
 
   async function check() {
     if (pick === null) return;
@@ -220,6 +222,7 @@ export default function Quiz() {
           </p>
           <p className="mt-1"><MathText text={q.explanation} />{!isRight && " Added to your mistake review."}</p>
           <PageChips pages={q.pages} kind={q.kind} />
+          <ReportButton itemType="quiz_question" itemId={q.id} subjectId={qSubjectId} className="mt-2 -ml-3" />
         </div>
       )}
 

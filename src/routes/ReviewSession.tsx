@@ -5,6 +5,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
+import { ReportButton } from "@/components/ReportButton";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { GRADES, isWeak, previewIntervals, rate } from "@/lib/fsrs";
@@ -274,9 +275,12 @@ export default function ReviewSession() {
       )}
 
       {!editing && (
-        <Button variant="ghost" size="sm" className="self-start" onClick={() => setEditing({ front: card.front, back: card.back })}>
-          <Pencil /> Edit card
-        </Button>
+        <div className="flex flex-wrap gap-1">
+          <Button variant="ghost" size="sm" onClick={() => setEditing({ front: card.front, back: card.back })}>
+            <Pencil /> Edit card
+          </Button>
+          {flipped && <ReportButton itemType="card" itemId={card.id} subjectId={card.subject_id} />}
+        </div>
       )}
 
       {!editing && (flipped ? (
