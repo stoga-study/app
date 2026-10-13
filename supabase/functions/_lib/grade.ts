@@ -45,7 +45,9 @@ export function gradeMessage(o: { front: string; back: string; answer: string; p
 /** Keeps a grader's output in bounds whatever it returns. */
 export function cleanGrade(g: Partial<Grade> | null | undefined): Grade {
   const verdict: Verdict = g?.verdict === "right" || g?.verdict === "partly" ? g.verdict : "not_yet";
-  const feedback = typeof g?.feedback === "string" && g.feedback.trim() ? g.feedback.trim().slice(0, 400) : verdict === "right" ? "That is it." : "Have another look at the answer below.";
-  const missing = Array.isArray(g?.missing) ? g.missing.filter((m) => typeof m === "string" && m.trim()).map((m) => m.trim().slice(0, 120)).slice(0, 3) : [];
+  // Shown as plain text, so markdown emphasis (*The Social Contract*) is dropped.
+  const plain = (t: string) => t.replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1").trim();
+  const feedback = typeof g?.feedback === "string" && g.feedback.trim() ? plain(g.feedback).slice(0, 400) : verdict === "right" ? "That is it." : "Have another look at the answer below.";
+  const missing = Array.isArray(g?.missing) ? g.missing.filter((m) => typeof m === "string" && m.trim()).map((m) => plain(m).slice(0, 120)).slice(0, 3) : [];
   return { verdict, feedback, missing: verdict === "right" ? [] : missing };
 }

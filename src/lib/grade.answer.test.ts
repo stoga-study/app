@@ -8,6 +8,7 @@ describe("grading answers", () => {
       verdict: "not_yet", feedback: "Have another look at the answer below.", missing: ["a", "b", "c"],
     });
     expect(cleanGrade(null).verdict).toBe("not_yet");
+    expect(cleanGrade({ verdict: "right", feedback: "You named the author of *The Social Contract*.", missing: [] }).feedback).toBe("You named the author of The Social Contract.");
   });
   it("maps verdicts to review ratings", () => {
     expect([RATING.right, RATING.partly, RATING.not_yet]).toEqual([3, 2, 1]);
