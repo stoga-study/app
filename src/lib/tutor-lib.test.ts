@@ -113,4 +113,15 @@ describe("prompts", () => {
     expect(userTurn([], "is it 0.6?", 3)).toContain("the full explanation for the problem");
     expect(userTurn([], "is it 0.6?", 3)).not.toContain("0.6");
   });
+  it("adds a depth instruction only when it is not standard", () => {
+    expect(systemPrompt({ ...base, mode: "explain" })).not.toContain("Keep this answer simple");
+    expect(systemPrompt({ ...base, mode: "explain", depth: "standard" })).not.toContain("Go deeper here");
+    expect(systemPrompt({ ...base, mode: "explain", depth: "simple" })).toContain("Keep this answer simple");
+    expect(systemPrompt({ ...base, mode: "explain", depth: "deep" })).toContain("Go deeper here");
+  });
+  it("re-asks the last question for a depth override, without repeating it", () => {
+    expect(userTurn([], "what is a p-value?", "simpler")).toContain("more simply");
+    expect(userTurn([], "what is a p-value?", "simpler")).not.toContain("p-value");
+    expect(userTurn([], "what is a p-value?", "deeper")).toContain("in more depth");
+  });
 });

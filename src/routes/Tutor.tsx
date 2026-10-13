@@ -128,7 +128,7 @@ export default function Tutor() {
     if ((kind !== "card" && kind !== "quiz_question") || !id) return;
     explainFired.current = true;
     setParams((p) => { const n = new URLSearchParams(p); n.delete("explain"); return n; }, { replace: true });
-    void ask(kind === "card" ? "Explain this flashcard" : "Explain this question", 1, false, { kind, id });
+    void ask({ question: kind === "card" ? "Explain this flashcard" : "Explain this question", context: { kind, id } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, threadId, live, subject]);
 
@@ -140,11 +140,15 @@ export default function Tutor() {
   const lastAnswer = [...msgs].reverse().find((m) => m.role === "assistant");
   const tutorUse = allowance.data?.tutor_message;
 
-  async function ask(question: string, level: 1 | 2 | 3, followup: boolean, context?: ExplainContext) {
+  async function ask(opts: { question: string; level?: 1 | 2 | 3; followup?: boolean; context?: ExplainContext; depthOverride?: "simpler" | "deeper"; retryMode?: TutorMode }) {
+    const { question, level = 1, followup = false, context, depthOverride, retryMode } = opts;
     if (live) return;
-    setLive({ question: followup ? "" : question, level, mode: null, text: "", sources: [] });
+    setLive({ question: followup || depthOverride ? "" : question, level, mode: null, text: "", sources: [] });
     let thread = threadId;
-    await askTutor(context ? { subject_id: subject!.id, context, thread_id: thread } : { subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup }, (e) => {
+    const body = context
+      ? { subject_id: subject!.id, context, thread_id: thread }
+      : { subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup, ...(depthOverride ? { depth_override: depthOverride, retry_mode: retryMode } : {}) };
+    await askTutor(body, (e) => {
       if (e.type === "meta") {
         thread = e.thread_id;
         setLive((l) => (l ? { ...l, sources: e.sources } : l));
@@ -167,7 +171,7 @@ export default function Tutor() {
     const q = draft.trim();
     if (!q || live) return;
     setDraft("");
-    void ask(q, 1, false);
+    void ask({ question: q });
   }
 
   if (limit) {
@@ -226,11 +230,17 @@ export default function Tutor() {
         {!live && lastAnswer && lastUser && modeOf(lastAnswer) !== "chat" && (
           <div className="flex flex-wrap gap-2">
             {(modeOf(lastAnswer) === "hint" || modeOf(lastAnswer) === "check") && (lastAnswer.hint_level ?? 1) < 3 && (
-              <Button size="sm" onClick={() => ask(lastUser.content, (modeOf(lastAnswer) === "check" ? 3 : (lastAnswer.hint_level ?? 1) + 1) as 2 | 3, true)} disabled={!online}>
+              <Button size="sm" onClick={() => ask({ question: lastUser.content, level: (modeOf(lastAnswer) === "check" ? 3 : (lastAnswer.hint_level ?? 1) + 1) as 2 | 3, followup: true })} disabled={!online}>
                 {modeOf(lastAnswer) === "hint" && (lastAnswer.hint_level ?? 1) === 1 ? "Show hint 2" : "Show full explanation"}
               </Button>
             )}
             {modeOf(lastAnswer) === "hint" && (lastAnswer.hint_level ?? 1) < 3 && <Button size="sm" variant="secondary" onClick={() => inputRef.current?.focus()}>Let me try</Button>}
+            {(modeOf(lastAnswer) === "explain" || modeOf(lastAnswer) === "check" || (modeOf(lastAnswer) === "hint" && (lastAnswer.hint_level ?? 1) >= 3)) && (
+              <>
+                <Button size="sm" variant="secondary" onClick={() => ask({ question: lastUser.content, followup: true, depthOverride: "simpler", retryMode: modeOf(lastAnswer) })} disabled={!online}>Simpler</Button>
+                <Button size="sm" variant="secondary" onClick={() => ask({ question: lastUser.content, followup: true, depthOverride: "deeper", retryMode: modeOf(lastAnswer) })} disabled={!online}>Go deeper</Button>
+              </>
+            )}
             <Button
               size="sm"
               variant="secondary"

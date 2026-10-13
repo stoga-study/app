@@ -712,6 +712,7 @@ export type Database = {
           plan: Database["public"]["Enums"]["plan"]
           review_retention: number
           school: string | null
+          tutor_depth: Database["public"]["Enums"]["tutor_depth"]
           updated_at: string
           user_id: string
         }
@@ -725,6 +726,7 @@ export type Database = {
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
           school?: string | null
+          tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
           updated_at?: string
           user_id: string
         }
@@ -738,6 +740,7 @@ export type Database = {
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
           school?: string | null
+          tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
           updated_at?: string
           user_id?: string
         }
@@ -1386,6 +1389,7 @@ export type Database = {
         | "generating"
         | "ready"
         | "failed"
+      tutor_depth: "simple" | "standard" | "deep"
       usage_kind: "tutor_message" | "upload"
     }
     CompositeTypes: {
@@ -1533,6 +1537,7 @@ export const Constants = {
         "ready",
         "failed",
       ],
+      tutor_depth: ["simple", "standard", "deep"],
       usage_kind: ["tutor_message", "upload"],
     },
   },

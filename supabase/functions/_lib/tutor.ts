@@ -121,14 +121,22 @@ Never mention what you are holding back (no notes like "I won't give the answer 
 Under 110 words.`,
 };
 
-export type PromptInput = { mode: Mode; level: 1 | 2 | 3; className: string; hasSources: boolean; topics: string[]; feeling?: "crisis" | "stressed" | null };
+/** How much to simplify or deepen an answer. "standard" adds no instruction, so most answers stay unaffected. */
+export type Depth = "simple" | "standard" | "deep";
+const DEPTH_STYLE: Record<Depth, string> = {
+  simple: "\n- Keep this answer simple: short, plain sentences, the most basic correct explanation, and define any term you cannot avoid.",
+  standard: "",
+  deep: "\n- Go deeper here: more precise vocabulary and more rigor, as in an AP or Honors class, and include a nuance or an edge case where it fits.",
+};
+
+export type PromptInput = { mode: Mode; level: 1 | 2 | 3; className: string; hasSources: boolean; topics: string[]; feeling?: "crisis" | "stressed" | null; depth?: Depth };
 
 /**
  * The system prompt. Parts shared by every message come first and never change, so the provider can
  * cache them (OpenAI bills cached input at a tenth of the price); the mode, the class and the notes
  * topics come last.
  */
-export function systemPrompt({ mode, level, className, hasSources, topics, feeling }: PromptInput) {
+export function systemPrompt({ mode, level, className, hasSources, topics, feeling, depth }: PromptInput) {
   return `You are the Stoga.study tutor, helping a high school student learn from their own class notes. You are patient, sharp and honest, like the best teacher they have had.
 
 Grounding:
@@ -141,7 +149,7 @@ Style:
 - Match a high school student in their class; AP and Honors classes can go deeper. Lead with what they asked for.
 - If the student sounds stressed or discouraged, start with one kind, genuine sentence. If they mention self-harm or not feeling safe, tell them first to talk to a trusted adult now, or call or text 988 (the Suicide and Crisis Lifeline).
 - Plain, warm, direct sentences. Never use exclamation marks or emoji. No headings. You may use **bold** and "- " bullets.
-- Write math inline in plain text with Unicode, for example: SE = σ/√n = 12/√36 = 2. Never use LaTeX, backslashes, dollar signs, or equations on their own lines.
+- Write math inline in plain text with Unicode, for example: SE = σ/√n = 12/√36 = 2. Never use LaTeX, backslashes, dollar signs, or equations on their own lines.${DEPTH_STYLE[depth ?? "standard"]}
 
 Your task:
 ${TASK[mode](level, className)}
@@ -156,9 +164,13 @@ ${topics.length ? `Their notes topics: ${topics.join("; ")}.` : "The student has
   }`;
 }
 
-/** The student's turn, with the matched pages. */
-export function userTurn(blocks: string[], message: string, followup: false | 2 | 3) {
-  const ask = followup ? `Please give ${followup === 3 ? "the full explanation" : "hint 2 of 3"} for the problem we are working on.` : message;
+/** The student's turn, with the matched pages. A depth override re-asks the same question, not the hint ladder. */
+export function userTurn(blocks: string[], message: string, followup: false | 2 | 3 | "simpler" | "deeper") {
+  const ask = followup === 2 || followup === 3
+    ? `Please give ${followup === 3 ? "the full explanation" : "hint 2 of 3"} for the problem we are working on.`
+    : followup === "simpler" || followup === "deeper"
+      ? `Please answer my last question again, ${followup === "simpler" ? "more simply" : "in more depth"}.`
+      : message;
   return `Pages from my notes:\n${blocks.join("\n\n") || "(none matched)"}\n\n---\n${ask}`;
 }
 

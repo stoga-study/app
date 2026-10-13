@@ -144,3 +144,20 @@ export function useRetention() {
   });
   return { value: profile.data?.review_retention ?? DEFAULT_RETENTION, set };
 }
+
+export type TutorDepth = Database["public"]["Enums"]["tutor_depth"];
+
+/** How deep the tutor goes by default: Simple, Standard or Deep. "Simpler"/"Go deeper" on one answer stay one-off. */
+export function useTutorDepth() {
+  const { session } = useAuth();
+  const profile = useProfile();
+  const qc = useQueryClient();
+  const set = useMutation({
+    mutationFn: async (value: TutorDepth) => {
+      const { error } = await supabase.from("profiles").update({ tutor_depth: value }).eq("user_id", session!.user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
+  });
+  return { value: profile.data?.tutor_depth ?? "standard", set };
+}

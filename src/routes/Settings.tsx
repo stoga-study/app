@@ -10,8 +10,33 @@ import { describeGrade } from "@/lib/grade";
 import { TEXT_LABEL, THEME_LABEL, useTextSize, useTheme, type TextSize, type ThemeChoice } from "@/lib/preferences";
 import { deleteAccount, hostOf, KeyError, PROVIDER_PRESETS, useApiKey, useRemoveKey, useSaveKey, useUpdateName } from "@/lib/queries/account";
 import { RETENTION_CHOICES } from "@/lib/fsrs";
-import { useProfile, useRetention } from "@/lib/queries/profile";
+import { useProfile, useRetention, useTutorDepth, type TutorDepth } from "@/lib/queries/profile";
 import { supabase } from "@/lib/supabase";
+
+const DEPTH_LABEL: Record<TutorDepth, string> = { simple: "Simple", standard: "Standard", deep: "Deep" };
+const DEPTH_DESC: Record<TutorDepth, string> = {
+  simple: "Short, plain explanations with the basics.",
+  standard: "Matches your class level.",
+  deep: "More precise and rigorous, for AP and Honors.",
+};
+
+/** Default depth for new tutor answers. "Simpler" and "Go deeper" on one answer stay one-off. */
+function DepthChoice() {
+  const { value, set } = useTutorDepth();
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="field-label">Tutor answer depth</span>
+      <Segmented<TutorDepth>
+        label="Tutor answer depth"
+        value={value}
+        options={["simple", "standard", "deep"]}
+        labels={DEPTH_LABEL}
+        onChange={(v) => set.mutate(v, { onSuccess: () => toast(`Tutor answers set to ${DEPTH_LABEL[v]}.`), onError: () => toast("We could not save that. Try again.") })}
+      />
+      <p className="field-hint">{DEPTH_DESC[value]} You can still ask for simpler or deeper on any one answer.</p>
+    </div>
+  );
+}
 
 function Segmented<T extends string>({ label, value, options, labels, onChange }: {
   label: string; value: T; options: readonly T[]; labels: Record<T, string>; onChange: (v: T) => void;
@@ -247,6 +272,8 @@ export default function Settings() {
       </Section>
 
       <Section id="review" title="Flashcard reviews"><RetentionChoice /></Section>
+
+      <Section id="tutor" title="AI tutor"><DepthChoice /></Section>
 
       <Section id="own-key" title="Your own key"><OwnKey /></Section>
 

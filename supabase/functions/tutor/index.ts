@@ -10,7 +10,7 @@ import { corsHeaders, json } from "../_lib/cors.ts";
 import { LLM_FAST_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort, type OwnProvider } from "../_lib/llm.ts";
 import { ownProvider } from "../_lib/byok.ts";
 import { cleanText } from "../_lib/study.ts";
-import { checkCitations, CRISIS_LINE, guessMode, obviousMode, ROUTER_SCHEMA, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
+import { checkCitations, CRISIS_LINE, guessMode, MODES, obviousMode, ROUTER_SCHEMA, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 setUsageLogger((row) => admin.from("ai_usage").insert(row));
@@ -133,10 +133,13 @@ Deno.serve(async (req) => {
   if (typeof body.subject_id !== "string") return json(req, { error: "question_required" }, 400);
   const level = [1, 2, 3].includes(body.hint_level) ? body.hint_level : 1;
   const wantsContext = body.context && typeof body.context === "object" && ["card", "quiz_question"].includes(body.context.kind) && typeof body.context.id === "string";
+  // "Simpler" or "Go deeper" on one answer: re-ask the same question, in the same mode, just styled differently.
+  const depthOverride: "simpler" | "deeper" | null = body.depth_override === "simpler" || body.depth_override === "deeper" ? body.depth_override : null;
+  const retryMode: Mode | null = depthOverride && MODES.includes(body.retry_mode) ? body.retry_mode : null;
   let question: string;
   let display: string | null = null;
   let threadTitle: string | null = null;
-  let forcedMode: Mode | null = null;
+  let forcedMode: Mode | null = retryMode;
   let explicitPages: { sourceId: string; pages: number[] } | null = null;
   if (wantsContext) {
     const ctx = await contextQuestion(student.db, body.context as ExplainContext);
@@ -181,14 +184,16 @@ Deno.serve(async (req) => {
 
     // Sources.
     const previous = [...history].reverse().find((m) => m.role === "user" && m.content !== question)?.content ?? null;
-    const feeling = body.followup ? null : wellbeing(question);
-    const [hits, topics, routed] = await Promise.all([
+    const feeling = body.followup || depthOverride ? null : wellbeing(question);
+    const [hits, topics, routed, profileRow] = await Promise.all([
       explicitPages ? retrieveExact(student.db, explicitPages.sourceId, explicitPages.pages) : retrieve(student.db, subject.id, searchTerms(question, previous)),
       noteTopics(student.db, subject.id),
       forcedMode ? Promise.resolve(forcedMode) : body.followup ? Promise.resolve<Mode>("hint") : route(history, question, own, student.userId),
+      depthOverride ? Promise.resolve(null) : student.db.from("profiles").select("tutor_depth").maybeSingle(),
     ]);
     // A student who may be in crisis gets a caring reply, not schoolwork.
     const mode: Mode = feeling === "crisis" ? "chat" : routed;
+    const depth: Depth = depthOverride === "simpler" ? "simple" : depthOverride === "deeper" ? "deep" : (profileRow?.data?.tutor_depth as Depth | undefined) ?? "standard";
     const sources: Src[] = [];
     const blocks: string[] = [];
     for (const h of hits) {
@@ -206,10 +211,10 @@ Deno.serve(async (req) => {
     }
 
     const messages = [
-      { role: "system", content: systemPrompt({ mode, level, className: subject.name, hasSources: sources.length > 0, topics, feeling }) },
+      { role: "system", content: systemPrompt({ mode, level, className: subject.name, hasSources: sources.length > 0, topics, feeling, depth }) },
       // Earlier citation markers are dropped: S1 may mean a different file in this turn.
       ...history.map((m) => ({ role: m.role, content: m.content.replace(/\s*(\[S\d+[^\]]*\]|【[^】]*】)/g, "") })),
-      { role: "user", content: userTurn(blocks, question, body.followup ? (level === 3 ? 3 : 2) : false) },
+      { role: "user", content: userTurn(blocks, question, depthOverride ?? (body.followup ? (level === 3 ? 3 : 2) : false)) },
     ];
 
     // Small talk is quick; a full worked explanation gets more thinking.
@@ -227,7 +232,7 @@ Deno.serve(async (req) => {
     }
     // Saved only once the answer is on its way, so a retry after "busy" does not repeat the question.
     let askedId: string | null = null;
-    if (!body.followup) {
+    if (!body.followup && !depthOverride) {
       const { data: asked } = await student.db.from("chat_messages").insert({ thread_id: threadId, role: "user", content: display ?? question }).select("id").single();
       askedId = asked?.id ?? null;
     }
