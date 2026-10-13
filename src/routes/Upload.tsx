@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, Camera, Check, ClipboardPaste, FileText, Upload as UploadIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { StudySetChooser } from "@/components/StudySetChooser";
+import { UnitPicker } from "@/components/UnitPicker";
 import type { GenOptions } from "../../supabase/functions/_lib/options";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -15,6 +16,8 @@ import { useSubjects } from "@/lib/queries/profile";
 import { prettyFilename } from "@/lib/extract/filename";
 import { pageWord, saveUpload, suggestTitle, UploadLimitError, useAllowance } from "@/lib/queries/sources";
 import { startErrorText, startGeneration, useCaps } from "@/lib/queries/studyset";
+import { choiceFor, fileUnder, useUnits, type UnitChoice } from "@/lib/queries/units";
+import { findUnit } from "@/lib/units";
 import { useOnline } from "@/lib/useOnline";
 
 type Progress = { done: number; total: number; stage: ExtractStage };
@@ -90,7 +93,9 @@ export default function Upload() {
   const inputRef = useRef<HTMLInputElement>(null);
   const caps = useCaps();
   // A choice made before the file finished reading; carried out once it has.
-  const queued = useRef<{ make: GenOptions | null } | null>(null);
+  const queued = useRef<{ make: GenOptions | null; unit: UnitChoice } | null>(null);
+  // The unit the student picked; until then, the one found in the file (if any).
+  const [unitPick, setUnitPick] = useState<UnitChoice | null>(null);
   // Which file the screen is about, so a file the student moved on from is ignored.
   const current = useRef(0);
   const queuedChoice = () => queued.current;
@@ -101,6 +106,7 @@ export default function Upload() {
   const subject = list.find((s) => s.id === subjectId) ?? list[0];
   const uploads = allowance.data?.upload;
   const atLimit = uploads?.limit != null && uploads.used >= uploads.limit;
+  const units = useUnits(subject?.id);
 
   if (subjects.isPending) return <div className="skeleton h-64 rounded-[1.5rem]" />;
   if (list.length === 0)
@@ -113,7 +119,7 @@ export default function Upload() {
       </>
     );
 
-  async function save(name: string, extracted: Extracted, make: GenOptions | null, file?: File, size?: number) {
+  async function save(name: string, extracted: Extracted, make: GenOptions | null, unit: UnitChoice, file?: File, size?: number) {
     const title = file ? prettyFilename(file.name) : name;
     setPhase({ step: "saving", name: title, size, extracted, done: 0, total: extracted.pages.length });
     try {
@@ -126,6 +132,9 @@ export default function Upload() {
         file,
         onSaving: (done, total) => setPhase({ step: "saving", name: title, size, extracted, done, total }),
       });
+      // File it under its unit; the class's current unit follows unless pinned. A miss here never loses the file.
+      await fileUnder(id, subject!.id, unit, true).catch(() => toast("Saved, but we could not file it under a unit. You can pick one on the file's page."));
+      qc.invalidateQueries({ queryKey: ["units"] });
       qc.invalidateQueries({ queryKey: ["sources"] });
       qc.invalidateQueries({ queryKey: ["allowance"] });
       // Make what the student chose; the file page shows the progress. Just saving makes nothing.
@@ -151,6 +160,7 @@ export default function Upload() {
     if (!file) return;
     const run = ++current.current;
     queued.current = null;
+    setUnitPick(null);
     const title = prettyFilename(file.name);
     const photo = /^image\//.test(file.type) || /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name);
     setPhase({ step: "options", name: file.name, title, size: file.size, file, photo, progress: { done: 0, total: 0, stage: photo ? "scan" : "text" } });
@@ -164,18 +174,18 @@ export default function Upload() {
       setPhase((p) => (p.step === "options" ? { ...p, extracted } : p));
       // TypeScript cannot see that a tap may have queued a choice while we awaited, so read it through a function.
       const choice = queuedChoice();
-      if (choice) await save(file.name, extracted, choice.make, file, file.size);
+      if (choice) await save(file.name, extracted, choice.make, choice.unit, file, file.size);
     } catch (e) {
       if (current.current === run) setPhase({ step: "error", name: file.name, code: e instanceof ExtractError ? e.code : "damaged" });
     }
   }
 
   /** "Make it" (with choices) or "Just save it" (null). Waits for the file if it is still being read. */
-  function decide(make: GenOptions | null) {
-    if (phase.step !== "options") return;
-    if (phase.extracted) void save(phase.name, phase.extracted, make, phase.file, phase.size);
+  function decide(make: GenOptions | null, unit: UnitChoice | null) {
+    if (phase.step !== "options" || !unit) return;
+    if (phase.extracted) void save(phase.name, phase.extracted, make, unit, phase.file, phase.size);
     else {
-      queued.current = { make };
+      queued.current = { make, unit };
       setPhase({ ...phase, waiting: true });
     }
   }
@@ -186,6 +196,7 @@ export default function Upload() {
       const extracted = extractPasted(pasted);
       current.current++;
       queued.current = null;
+      setUnitPick(null);
       setPhase({ step: "options", name, title: name, progress: { done: 1, total: 1, stage: "text" }, extracted });
     } catch (e) {
       setPhase({ step: "error", name, code: e instanceof ExtractError ? e.code : "save" });
@@ -194,6 +205,10 @@ export default function Upload() {
 
   if (phase.step === "options") {
     const { progress, extracted } = phase;
+    // Look in the name first, then the first page once it is read ("Ask every time" when neither says).
+    // The raw name, since the tidy title turns "U2L6" into "Lesson 6".
+    const found = findUnit(phase.name, extracted?.pages[0]?.text ?? "");
+    const unit = unitPick ?? choiceFor(found, units.data ?? []);
     const chars = extracted ? extracted.pages.reduce((n, pg) => n + pg.text.length, 0) : null;
     const status = extracted
       ? `${extracted.scannedPages ? "Read scanned" : "Read"} ${extracted.pages.length} ${pageWord(extracted.kind, extracted.pages.length)}`
@@ -212,6 +227,17 @@ export default function Upload() {
             </p>
           </div>
         </div>
+        {(units.data || units.isError) && (
+          <UnitPicker
+            key={phase.name}
+            units={units.data ?? []}
+            value={unit}
+            onChange={setUnitPick}
+            lesson={found?.lesson}
+            word={found?.word}
+            why={extracted ? "We could not tell from the file. Pick one so it is easy to find later." : "Pick one so it is easy to find later."}
+          />
+        )}
         <StudySetChooser
           key={phase.name}
           mode="upload"
@@ -221,8 +247,9 @@ export default function Upload() {
           busy={phase.waiting}
           reading={phase.waiting && !extracted ? "We'll start as soon as the file is read." : null}
           blocked={atLimit ? `That was this month's ${uploads!.limit} study sets. You can still save files and write your own notes. More on ${fmtDate(uploads!.resetsAt)}.` : null}
-          onMake={(o) => decide(o)}
-          onSave={() => decide(null)}
+          needs={unit ? null : "Choose a unit above first (or No unit)."}
+          onMake={(o) => decide(o, unit)}
+          onSave={() => decide(null, unit)}
           onCancel={() => { current.current++; queued.current = null; setPhase({ step: "choose" }); }}
         />
       </div>

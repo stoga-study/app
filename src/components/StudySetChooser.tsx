@@ -16,7 +16,7 @@ const INFO: Record<Part, { label: string; desc: string; again: string; unit?: st
  * Amounts start from a suggestion sized to the file, and the student can change any of them.
  */
 export function StudySetChooser({
-  chars, caps, initial, mode, existing, busy, reading, blocked, onMake, onSave, onCancel,
+  chars, caps, initial, mode, existing, busy, reading, blocked, needs, onMake, onSave, onCancel,
 }: {
   /** Characters of text in the file, or null while it is still being read. */
   chars: number | null;
@@ -32,6 +32,8 @@ export function StudySetChooser({
   reading?: string | null;
   /** Why making is not possible right now (e.g. this month's study sets are used); saving still works. */
   blocked?: string | null;
+  /** Something to answer first (e.g. which unit); both buttons wait for it. */
+  needs?: string | null;
   onMake: (options: GenOptions) => void;
   onSave?: () => void;
   onCancel?: () => void;
@@ -108,9 +110,10 @@ export function StudySetChooser({
       </ul>
       {reading && <p className="text-center text-[0.875rem] text-muted" aria-live="polite">{reading}</p>}
       {blocked && <p className="callout">{blocked}</p>}
+      {needs && <p className="text-[0.875rem] text-muted">{needs}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button disabled={!any || !ready || busy || !!blocked} onClick={make}>{busy ? "Starting…" : mode === "upload" ? "Make it" : "Make these"}</Button>
-        {onSave && <Button variant="secondary" disabled={busy} onClick={onSave}>Just save it</Button>}
+        <Button disabled={!any || !ready || busy || !!blocked || !!needs} onClick={make}>{busy ? "Starting…" : mode === "upload" ? "Make it" : "Make these"}</Button>
+        {onSave && <Button variant="secondary" disabled={busy || !!needs} onClick={onSave}>Just save it</Button>}
         {onCancel && <Button variant="ghost" disabled={busy} onClick={onCancel}>Cancel</Button>}
       </div>
     </section>
