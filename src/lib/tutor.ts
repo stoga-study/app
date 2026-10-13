@@ -15,13 +15,16 @@ export type TutorEvent =
   | { type: "error"; error: string; resets_at?: string; used?: number; limit?: number; retry_after?: number };
 
 export type ExplainContext = { kind: "card" | "quiz_question"; id: string };
+/** Narrows a new conversation to one file or one unit, instead of the whole class. Fixed once the thread starts. */
+export type ChatScope = { source_id: string } | { unit_id: string };
 
 /** Ask the tutor and stream its answer. Errors before the stream starts arrive as an "error" event too.
  * Either a typed question, or `context`: turns a card or a missed quiz question straight into an
- * "explain" answer grounded in its own pages, skipping the router. */
+ * "explain" answer grounded in its own pages, skipping the router. `scope` only matters for a brand
+ * new thread (an existing one keeps the scope it started with). */
 export async function askTutor(
   body:
-    | { subject_id: string; question: string; hint_level: 1 | 2 | 3; thread_id?: string | null; followup?: boolean; depth_override?: "simpler" | "deeper"; worked_example?: boolean; retry_mode?: TutorMode }
+    | { subject_id: string; question: string; hint_level: 1 | 2 | 3; thread_id?: string | null; followup?: boolean; depth_override?: "simpler" | "deeper"; worked_example?: boolean; retry_mode?: TutorMode; scope?: ChatScope }
     | { subject_id: string; context: ExplainContext; thread_id?: string | null },
   onEvent: (e: TutorEvent) => void,
   signal?: AbortSignal,
@@ -79,6 +82,24 @@ export function useThreads(subjectId?: string) {
       const { data, error } = await q;
       if (error) throw error;
       return data;
+    },
+  });
+}
+
+export type ThreadScope = { source_id: string | null; source_filename: string | null; unit_id: string | null; unit_number: string | null; unit_title: string | null };
+
+/** What a thread is scoped to, for the "Asking about: …" chip. Null fields mean the whole class. */
+export function useThreadScope(threadId: string | null) {
+  return useQuery({
+    queryKey: ["thread-scope", threadId],
+    enabled: !!threadId,
+    queryFn: async (): Promise<ThreadScope> => {
+      const { data, error } = await supabase.from("chat_threads")
+        .select("scope_source_id, scope_unit_id, sources(filename), units(number, title)").eq("id", threadId!).single();
+      if (error) throw error;
+      const source = data.sources as unknown as { filename: string } | null;
+      const unit = data.units as unknown as { number: string | null; title: string | null } | null;
+      return { source_id: data.scope_source_id, source_filename: source?.filename ?? null, unit_id: data.scope_unit_id, unit_number: unit?.number ?? null, unit_title: unit?.title ?? null };
     },
   });
 }

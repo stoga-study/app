@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ExternalLink, FileText, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, FileText, MessageCircle, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -226,6 +226,9 @@ export default function SourcePage() {
       </section>
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {(s.status === "ready_text" || ready) && (
+          <Button variant="secondary" asChild><Link to={`/tutor/${s.subject_id}?source=${s.id}`}><MessageCircle /> Ask the tutor about this file</Link></Button>
+        )}
         {s.storage_path && (
           <Button variant="secondary" onClick={() => openOriginal(s).catch(() => toast("We could not open the original. Check your connection, then try again."))}>
             <ExternalLink /> Open original

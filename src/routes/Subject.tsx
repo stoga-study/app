@@ -158,7 +158,7 @@ function ByUnit({ files, notes, units, currentId, subjectId }: { files: Source[]
         const count = g.files.length + g.notes.length;
         return (
           <section key={g.unit?.id ?? "none"} aria-label={g.unit ? unitName(g.unit) : "No unit"} className="flex flex-col gap-2">
-            {g.unit ? <UnitHeading unit={g.unit} current={g.unit.id === currentId} count={count} mastery={m.forUnit(g.unit.id)} questions={practice.data?.[g.unit.id] ?? 0} /> : <h3 className="text-[1.0625rem] text-muted">No unit · {count}</h3>}
+            {g.unit ? <UnitHeading unit={g.unit} subjectId={subjectId} current={g.unit.id === currentId} count={count} mastery={m.forUnit(g.unit.id)} questions={practice.data?.[g.unit.id] ?? 0} /> : <h3 className="text-[1.0625rem] text-muted">No unit · {count}</h3>}
             {!!g.notes.length && <NoteList notes={g.notes} />}
             <FileList files={g.files} />
           </section>
@@ -168,7 +168,7 @@ function ByUnit({ files, notes, units, currentId, subjectId }: { files: Source[]
   );
 }
 
-function UnitHeading({ unit, current, count, mastery, questions }: { unit: Unit; current: boolean; count: number; mastery: Mastery | null; questions: number }) {
+function UnitHeading({ unit, subjectId, current, count, mastery, questions }: { unit: Unit; subjectId: string; current: boolean; count: number; mastery: Mastery | null; questions: number }) {
   const rename = useRenameUnit();
   const [editing, setEditing] = useState<string | null>(null);
   if (editing !== null)
@@ -199,6 +199,7 @@ function UnitHeading({ unit, current, count, mastery, questions }: { unit: Unit;
       <span className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
         <MasteryChip m={mastery} />
         {questions > 0 && <Link to={`/quiz/unit?unit=${unit.id}`} className="text-[0.875rem] font-bold">Practise this unit</Link>}
+        <Link to={`/tutor/${subjectId}?unit=${unit.id}`} className="text-[0.875rem] font-bold">Ask about this unit</Link>
       </span>
     </div>
   );

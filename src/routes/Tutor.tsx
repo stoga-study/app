@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUp, BookOpen, FileText, Layers, ListChecks, MessageCircle, Plus, WifiOff } from "lucide-react";
+import { ArrowLeft, ArrowUp, BookOpen, FileText, Layers, ListChecks, MessageCircle, NotebookPen, Plus, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -10,7 +10,8 @@ import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useSubjects } from "@/lib/queries/profile";
 import { useAllowance } from "@/lib/queries/sources";
-import { askTutor, citesNotes, displayText, HINT_LABEL, makeCardFromAnswer, modeOf, useThreadMessages, useThreads, type Citation, type ExplainContext, type SourceRef, type TutorMessage, type TutorMode } from "@/lib/tutor";
+import { askTutor, citesNotes, displayText, HINT_LABEL, makeCardFromAnswer, modeOf, useThreadMessages, useThreads, useThreadScope, type ChatScope, type Citation, type ExplainContext, type SourceRef, type TutorMessage, type TutorMode } from "@/lib/tutor";
+import { unitName } from "@/lib/units";
 import { useOnline } from "@/lib/useOnline";
 
 const fmtWhen = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
@@ -61,6 +62,12 @@ export function TutorHome() {
 }
 
 function CiteChip({ c }: { c: Pick<Citation, "source_id" | "page" | "kind" | "filename"> }) {
+  if (c.kind === "note")
+    return (
+      <Link to={`/notes/${c.source_id}`} className="source-chip mx-0.5 !min-h-7 align-middle !text-[0.75rem]" title={c.filename}>
+        <NotebookPen aria-hidden="true" /> My notes
+      </Link>
+    );
   return (
     <Link to={`/sources/${c.source_id}`} className="source-chip mx-0.5 !min-h-7 align-middle !text-[0.75rem]" title={c.filename}>
       <FileText aria-hidden="true" />
@@ -107,6 +114,10 @@ export default function Tutor() {
   // The open conversation lives in the URL (?thread=), so links and the back button just work.
   const threadId = params.get("thread");
   const history = useThreadMessages(threadId);
+  // ?source= or ?unit= on a fresh conversation (not yet a thread) narrows what it's scoped to.
+  const scopeSource = !threadId ? params.get("source") : null;
+  const scopeUnit = !threadId ? params.get("unit") : null;
+  const threadScope = useThreadScope(threadId);
   const [draft, setDraft] = useState("");
   const [live, setLive] = useState<{ question: string; level: 1 | 2 | 3; mode: TutorMode | null; text: string; sources: SourceRef[] } | null>(null);
   const [limit, setLimit] = useState<{ resets_at?: string; used?: number; limit?: number } | null>(null);
@@ -145,10 +156,12 @@ export default function Tutor() {
     if (live) return;
     setLive({ question: followup || depthOverride || workedExample ? "" : question, level, mode: null, text: "", sources: [] });
     let thread = threadId;
+    // Only matters the moment a thread is born; an existing thread already has its own scope.
+    const scope: ChatScope | undefined = thread ? undefined : scopeSource ? { source_id: scopeSource } : scopeUnit ? { unit_id: scopeUnit } : undefined;
     const body = context
       ? { subject_id: subject!.id, context, thread_id: thread }
       : {
-          subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup,
+          subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup, scope,
           ...(depthOverride ? { depth_override: depthOverride, retry_mode: retryMode } : {}),
           ...(workedExample ? { worked_example: true, retry_mode: retryMode } : {}),
         };
@@ -204,7 +217,13 @@ export default function Tutor() {
         <button type="button" onClick={() => navigate("/tutor")} className="grid size-11 place-items-center rounded-full" aria-label="Back to tutor"><ArrowLeft className="size-5" /></button>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[1.375rem]">AI tutor</h1>
-          <p className="truncate text-[0.875rem] text-muted">{subject.name}, using your notes</p>
+          <p className="truncate text-[0.875rem] text-muted">
+            {threadScope.data?.source_filename
+              ? `${subject.name} · ${threadScope.data.source_filename}`
+              : threadScope.data?.unit_id
+                ? `${subject.name} · ${unitName({ number: threadScope.data.unit_number, title: threadScope.data.unit_title })}`
+                : `${subject.name}, using your notes`}
+          </p>
         </div>
         <span className="chip">Learn, not copy</span>
         {threadId && <Button variant="ghost" size="sm" aria-label="New question" onClick={() => setParams({}, { replace: true })}><Plus /></Button>}
