@@ -15,7 +15,7 @@ export type ReviewCard = {
 };
 
 /** Which cards a session covers: a class, one unit, and how many at most. */
-export type ReviewScope = { subjectId?: string | null; unitId?: string | null; size?: number | null };
+export type ReviewScope = { subjectId?: string | null; unitId?: string | null; size?: number | null; cardIds?: Set<string> | null };
 
 /** Cards reviewed on this device but not sent yet carry their new schedule, not the server's old one. */
 async function withPending(cards: ReviewCard[]) {
@@ -44,7 +44,9 @@ export function useDueQueue() {
 
 /** The cards one session covers, in order. */
 export function inScope(cards: ReviewCard[], s: ReviewScope) {
-  const mine = cards.filter((c) => (!s.subjectId || c.subject_id === s.subjectId) && (!s.unitId || c.sources?.unit_id === s.unitId));
+  const mine = cards.filter(
+    (c) => (!s.subjectId || c.subject_id === s.subjectId) && (!s.unitId || c.sources?.unit_id === s.unitId) && (!s.cardIds || s.cardIds.has(c.id)),
+  );
   return s.size ? mine.slice(0, s.size) : mine;
 }
 

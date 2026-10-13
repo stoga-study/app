@@ -1,14 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/session";
 import { supabase } from "../supabase";
+import { CARD_FIELDS, type ReviewCard } from "./review";
 
 // Browsing and organising cards: a class's cards, custom decks, tags and bulk actions.
 
-const FIELDS = "id, subject_id, source_id, front, back, pages, tags, state, due, lapses, difficulty, edited, created_at";
-export type OrgCard = {
-  id: string; subject_id: string; source_id: string | null; front: string; back: string; pages: number[]; tags: string[];
-  state: number; due: string; lapses: number; difficulty: number; edited: boolean; created_at: string;
-};
+// The review fields too, so any list here can go straight into a review session.
+const FIELDS = `${CARD_FIELDS}, tags, created_at`;
+export type OrgCard = ReviewCard & { tags: string[]; created_at: string };
 export type Deck = { id: string; name: string; created_at: string; count: number };
 
 /** Every card in a class, oldest first. */
@@ -91,7 +90,7 @@ export function useOrganise() {
       ["class-cards", "decks", "deck", "deck-links", "due-cards", "due-queue", "weak-cards", "studyset"].map((k) => qc.invalidateQueries({ queryKey: [k] })),
     );
   };
-  const run = <A extends unknown[]>(fn: (...a: A) => Promise<unknown>) => async (...a: A) => {
+  const run = <A extends unknown[], R>(fn: (...a: A) => Promise<R>) => async (...a: A): Promise<R> => {
     try {
       return await fn(...a);
     } finally {
