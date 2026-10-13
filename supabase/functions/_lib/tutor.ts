@@ -121,6 +121,8 @@ Never mention what you are holding back (no notes like "I won't give the answer 
 Under 110 words.`,
 };
 
+const WORKED_EXAMPLE = `Instead of the usual hint, show a WORKED EXAMPLE. Invent a similar problem of the same type as the one we are working on, but with different numbers or details, then solve it step by step, explaining each step, with its final answer in **bold**. Never use the student's own numbers and never solve their exact problem. End with one short sentence telling them to try their own problem the same way. Under 220 words.`;
+
 /** How much to simplify or deepen an answer. "standard" adds no instruction, so most answers stay unaffected. */
 export type Depth = "simple" | "standard" | "deep";
 const DEPTH_STYLE: Record<Depth, string> = {
@@ -129,14 +131,18 @@ const DEPTH_STYLE: Record<Depth, string> = {
   deep: "\n- Go deeper here: more precise vocabulary and more rigor, as in an AP or Honors class, and include a nuance or an edge case where it fits.",
 };
 
-export type PromptInput = { mode: Mode; level: 1 | 2 | 3; className: string; hasSources: boolean; topics: string[]; feeling?: "crisis" | "stressed" | null; depth?: Depth };
+export type PromptInput = {
+  mode: Mode; level: 1 | 2 | 3; className: string; hasSources: boolean; topics: string[]; feeling?: "crisis" | "stressed" | null; depth?: Depth;
+  /** "Show a worked example": a similar problem solved end to end, in place of the usual hint ladder. */
+  workedExample?: boolean;
+};
 
 /**
  * The system prompt. Parts shared by every message come first and never change, so the provider can
  * cache them (OpenAI bills cached input at a tenth of the price); the mode, the class and the notes
  * topics come last.
  */
-export function systemPrompt({ mode, level, className, hasSources, topics, feeling, depth }: PromptInput) {
+export function systemPrompt({ mode, level, className, hasSources, topics, feeling, depth, workedExample }: PromptInput) {
   return `You are the Stoga.study tutor, helping a high school student learn from their own class notes. You are patient, sharp and honest, like the best teacher they have had.
 
 Grounding:
@@ -152,7 +158,7 @@ Style:
 - Write math inline in plain text with Unicode, for example: SE = σ/√n = 12/√36 = 2. Never use LaTeX, backslashes, dollar signs, or equations on their own lines.${DEPTH_STYLE[depth ?? "standard"]}
 
 Your task:
-${TASK[mode](level, className)}
+${workedExample && mode === "hint" ? WORKED_EXAMPLE : TASK[mode](level, className)}
 
 The class: ${className}.${hasSources ? "" : " No pages from their notes matched this message."}
 ${topics.length ? `Their notes topics: ${topics.join("; ")}.` : "The student has not uploaded notes for this class yet. When it fits, suggest adding them so answers can cite their pages."}${
@@ -164,13 +170,15 @@ ${topics.length ? `Their notes topics: ${topics.join("; ")}.` : "The student has
   }`;
 }
 
-/** The student's turn, with the matched pages. A depth override re-asks the same question, not the hint ladder. */
-export function userTurn(blocks: string[], message: string, followup: false | 2 | 3 | "simpler" | "deeper") {
+/** The student's turn, with the matched pages. A depth override or a worked example re-asks, not the hint ladder. */
+export function userTurn(blocks: string[], message: string, followup: false | 2 | 3 | "simpler" | "deeper" | "worked") {
   const ask = followup === 2 || followup === 3
     ? `Please give ${followup === 3 ? "the full explanation" : "hint 2 of 3"} for the problem we are working on.`
     : followup === "simpler" || followup === "deeper"
       ? `Please answer my last question again, ${followup === "simpler" ? "more simply" : "in more depth"}.`
-      : message;
+      : followup === "worked"
+        ? `Please show a worked example for the problem we are working on.`
+        : message;
   return `Pages from my notes:\n${blocks.join("\n\n") || "(none matched)"}\n\n---\n${ask}`;
 }
 

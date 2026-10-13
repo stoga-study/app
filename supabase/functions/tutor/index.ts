@@ -133,13 +133,16 @@ Deno.serve(async (req) => {
   if (typeof body.subject_id !== "string") return json(req, { error: "question_required" }, 400);
   const level = [1, 2, 3].includes(body.hint_level) ? body.hint_level : 1;
   const wantsContext = body.context && typeof body.context === "object" && ["card", "quiz_question"].includes(body.context.kind) && typeof body.context.id === "string";
-  // "Simpler" or "Go deeper" on one answer: re-ask the same question, in the same mode, just styled differently.
+  // "Simpler" or "Go deeper" on one answer, or "Show a worked example": re-ask the same question, in
+  // the same mode, just styled differently (a worked example only makes sense while working a problem).
   const depthOverride: "simpler" | "deeper" | null = body.depth_override === "simpler" || body.depth_override === "deeper" ? body.depth_override : null;
-  const retryMode: Mode | null = depthOverride && MODES.includes(body.retry_mode) ? body.retry_mode : null;
+  const wantsWorked = body.worked_example === true;
+  const isRetry = !!depthOverride || wantsWorked;
+  const retryMode: Mode | null = isRetry && MODES.includes(body.retry_mode) ? body.retry_mode : null;
   let question: string;
   let display: string | null = null;
   let threadTitle: string | null = null;
-  let forcedMode: Mode | null = retryMode;
+  let forcedMode: Mode | null = wantsWorked ? "hint" : retryMode;
   let explicitPages: { sourceId: string; pages: number[] } | null = null;
   if (wantsContext) {
     const ctx = await contextQuestion(student.db, body.context as ExplainContext);
@@ -184,7 +187,7 @@ Deno.serve(async (req) => {
 
     // Sources.
     const previous = [...history].reverse().find((m) => m.role === "user" && m.content !== question)?.content ?? null;
-    const feeling = body.followup || depthOverride ? null : wellbeing(question);
+    const feeling = body.followup || isRetry ? null : wellbeing(question);
     const [hits, topics, routed, profileRow] = await Promise.all([
       explicitPages ? retrieveExact(student.db, explicitPages.sourceId, explicitPages.pages) : retrieve(student.db, subject.id, searchTerms(question, previous)),
       noteTopics(student.db, subject.id),
@@ -211,10 +214,10 @@ Deno.serve(async (req) => {
     }
 
     const messages = [
-      { role: "system", content: systemPrompt({ mode, level, className: subject.name, hasSources: sources.length > 0, topics, feeling, depth }) },
+      { role: "system", content: systemPrompt({ mode, level, className: subject.name, hasSources: sources.length > 0, topics, feeling, depth, workedExample: wantsWorked }) },
       // Earlier citation markers are dropped: S1 may mean a different file in this turn.
       ...history.map((m) => ({ role: m.role, content: m.content.replace(/\s*(\[S\d+[^\]]*\]|【[^】]*】)/g, "") })),
-      { role: "user", content: userTurn(blocks, question, depthOverride ?? (body.followup ? (level === 3 ? 3 : 2) : false)) },
+      { role: "user", content: userTurn(blocks, question, depthOverride ?? (wantsWorked ? "worked" : body.followup ? (level === 3 ? 3 : 2) : false)) },
     ];
 
     // Small talk is quick; a full worked explanation gets more thinking.
@@ -232,7 +235,7 @@ Deno.serve(async (req) => {
     }
     // Saved only once the answer is on its way, so a retry after "busy" does not repeat the question.
     let askedId: string | null = null;
-    if (!body.followup && !depthOverride) {
+    if (!body.followup && !isRetry) {
       const { data: asked } = await student.db.from("chat_messages").insert({ thread_id: threadId, role: "user", content: display ?? question }).select("id").single();
       askedId = asked?.id ?? null;
     }

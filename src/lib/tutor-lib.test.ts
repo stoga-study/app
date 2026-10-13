@@ -124,4 +124,13 @@ describe("prompts", () => {
     expect(userTurn([], "what is a p-value?", "simpler")).not.toContain("p-value");
     expect(userTurn([], "what is a p-value?", "deeper")).toContain("in more depth");
   });
+  it("asks for a worked example instead of repeating the problem", () => {
+    expect(userTurn([], "find x: 2x + 3 = 11", "worked")).toContain("a worked example");
+    expect(userTurn([], "find x: 2x + 3 = 11", "worked")).not.toContain("2x + 3");
+  });
+  it("swaps in the worked-example task only for hint mode", () => {
+    expect(systemPrompt({ ...base, mode: "hint", workedExample: true })).toContain("WORKED EXAMPLE");
+    expect(systemPrompt({ ...base, mode: "hint", workedExample: true })).not.toContain("HINT 1 of 3");
+    expect(systemPrompt({ ...base, mode: "explain", workedExample: true })).not.toContain("WORKED EXAMPLE");
+  });
 });

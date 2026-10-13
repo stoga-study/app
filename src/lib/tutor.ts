@@ -21,7 +21,7 @@ export type ExplainContext = { kind: "card" | "quiz_question"; id: string };
  * "explain" answer grounded in its own pages, skipping the router. */
 export async function askTutor(
   body:
-    | { subject_id: string; question: string; hint_level: 1 | 2 | 3; thread_id?: string | null; followup?: boolean; depth_override?: "simpler" | "deeper"; retry_mode?: TutorMode }
+    | { subject_id: string; question: string; hint_level: 1 | 2 | 3; thread_id?: string | null; followup?: boolean; depth_override?: "simpler" | "deeper"; worked_example?: boolean; retry_mode?: TutorMode }
     | { subject_id: string; context: ExplainContext; thread_id?: string | null },
   onEvent: (e: TutorEvent) => void,
   signal?: AbortSignal,
