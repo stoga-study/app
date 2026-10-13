@@ -7,9 +7,12 @@ import { ErrorState, PageSkeleton } from "@/components/States";
 import { Failed, Processing, SetView } from "@/components/StudySet";
 import { StudySetChooser } from "@/components/StudySetChooser";
 import { Button } from "@/components/ui/button";
+import { UnitPicker } from "@/components/UnitPicker";
 import { useSubjects } from "@/lib/queries/profile";
 import { openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages } from "@/lib/queries/sources";
 import { startErrorText, startGeneration, useCaps, useLiveSource, useStudySet } from "@/lib/queries/studyset";
+import { useFileUnder, useUnits } from "@/lib/queries/units";
+import { findUnit } from "@/lib/units";
 import type { GenOptions } from "../../supabase/functions/_lib/options";
 
 /** The biggest thing a study set has, for the header: cards first, then questions, notes or guide. */
@@ -39,6 +42,8 @@ export default function SourcePage() {
   const set = useStudySet(id, ready);
   const caps = useCaps();
   const [more, setMore] = useState(false);
+  const units = useUnits(source.data?.subject_id);
+  const fileUnder = useFileUnder();
 
   /** Make a study set (or more of one) with these choices, or resume a failed one (no choices). */
   async function start(options?: GenOptions) {
@@ -144,6 +149,18 @@ export default function SourcePage() {
         )}
       </section>
 
+      {units.data && (
+        <div className="mt-4">
+          <UnitPicker
+            units={units.data}
+            value={s.unit_id ? { kind: "existing", id: s.unit_id, lesson: s.lesson } : { kind: "none" }}
+            lesson={s.lesson ?? findUnit(s.original_filename ?? s.filename)?.lesson}
+            onChange={(choice) =>
+              fileUnder.mutate({ sourceId: s.id, subjectId: s.subject_id, choice }, { onError: () => toast("We could not change the unit. Check your connection, then try again.") })
+            }
+          />
+        </div>
+      )}
       {s.status === "generating" && <Processing source={s} />}
       {s.status === "failed" && <Failed source={s} onRetry={() => start()} retrying={starting} />}
       {s.status === "ready_text" && caps.data && (
