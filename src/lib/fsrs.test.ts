@@ -42,4 +42,11 @@ describe("FSRS scheduling", () => {
     expect(isWeak({ state: 2, lapses: 1, difficulty: 5 })).toBe(false);
     expect(isWeak({ state: 0, lapses: 0, difficulty: 9 })).toBe(false);
   });
+  it("never throws on an odd saved state", () => {
+    const odd = { ...fresh, difficulty: 5, stability: 0 };
+    expect(() => previewIntervals(odd, now)).not.toThrow();
+    expect(rate(odd, Rating.Good, now).row.state).toBeGreaterThan(0);
+    const broken = { ...toRow(createEmptyCard(now)), state: 2, stability: 0, difficulty: 0 };
+    expect(() => rate(broken, Rating.Good, now)).not.toThrow();
+  });
 });

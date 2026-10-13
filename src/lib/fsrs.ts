@@ -1,4 +1,4 @@
-import { fsrs, generatorParameters, Rating, type Card, type Grade } from "ts-fsrs";
+import { createEmptyCard, fsrs, generatorParameters, Rating, type Card, type Grade } from "ts-fsrs";
 
 // Spaced repetition (FSRS). Cards come back just before they would be forgotten.
 // Fuzz spreads reviews so a batch of new cards does not all return on the same day.
@@ -39,6 +39,8 @@ export const GRADES: { grade: Grade; label: string }[] = [
 ];
 
 export function toCard(r: CardRow): Card {
+  // A new card has no memory state yet; odd values (say, an edited row) would make FSRS throw.
+  if (r.state === 0) return { ...createEmptyCard(new Date(r.due)), reps: r.reps, lapses: r.lapses };
   return {
     due: new Date(r.due), stability: r.stability, difficulty: r.difficulty, elapsed_days: r.elapsed_days,
     scheduled_days: r.scheduled_days, learning_steps: r.learning_steps, reps: r.reps, lapses: r.lapses,
@@ -55,8 +57,17 @@ export function toRow(c: Card): CardRow {
 }
 
 /** The next schedule after rating a card, plus the review log fields. */
+/** FSRS on a card, falling back to treating it as new if its saved state is not valid. */
+function safely<T>(row: CardRow, fn: (c: Card) => T): T {
+  try {
+    return fn(toCard(row));
+  } catch {
+    return fn(toCard({ ...row, state: 0 }));
+  }
+}
+
 export function rate(row: CardRow, grade: Grade, now = new Date(), retention = DEFAULT_RETENTION) {
-  const { card, log } = schedulerFor(retention).next(toCard(row), now, grade);
+  const { card, log } = safely(row, (c) => schedulerFor(retention).next(c, now, grade));
   return { row: toRow(card), state: log.state };
 }
 
@@ -75,6 +86,6 @@ export function intervalLabel(due: Date, now = new Date()) {
 }
 
 export function previewIntervals(row: CardRow, now = new Date(), retention = DEFAULT_RETENTION) {
-  const preview = schedulerFor(retention).repeat(toCard(row), now);
+  const preview = safely(row, (c) => schedulerFor(retention).repeat(c, now));
   return GRADES.map(({ grade, label }) => ({ grade, label, when: intervalLabel(preview[grade].card.due, now) }));
 }
