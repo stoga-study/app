@@ -8,7 +8,7 @@ import { PageChips } from "@/components/PageChips";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import type { Json } from "@/lib/database.types";
-import { recordAnswer, startAttempt, useMistakes, useQuiz, type Question } from "@/lib/queries/quiz";
+import { loadAttempt, recordAnswer, startAttempt, useMistakes, useQuiz, type Question } from "@/lib/queries/quiz";
 
 type Item = Question & { kind: string };
 
@@ -41,13 +41,26 @@ export default function Quiz() {
   const [answers, setAnswers] = useState<{ q: string; chosen: number; correct: boolean }[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
 
+  // ?attempt= picks up a quiz left part-way ("Continue studying"); otherwise a new try starts.
+  const resume = params.get("attempt");
   useEffect(() => {
-    if (!mistakesMode && quiz.data && items?.length && attemptId === null)
-      startAttempt(quiz.data.quiz.id, items.length).then(setAttemptId).catch(() => setAttemptId(""));
-  }, [mistakesMode, quiz.data, items, attemptId]);
+    if (mistakesMode || !quiz.data || !items?.length || attemptId !== null) return;
+    const quizId = quiz.data.quiz.id;
+    const fresh = () => startAttempt(quizId, items.length).then(setAttemptId).catch(() => setAttemptId(""));
+    if (!resume) return void fresh();
+    loadAttempt(resume)
+      .then((a) => {
+        const done = Array.isArray(a?.answers) ? (a.answers as unknown as { q: string; chosen: number; correct: boolean }[]) : [];
+        if (!a || a.quiz_id !== quizId || a.finished_at || !done.length || done.length >= items.length) return fresh();
+        setAnswers(done);
+        setI(done.length);
+        setAttemptId(a.id);
+      })
+      .catch(fresh);
+  }, [mistakesMode, quiz.data, items, attemptId, resume]);
 
   const loading = mistakesMode ? mistakes.isPending : quiz.isPending;
-  if (loading || items === null) return <PageSkeleton label="Getting your questions ready." />;
+  if (loading || items === null || (resume && attemptId === null && !mistakesMode)) return <PageSkeleton label="Getting your questions ready." />;
   if (quiz.isError || mistakes.isError) return <ErrorState title="We could not load this quiz" onRetry={() => (mistakesMode ? mistakes.refetch() : quiz.refetch())}>Check your connection, then try again.</ErrorState>;
   if (!mistakesMode && !quiz.data) return <ErrorState title="This quiz is not here anymore">It may have been deleted. <Link to="/review">Back to review</Link>.</ErrorState>;
   if (items.length === 0)
@@ -108,6 +121,7 @@ export default function Quiz() {
       });
       qc.invalidateQueries({ queryKey: ["mistakes"] });
       qc.invalidateQueries({ queryKey: ["quiz-list"] });
+      qc.invalidateQueries({ queryKey: ["unfinished-quiz"] });
     } catch {
       toast("We could not save that answer. Check your connection; your quiz continues.");
     }

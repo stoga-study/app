@@ -106,3 +106,36 @@ export async function recordAnswer(opts: { attemptId: string | null; questionId:
     );
   }
 }
+
+/**
+ * The quiz to finish: the latest attempt with answers, if it was left part-way in the last week
+ * (a later full try of any quiz means there is nothing to resume).
+ */
+export function useUnfinishedQuiz() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["unfinished-quiz", session?.user.id],
+    enabled: !!session,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quiz_attempts")
+        .select("id, quiz_id, total, answers, finished_at, created_at, quizzes(title)")
+        .neq("answers", "[]")
+        .gte("created_at", new Date(Date.now() - 7 * 86400_000).toISOString())
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      const a = data[0];
+      const done = Array.isArray(a?.answers) ? a.answers.length : 0;
+      if (!a || a.finished_at || done === 0 || done >= a.total) return null;
+      return { attemptId: a.id, quizId: a.quiz_id, title: (a.quizzes as unknown as { title: string } | null)?.title ?? "Practice quiz", done, total: a.total, at: a.created_at };
+    },
+  });
+}
+
+/** A part-done attempt's answers, to pick the quiz back up where it was left. */
+export async function loadAttempt(id: string) {
+  const { data, error } = await supabase.from("quiz_attempts").select("id, quiz_id, answers, finished_at").eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
