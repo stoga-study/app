@@ -590,7 +590,6 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email_updates: boolean
           first_name: string | null
           grade: string | null
           graduation_year: number | null
@@ -603,7 +602,6 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          email_updates?: boolean
           first_name?: string | null
           grade?: string | null
           graduation_year?: number | null
@@ -616,7 +614,6 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          email_updates?: boolean
           first_name?: string | null
           grade?: string | null
           graduation_year?: number | null
@@ -785,24 +782,6 @@ export type Database = {
             referencedColumns: ["id", "user_id"]
           },
         ]
-      }
-      release_emails: {
-        Row: {
-          sent_at: string
-          user_id: string
-          version: string
-        }
-        Insert: {
-          sent_at?: string
-          user_id: string
-          version: string
-        }
-        Update: {
-          sent_at?: string
-          user_id?: string
-          version?: string
-        }
-        Relationships: []
       }
       shared_sets: {
         Row: {
