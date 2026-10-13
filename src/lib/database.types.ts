@@ -177,6 +177,7 @@ export type Database = {
           stability: number
           state: number
           subject_id: string
+          tags: string[]
           user_id: string
         }
         Insert: {
@@ -199,6 +200,7 @@ export type Database = {
           stability?: number
           state?: number
           subject_id: string
+          tags?: string[]
           user_id?: string
         }
         Update: {
@@ -221,6 +223,7 @@ export type Database = {
           stability?: number
           state?: number
           subject_id?: string
+          tags?: string[]
           user_id?: string
         }
         Relationships: [
@@ -339,6 +342,63 @@ export type Database = {
             referencedColumns: ["id", "user_id"]
           },
         ]
+      }
+      deck_cards: {
+        Row: {
+          added_at: string
+          card_id: string
+          deck_id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          card_id: string
+          deck_id: string
+          user_id?: string
+        }
+        Update: {
+          added_at?: string
+          card_id?: string
+          deck_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deck_cards_card_id_user_id_fkey"
+            columns: ["card_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "cards"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "deck_cards_deck_id_user_id_fkey"
+            columns: ["deck_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "decks"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      decks: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       feedback: {
         Row: {
@@ -1191,6 +1251,10 @@ export type Database = {
           p_user: string
         }
         Returns: boolean
+      }
+      merge_decks: {
+        Args: { from_deck: string; into_deck: string }
+        Returns: undefined
       }
       period_end: { Args: { p_period: string }; Returns: string }
       period_start: { Args: { p_period: string }; Returns: string }
