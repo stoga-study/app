@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.2.5",
+      "date": "2026-10-13",
+      "title": "Ask about just one file or unit",
+      "intro": "A chat can now stay on topic, and it reads your own notes too.",
+      "highlights": [
+        {
+          "icon": "scope",
+          "title": "Ask about this file, or this unit",
+          "text": "From a file's page or a unit on your class page, start a conversation scoped to just that, so answers and citations stay on topic."
+        },
+        {
+          "icon": "notes",
+          "title": "The tutor reads your own notes",
+          "text": "Answers can now cite what you wrote yourself, labelled \"your notes\", alongside your uploaded files."
+        }
+      ]
+    },
+    {
       "version": "1.2.4",
       "date": "2026-10-13",
       "title": "Summaries, key terms and a focused guide",
