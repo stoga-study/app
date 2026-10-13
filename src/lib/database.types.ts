@@ -1293,6 +1293,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      tag_cards: {
+        Args: { card_ids: string[]; tag: string }
+        Returns: undefined
+      }
+      untag_cards: {
+        Args: { card_ids: string[]; tag: string }
+        Returns: undefined
+      }
     }
     Enums: {
       plan: "essential" | "independent" | "unlimited"
