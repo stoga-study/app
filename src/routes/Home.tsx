@@ -27,7 +27,7 @@ export default function Home() {
   const name = profile.data?.first_name;
   const due = useDueCards();
   // Fetch today's review queue in the background, so review works even if the connection drops.
-  useDueQueue(null);
+  useDueQueue();
   const dueNames = Object.entries(due.data?.bySubject ?? {})
     .sort((a, b) => b[1] - a[1])
     .map(([id]) => subjects.data?.find((s) => s.id === id)?.name)

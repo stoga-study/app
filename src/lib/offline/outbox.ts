@@ -20,6 +20,16 @@ async function announce() {
   listeners.forEach((fn) => fn(n));
 }
 
+/** Each card with a review still waiting to send, and the schedule that review gave it. */
+export async function pendingSchedules(): Promise<Map<string, CardRow>> {
+  try {
+    const jobs = ((await (await db()).getAll("reviews")) as ReviewJob[]).sort((a, b) => a.reviewed_at.localeCompare(b.reviewed_at));
+    return new Map(jobs.map((j) => [j.card_id, j.schedule]));
+  } catch {
+    return new Map();
+  }
+}
+
 export async function pendingCount() {
   return (await db()).count("reviews");
 }

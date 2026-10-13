@@ -1,30 +1,75 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/session";
 import { supabase } from "../supabase";
+import { isWeak, WEAK } from "../fsrs";
+import { pendingSchedules } from "../offline/outbox";
 import { endOfToday } from "./cards";
 
 export const CARD_FIELDS =
-  "id, subject_id, source_id, front, back, pages, edited, due, stability, difficulty, elapsed_days, scheduled_days, learning_steps, reps, lapses, state, last_review, sources(kind)";
+  "id, subject_id, source_id, front, back, pages, edited, due, stability, difficulty, elapsed_days, scheduled_days, learning_steps, reps, lapses, state, last_review, sources(kind, unit_id)";
 
 export type ReviewCard = {
   id: string; subject_id: string; source_id: string | null; front: string; back: string; pages: number[]; edited: boolean;
   due: string; stability: number; difficulty: number; elapsed_days: number; scheduled_days: number; learning_steps: number;
-  reps: number; lapses: number; state: number; last_review: string | null; sources: { kind: string } | null;
+  reps: number; lapses: number; state: number; last_review: string | null; sources: { kind: string; unit_id: string | null } | null;
 };
 
-/** Cards due by the end of today, oldest first. */
-export function useDueQueue(subjectId: string | null, limit = 60) {
+/** Which cards a session covers: a class, one unit, and how many at most. */
+export type ReviewScope = { subjectId?: string | null; unitId?: string | null; size?: number | null };
+
+/** Cards reviewed on this device but not sent yet carry their new schedule, not the server's old one. */
+async function withPending(cards: ReviewCard[]) {
+  const pending = await pendingSchedules();
+  return cards.map((c) => (pending.has(c.id) ? { ...c, ...pending.get(c.id)! } : c));
+}
+
+/**
+ * Every card due by the end of today (up to 400), oldest first. One list serves every session
+ * (class, unit, size), so all of them work offline. Checked again each time a session opens.
+ */
+export function useDueQueue() {
   const { session } = useAuth();
   return useQuery({
-    queryKey: ["due-queue", session?.user.id, subjectId],
+    queryKey: ["due-queue", session?.user.id],
     enabled: !!session,
-    staleTime: Infinity,
+    refetchOnMount: "always",
     queryFn: async () => {
-      let q = supabase.from("cards").select(CARD_FIELDS).lte("due", endOfToday().toISOString()).order("due").limit(limit);
-      if (subjectId) q = q.eq("subject_id", subjectId);
-      const { data, error } = await q;
+      const { data, error } = await supabase.from("cards").select(CARD_FIELDS).lte("due", endOfToday().toISOString()).order("due").limit(400);
       if (error) throw error;
-      return data as unknown as ReviewCard[];
+      const cutoff = endOfToday().getTime();
+      return (await withPending(data as unknown as ReviewCard[])).filter((c) => new Date(c.due).getTime() <= cutoff);
+    },
+  });
+}
+
+/** The cards one session covers, in order. */
+export function inScope(cards: ReviewCard[], s: ReviewScope) {
+  const mine = cards.filter((c) => (!s.subjectId || c.subject_id === s.subjectId) && (!s.unitId || c.sources?.unit_id === s.unitId));
+  return s.size ? mine.slice(0, s.size) : mine;
+}
+
+/**
+ * Weak cards (see `isWeak`): forgotten twice or more, or hard for you. Practised any time, not only
+ * when due; the most-missed first.
+ */
+export function useWeakCards() {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["weak-cards", session?.user.id],
+    enabled: !!session,
+    refetchOnMount: "always",
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("cards")
+        .select(CARD_FIELDS)
+        .neq("state", 0)
+        .or(`lapses.gte.${WEAK.lapses},difficulty.gte.${WEAK.difficulty}`)
+        .order("lapses", { ascending: false })
+        .order("difficulty", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      // A review waiting on this device may have changed whether a card is still weak.
+      return (await withPending(data as unknown as ReviewCard[])).filter(isWeak);
     },
   });
 }
