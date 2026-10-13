@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Bold, CheckSquare, Cloud, CloudOff, FileText, Heading, List, Sigma, Trash2 } from "lucide-react";
+import { ArrowLeft, Bold, CheckSquare, Cloud, CloudOff, FileText, Heading, List, Sigma, Sparkles, Trash2, Wand2 } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -9,10 +9,21 @@ import { Button } from "@/components/ui/button";
 import { insert, noteTitle, toggleCheck, toggleLines, wrap, type Edit } from "@/lib/noteEdit";
 import { setRecent } from "@/lib/recent";
 import { pushNote, saveDraft, useDeleteNote, useNote, type NoteDraft } from "@/lib/queries/notes";
+import { AssistError, fillGaps, makeCardsFromNote, tidyNote } from "@/lib/queries/notesAssist";
 import { useAllSubjects } from "@/lib/queries/profile";
 import { pageWord, useSource, useSourcePages } from "@/lib/queries/sources";
 import { useUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
+
+const ASSIST_ERROR: Record<AssistError["code"], string> = {
+  limit: "That is today's AI helpers for notes. More tomorrow.",
+  key_invalid: "Your own key did not work. Check it in Settings.",
+  busy: "Stoga.study is busy right now. Try again in a minute.",
+  unavailable: "That did not work. Try again in a moment.",
+  offline: "You are offline. This needs a connection.",
+  no_file: "This note is not linked to a file.",
+  empty_note: "Write something first.",
+};
 
 const SYMBOLS = ["x̄", "p̂", "²", "³", "√", "π", "θ", "Δ", "μ", "σ", "Σ", "±", "≤", "≥", "≠", "≈", "→", "∞", "°", "½"];
 type Status = "new" | "saving" | "saved" | "device";
@@ -40,6 +51,8 @@ function Editor({ start, isNew }: { start: NoteDraft; isNew: boolean }) {
   const [view, setView] = useState<"write" | "preview" | "file">(isNew || !start.body ? "write" : "preview");
   const [symbols, setSymbols] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [aiBusy, setAiBusy] = useState<"tidy" | "fill_gaps" | "make_cards" | null>(null);
+  const [suggestion, setSuggestion] = useState<{ kind: "tidy"; body: string } | { kind: "fill_gaps"; additions: { text: string; page: number }[]; word: "page" | "part" } | null>(null);
   const area = useRef<HTMLTextAreaElement>(null);
   const selection = useRef<[number, number] | null>(null);
   const latest = useRef<NoteDraft | null>(null);
@@ -113,6 +126,59 @@ function Editor({ start, isNew }: { start: NoteDraft; isNew: boolean }) {
     ta.setSelectionRange(sel[0], sel[1]);
   });
 
+  async function runTidy() {
+    if (aiBusy || status === "new" || !note.body.trim()) return;
+    setAiBusy("tidy");
+    try {
+      const { body: tidied } = await tidyNote(note.id);
+      setSuggestion({ kind: "tidy", body: tidied });
+    } catch (e) {
+      toast(ASSIST_ERROR[e instanceof AssistError ? e.code : "unavailable"]);
+    } finally {
+      setAiBusy(null);
+    }
+  }
+
+  async function runFillGaps() {
+    if (aiBusy || status === "new" || !note.source_id) return;
+    setAiBusy("fill_gaps");
+    try {
+      const { additions, word } = await fillGaps(note.id);
+      if (!additions.length) toast("Your notes already cover the file well: nothing to add.");
+      else setSuggestion({ kind: "fill_gaps", additions, word });
+    } catch (e) {
+      toast(ASSIST_ERROR[e instanceof AssistError ? e.code : "unavailable"]);
+    } finally {
+      setAiBusy(null);
+    }
+  }
+
+  async function runMakeCards() {
+    if (aiBusy || status === "new" || !note.body.trim()) return;
+    setAiBusy("make_cards");
+    try {
+      const { cards } = await makeCardsFromNote(note.id);
+      toast(`${cards.length} ${cards.length === 1 ? "card" : "cards"} added. You can edit them in review.`);
+      qc.invalidateQueries({ queryKey: ["due-queue"] });
+      qc.invalidateQueries({ queryKey: ["due-cards"] });
+      qc.invalidateQueries({ queryKey: ["class-cards"] });
+    } catch (e) {
+      toast(ASSIST_ERROR[e instanceof AssistError ? e.code : "unavailable"]);
+    } finally {
+      setAiBusy(null);
+    }
+  }
+
+  function acceptSuggestion() {
+    if (suggestion?.kind === "tidy") change({ body: suggestion.body });
+    else if (suggestion?.kind === "fill_gaps") {
+      const label = suggestion.word === "page" ? "p." : "part";
+      const lines = suggestion.additions.map((a) => `- ${a.text} (${label} ${a.page})`).join("\n");
+      change({ body: `${note.body}${note.body.trim() ? "\n\n" : ""}${lines}` });
+    }
+    setSuggestion(null);
+  }
+
   async function onDelete() {
     try {
       clearTimeout(timer.current);
@@ -176,7 +242,38 @@ function Editor({ start, isNew }: { start: NoteDraft; isNew: boolean }) {
               ))}
             </div>
           )}
+          {status !== "new" && (
+            <div className="flex w-full flex-wrap gap-2 pt-1" role="group" aria-label="AI helpers">
+              <Button variant="secondary" size="sm" disabled={!!aiBusy || !note.body.trim()} onClick={runTidy}><Wand2 /> {aiBusy === "tidy" ? "Tidying…" : "Tidy"}</Button>
+              {note.source_id && (
+                <Button variant="secondary" size="sm" disabled={!!aiBusy} onClick={runFillGaps}><Sparkles /> {aiBusy === "fill_gaps" ? "Checking…" : "Fill gaps from the file"}</Button>
+              )}
+              <Button variant="secondary" size="sm" disabled={!!aiBusy || !note.body.trim()} onClick={runMakeCards}><Sparkles /> {aiBusy === "make_cards" ? "Making…" : "Make cards from my notes"}</Button>
+            </div>
+          )}
         </div>
+
+        {suggestion && (
+          <div role="alert" className="card flex flex-col gap-3 p-4">
+            {suggestion.kind === "tidy" ? (
+              <>
+                <p className="font-bold">Tidied version</p>
+                <div className="max-h-64 overflow-y-auto rounded-xl bg-soft p-3"><Markdown text={suggestion.body} className="text-[0.9375rem] text-ink-2" /></div>
+              </>
+            ) : (
+              <>
+                <p className="font-bold">From the file, not yet in your notes</p>
+                <ul className="flex flex-col gap-1.5 text-[0.9375rem]">
+                  {suggestion.additions.map((a, i) => <li key={i}>{a.text} <span className="text-muted">({suggestion.word === "page" ? "p." : "part"} {a.page})</span></li>)}
+                </ul>
+              </>
+            )}
+            <div className="flex gap-2">
+              <Button size="sm" onClick={acceptSuggestion}>{suggestion.kind === "tidy" ? "Use this" : "Add these"}</Button>
+              <Button size="sm" variant="secondary" onClick={() => setSuggestion(null)}>Cancel</Button>
+            </div>
+          </div>
+        )}
 
         {view === "write" && (
           <>
