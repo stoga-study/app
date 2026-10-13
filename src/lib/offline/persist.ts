@@ -4,7 +4,7 @@ import { del, get, set } from "./kv";
 
 // What stays available offline: enough to open the app, review due cards, read study sets and
 // take saved quizzes, and read and write your own notes. The tutor and uploads always need a connection, so they are not kept.
-const OFFLINE = new Set(["profile", "subjects", "sources", "source", "source-pages", "studyset", "due-cards", "due-queue", "next-due", "quiz", "quiz-list", "mistakes", "allowance", "review-history", "card-stats", "units", "notes", "note", "weak-cards"]);
+const OFFLINE = new Set(["profile", "subjects", "sources", "source", "source-pages", "studyset", "due-cards", "due-queue", "next-due", "quiz", "quiz-list", "mistakes", "allowance", "review-history", "card-stats", "units", "notes", "note", "weak-cards", "unfinished-quiz"]);
 
 export const persister = createAsyncStoragePersister({
   storage: { getItem: get, setItem: set, removeItem: del },

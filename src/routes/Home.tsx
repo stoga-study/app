@@ -1,4 +1,5 @@
-import { BookOpen, Upload } from "lucide-react";
+import { ArrowRight, BookOpen, FileText, Layers, ListChecks, NotebookPen, Upload } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,8 @@ import { joinNames, reviewMinutes, useDueCards } from "@/lib/queries/cards";
 import { useDueQueue } from "@/lib/queries/review";
 import { useSources } from "@/lib/queries/sources";
 import { useSessionSize } from "@/lib/preferences";
+import { useUnfinishedQuiz } from "@/lib/queries/quiz";
+import { getRecent, type Recent } from "@/lib/recent";
 import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
 
@@ -47,6 +50,7 @@ export default function Home() {
           <span><b>New school year.</b> Update your classes for {currentSchoolYear}. Last year&apos;s notes and cards stay safe.</span>
         </Link>
       )}
+      <ContinueStudying />
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-56" aria-hidden="true" />
@@ -105,5 +109,33 @@ export default function Home() {
         )}
       </section>
     </>
+  );
+}
+
+const RECENT_ICON: Record<Recent["kind"] | "quiz", ReactNode> = { note: <NotebookPen />, file: <FileText />, review: <Layers />, quiz: <ListChecks /> };
+const RECENT_WORD: Record<Recent["kind"] | "quiz", string> = { note: "Keep writing", file: "Back to your file", review: "Finish your review", quiz: "Finish your quiz" };
+
+/** One thing to pick back up: a quiz left part-way (any device), or the last note, file or review here. */
+function ContinueStudying() {
+  const quiz = useUnfinishedQuiz();
+  const [recent] = useState(getRecent);
+  const q = quiz.data;
+  const pick: (Omit<Recent, "kind"> & { kind: Recent["kind"] | "quiz" }) | null =
+    q && (!recent || new Date(q.at).getTime() >= recent.at)
+      ? { kind: "quiz", href: `/quiz/${q.quizId}?attempt=${q.attemptId}`, label: q.title, sub: `Question ${q.done + 1} of ${q.total}`, at: new Date(q.at).getTime() }
+      : recent;
+  if (!pick) return null;
+  return (
+    <section className="mb-4" aria-labelledby="continue-title">
+      <Link to={pick.href} className="card flex items-center gap-4 p-4 text-ink no-underline">
+        <span className="tile soft">{RECENT_ICON[pick.kind]}</span>
+        <span className="min-w-0 flex-1">
+          <span id="continue-title" className="block text-[0.8125rem] font-bold uppercase tracking-[0.05em] text-brand">Continue studying · {RECENT_WORD[pick.kind]}</span>
+          <span className="block truncate font-display text-[1.125rem] font-bold">{pick.label}</span>
+          {pick.sub && <span className="block truncate text-[0.875rem] text-muted">{pick.sub}</span>}
+        </span>
+        <ArrowRight className="size-5 flex-none text-brand" aria-hidden="true" />
+      </Link>
+    </section>
   );
 }
