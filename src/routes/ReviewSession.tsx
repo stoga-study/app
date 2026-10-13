@@ -16,6 +16,8 @@ import { useRetention, useSubjects } from "@/lib/queries/profile";
 import { useDeckCardList, useDecks } from "@/lib/queries/organise";
 import { inScope, useDueQueue, useEditCard, useNextDue, useWeakCards, type ReviewCard } from "@/lib/queries/review";
 import { useUnits } from "@/lib/queries/units";
+import { reviewNextStep } from "@/lib/mastery";
+import { useUnitQuestionCounts } from "@/lib/queries/quiz";
 import { unitName } from "@/lib/units";
 import { clearRecent, setRecent } from "@/lib/recent";
 
@@ -35,6 +37,7 @@ export default function ReviewSession() {
   const { session } = useAuth();
   const subjects = useSubjects();
   const units = useUnits(subjectId ?? undefined);
+  const unitQuestions = useUnitQuestionCounts(unitId ? subjectId ?? undefined : undefined);
   const retention = useRetention().value;
   const dueQuery = useDueQueue();
   const weakQuery = useWeakCards();
@@ -54,6 +57,8 @@ export default function ReviewSession() {
   const [flipped, setFlipped] = useState(false);
   const [editing, setEditing] = useState<{ front: string; back: string } | null>(null);
   const [ratings, setRatings] = useState<number[]>([]);
+  // Cards marked Again this session, for the summary's weak spots.
+  const [missed, setMissed] = useState<ReviewCard[]>([]);
   // Cards already done this visit, so Keep going never repeats one (weak cards and whole decks stay listed).
   const [doneIds, setDoneIds] = useState<Set<string>>(() => new Set());
   const [startedAt, setStartedAt] = useState(() => Date.now());
@@ -73,6 +78,7 @@ export default function ReviewSession() {
       qc.setQueryData<ReviewCard[]>(["due-queue", session?.user.id], (q) => q?.filter((c) => c.id !== card.id));
       qc.setQueryData<ReviewCard[]>(["weak-cards", session?.user.id], (q) => q?.map((c) => (c.id === card.id ? { ...c, ...row } : c)).filter(isWeak));
       setRatings((r) => [...r, grade]);
+      if (grade === 1) setMissed((m) => (m.some((c) => c.id === card.id) ? m : [...m, card]));
       setDoneIds((d) => new Set(d).add(card.id));
       setFlipped(false);
       setQueue((q) => {
@@ -156,6 +162,18 @@ export default function ReviewSession() {
         </section>
       );
     const counts = GRADES.map(({ grade, label }) => ({ label, n: ratings.filter((r) => r === grade).length }));
+    const step = reviewNextStep({
+      reviewed,
+      again: ratings.filter((r) => r === 1).length,
+      left,
+      weak: weakMode ? 0 : weakQuery.data?.length ?? 0,
+      unitQuiz: !!unitId && (unitQuestions.data?.[unitId] ?? 0) > 0,
+    });
+    const stepLink =
+      step.kind === "type_misses" ? (deckId ? `/practice?deck=${deckId}` : subjectId ? `/practice?subject=${subjectId}${unitId ? `&unit=${unitId}` : ""}` : `/practice?subject=${missed[0]?.subject_id ?? ""}`)
+        : step.kind === "weak_cards" ? `/review/session?mode=weak${size ? `&size=${size}` : ""}`
+          : step.kind === "unit_quiz" ? `/quiz/unit?unit=${unitId}` : null;
+    const stepLabel = { type_misses: "Type answers", weak_cards: "Practise weak cards", unit_quiz: "Take the unit quiz" } as Record<string, string>;
     return (
       <section className="mx-auto flex max-w-xl flex-col gap-4">
         <div className="ink-panel pop p-6">
@@ -178,9 +196,19 @@ export default function ReviewSession() {
           </div>
           {next && <p className="mt-4 text-[0.9375rem] text-muted">Next cards are due {next}.</p>}
         </div>
+        {missed.length > 0 && (
+          <div className="card p-5">
+            <p className="font-bold">Did not stick yet</p>
+            <ul className="mt-2 flex flex-col gap-1.5 text-[0.9375rem]">
+              {missed.slice(0, 5).map((c) => <li key={c.id}><MathText text={c.front} /></li>)}
+            </ul>
+            {missed.length > 5 && <p className="mt-1 text-[0.875rem] text-muted">and {missed.length - 5} more</p>}
+          </div>
+        )}
+        <p className="callout neutral"><span><b>Next step: </b>{step.text}</span></p>
+        {stepLink && <Button asChild variant={left > 0 ? "secondary" : "primary"}><Link to={stepLink}>{stepLabel[step.kind]}</Link></Button>}
         {left > 0 && <Button onClick={keepGoing}>Keep going: {left} more {weakMode ? "weak" : allMode ? "in this deck" : "due"}</Button>}
-        <Button asChild variant={left > 0 ? "secondary" : "primary"}><Link to="/">Back to today</Link></Button>
-        <Button asChild variant="secondary"><Link to="/review">Take a practice quiz</Link></Button>
+        <Button asChild variant={left > 0 || stepLink ? "secondary" : "primary"}><Link to="/">Back to today</Link></Button>
       </section>
     );
   }
