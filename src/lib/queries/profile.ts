@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/session";
 import { currentSchoolYear, departmentTone, findCourse, findSection, type Picks } from "../catalog";
 import type { Database } from "../database.types";
+import { DEFAULT_RETENTION } from "../fsrs";
 import { supabase } from "../supabase";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -127,4 +128,19 @@ export function useArchiveSubject() {
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["subjects"] }),
   });
+}
+
+/** The student's desired retention for flashcards, and a way to change it (all devices). */
+export function useRetention() {
+  const { session } = useAuth();
+  const profile = useProfile();
+  const qc = useQueryClient();
+  const set = useMutation({
+    mutationFn: async (value: number) => {
+      const { error } = await supabase.from("profiles").update({ review_retention: value }).eq("user_id", session!.user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
+  });
+  return { value: profile.data?.review_retention ?? DEFAULT_RETENTION, set };
 }

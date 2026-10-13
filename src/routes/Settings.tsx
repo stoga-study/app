@@ -9,7 +9,8 @@ import { cn } from "@/lib/cn";
 import { describeGrade } from "@/lib/grade";
 import { TEXT_LABEL, THEME_LABEL, useTextSize, useTheme, type TextSize, type ThemeChoice } from "@/lib/preferences";
 import { deleteAccount, hostOf, KeyError, PROVIDER_PRESETS, useApiKey, useRemoveKey, useSaveKey, useUpdateName } from "@/lib/queries/account";
-import { useProfile } from "@/lib/queries/profile";
+import { RETENTION_CHOICES } from "@/lib/fsrs";
+import { useProfile, useRetention } from "@/lib/queries/profile";
 import { supabase } from "@/lib/supabase";
 
 function Segmented<T extends string>({ label, value, options, labels, onChange }: {
@@ -188,6 +189,39 @@ function DangerZone() {
   );
 }
 
+/** Desired retention: how much to remember, traded against how many reviews. */
+function RetentionChoice() {
+  const { value, set } = useRetention();
+  const closest = RETENTION_CHOICES.reduce((a, b) => (Math.abs(b.value - value) < Math.abs(a.value - value) ? b : a));
+  return (
+    <div className="flex flex-col gap-2">
+      <span id="ret-label" className="field-label">How much to remember</span>
+      <div className="flex flex-col gap-2" role="radiogroup" aria-labelledby="ret-label">
+        {RETENTION_CHOICES.map((c) => (
+          <button
+            key={c.value}
+            type="button"
+            role="radio"
+            aria-checked={closest.value === c.value}
+            disabled={set.isPending}
+            onClick={() => set.mutate(c.value, { onSuccess: () => toast(`Reviews set to ${c.label}.`), onError: () => toast("We could not save that. Try again.") })}
+            className={cn("card !shadow-none flex items-start gap-3 p-4 text-left", closest.value === c.value && "!border-primary")}
+          >
+            <span className={cn("mt-0.5 grid size-5 flex-none place-items-center rounded-full border-2", closest.value === c.value ? "border-primary" : "border-line-strong")}>
+              {closest.value === c.value && <span className="size-2.5 rounded-full bg-primary" />}
+            </span>
+            <span>
+              <span className="block font-bold">{c.label} · {Math.round(c.value * 100)}%</span>
+              <span className="block text-[0.9375rem] text-muted">{c.desc}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className="field-hint">Changes when cards come back from your next review on. Saved to your account.</p>
+    </div>
+  );
+}
+
 export default function Settings() {
   const [theme, setTheme] = useTheme();
   const [size, setSize] = useTextSize();
@@ -211,6 +245,8 @@ export default function Settings() {
           <p className="field-hint">Layouts reflow at every size. These settings stay on this device.</p>
         </div>
       </Section>
+
+      <Section id="review" title="Flashcard reviews"><RetentionChoice /></Section>
 
       <Section id="own-key" title="Your own key"><OwnKey /></Section>
 
