@@ -16,13 +16,13 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { llmJson, LLMError, setUsageLogger } from "../_lib/llm.ts";
+import { llmJson, LLMError, setUsageLogger, type OwnProvider } from "../_lib/llm.ts";
 import { ownProvider } from "../_lib/byok.ts";
 import { checkOptions, optionsKey, planTasks, splitAcross, suggestAmounts, type GenOptions, type Part, type Task } from "../_lib/options.ts";
 import {
-  CARDS_SCHEMA, cardsPrompt, chunkPages, GEN_VERSION, GUIDE_SCHEMA, guidePrompt, NOTES_SCHEMA, notesDigest, notesPrompt,
-  QUIZ_SCHEMA, quizPrompt, tagged, validCards, validGuide, validNotes, validQuiz,
-  type CardsOut, type GuideOut, type NotesOut, type Page, type QuizOut,
+  applyFactCheck, CARDS_SCHEMA, cardsPrompt, chunkPages, FACTCHECK_SCHEMA, factCheckBlocks, factCheckPrompt, GEN_VERSION, GUIDE_SCHEMA, guidePrompt,
+  NOTES_SCHEMA, notesDigest, notesPrompt, QUIZ_SCHEMA, quizPrompt, tagged, validCards, validGuide, validNotes, validQuiz,
+  type CardsOut, type FactCheckOut, type GuideOut, type NotesOut, type Page, type QuizOut,
 } from "../_lib/study.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void };
@@ -43,8 +43,8 @@ type Steps = { run?: number; first?: boolean; next: number; failed?: string; sha
 type SharedPayload = {
   notes: { position: number; gen_part: number | null; title: string; body_md: string; pages: number[] }[];
   guide: { position: number; title: string; body_md: string; minutes: number | null; pages: number[] }[];
-  cards: { gen_part: number | null; front: string; back: string; pages: number[] }[];
-  quiz: { title: string; questions: { position: number; topic: string | null; prompt: string; options: string[]; answer_index: number; hint: string | null; explanation: string; pages: number[] }[] } | null;
+  cards: { gen_part: number | null; front: string; back: string; pages: number[]; quote: string | null }[];
+  quiz: { title: string; questions: { position: number; topic: string | null; prompt: string; options: string[]; answer_index: number; hint: string | null; explanation: string; pages: number[]; quote: string | null }[] } | null;
 };
 
 /** Snapshot a finished study set for students who upload the same file and ask for the same thing. Never throws. */
@@ -53,15 +53,15 @@ async function saveShared(sourceId: string, userId: string, key: string) {
     const { data: source } = await admin.from("sources").select("content_hash, kind, page_count").eq("id", sourceId).eq("user_id", userId).maybeSingle();
     if (!source?.content_hash) return;
     const [notes, guide, cards, quizzes] = await Promise.all([
-      admin.from("notes_sections").select("position, gen_part, title, body_md, pages").eq("source_id", sourceId).order("position"),
-      admin.from("guide_sections").select("position, title, body_md, minutes, pages").eq("source_id", sourceId).order("position"),
-      // Only untouched cards: a student's own edits stay private.
-      admin.from("cards").select("gen_part, front, back, pages").eq("source_id", sourceId).eq("edited", false),
+      admin.from("notes_sections").select("position, gen_part, title, body_md, pages").eq("source_id", sourceId).eq("hidden", false).order("position"),
+      admin.from("guide_sections").select("position, title, body_md, minutes, pages").eq("source_id", sourceId).eq("hidden", false).order("position"),
+      // Only untouched, unreported cards: a student's own edits stay private, and a flagged card never spreads.
+      admin.from("cards").select("gen_part, front, back, pages, quote").eq("source_id", sourceId).eq("edited", false).eq("hidden", false),
       admin.from("quizzes").select("id, title").eq("source_id", sourceId).limit(1),
     ]);
     const quiz = quizzes.data?.[0];
     const questions = quiz
-      ? (await admin.from("quiz_questions").select("position, topic, prompt, options, answer_index, hint, explanation, pages").eq("quiz_id", quiz.id).order("position")).data ?? []
+      ? (await admin.from("quiz_questions").select("position, topic, prompt, options, answer_index, hint, explanation, pages, quote").eq("quiz_id", quiz.id).eq("hidden", false).order("position")).data ?? []
       : [];
     if (!notes.data?.length && !cards.data?.length && !questions.length && !guide.data?.length) return;
     const payload: SharedPayload = { notes: notes.data ?? [], guide: guide.data ?? [], cards: cards.data ?? [], quiz: quiz ? { title: quiz.title, questions } : null };
@@ -118,6 +118,41 @@ async function loadPages(sourceId: string): Promise<Page[]> {
   const { data, error } = await admin.from("source_pages").select("page_no, text").eq("source_id", sourceId).order("page_no");
   if (error) throw error;
   return data ?? [];
+}
+
+/**
+ * Checks generated cards or quiz questions against the pages they cite, and drops the ones the model
+ * is sure are unsupported. Never throws: a failed check keeps every item, unquoted, so this pass can
+ * only make a study set smaller or better cited, never block it.
+ */
+async function factCheck<T extends { pages: number[] }>(
+  claims: string[],
+  items: T[],
+  pages: Page[],
+  word: "page" | "part",
+  own: OwnProvider | undefined,
+  usage: { feature: string; userId: string; byok: boolean },
+): Promise<{ item: T; quote: string | null }[]> {
+  if (!items.length) return items.map((item) => ({ item, quote: null }));
+  const pageText = new Map(pages.map((p) => [p.page_no, p.text]));
+  try {
+    const out = await llmJson<FactCheckOut>({
+      schemaName: "factcheck",
+      schema: FACTCHECK_SCHEMA,
+      own,
+      effort: "light",
+      maxTokens: Math.min(8000, 150 * items.length + 300),
+      usage: { ...usage, feature: "fact_check" },
+      messages: [
+        { role: "system", content: factCheckPrompt(word) },
+        { role: "user", content: factCheckBlocks(items.map((it, i) => ({ claim: claims[i], pages: it.pages })), pageText, word) },
+      ],
+    });
+    return applyFactCheck(items, out);
+  } catch (e) {
+    console.error("factCheck", e instanceof Error ? e.message : e);
+    return items.map((item) => ({ item, quote: null }));
+  }
 }
 
 async function dispatch(body: Record<string, unknown>) {
@@ -196,10 +231,11 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
         });
         rows = validCards(out, valid).slice(0, target);
       }
+      const checkedCards = await factCheck(rows.map((r) => `Q: ${r.front}\nA: ${r.back}`), rows, pages, word, own, usage("fact_check"));
       await admin.from("cards").delete().eq("source_id", sourceId).eq("gen_part", genPart).eq("edited", false);
-      if (rows.length) {
+      if (checkedCards.length) {
         const { error } = await admin.from("cards").insert(
-          rows.map((r) => ({ ...r, user_id: userId, subject_id: source.subject_id, source_id: sourceId, gen_part: genPart })),
+          checkedCards.map(({ item: r, quote }) => ({ ...r, quote, user_id: userId, subject_id: source.subject_id, source_id: sourceId, gen_part: genPart })),
         );
         if (error) throw error;
       }
@@ -211,7 +247,11 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
         messages: [{ role: "system", content: quizPrompt(word, count, fromNotes) }, { role: "user", content: text }],
       }), valid);
       const questions = out.questions.slice(0, count);
-      if (questions.length < Math.min(3, count)) throw new Error("too few valid quiz questions");
+      const checkedQuestions = await factCheck(
+        questions.map((q) => `Q: ${q.prompt}\nAnswer: ${q.options[q.answer_index]}\nWhy: ${q.explanation}`),
+        questions, pages, word, own, usage("fact_check"),
+      );
+      if (checkedQuestions.length < Math.min(3, count)) throw new Error("too few valid quiz questions");
       // A later run adds another quiz; a retry of this run replaces its own.
       if (run === 0) await admin.from("quizzes").delete().eq("source_id", sourceId);
       else await admin.from("quizzes").delete().eq("source_id", sourceId).eq("gen_run", run);
@@ -220,7 +260,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
       const { data: quiz, error } = await admin.from("quizzes")
         .insert({ user_id: userId, subject_id: source.subject_id, source_id: sourceId, title, gen_run: run || null }).select("id").single();
       if (error) throw error;
-      const { error: qErr } = await admin.from("quiz_questions").insert(questions.map((q, i) => ({ ...q, user_id: userId, quiz_id: quiz.id, position: i })));
+      const { error: qErr } = await admin.from("quiz_questions").insert(checkedQuestions.map(({ item: q, quote }, i) => ({ ...q, quote, user_id: userId, quiz_id: quiz.id, position: i })));
       if (qErr) throw qErr;
     } else {
       const count = options.amounts.guide;

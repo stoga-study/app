@@ -2,7 +2,7 @@
 // Every item must point at pages that exist in the source; anything else is dropped.
 
 /** Bump when the study-set prompts or validators change, so shared sets made with older prompts are not reused. */
-export const GEN_VERSION = 2;
+export const GEN_VERSION = 3;
 
 export type Page = { page_no: number; text: string };
 export type Chunk = { part: number; pages: Page[] };
@@ -281,6 +281,69 @@ export function validGuide(out: GuideOut, valid: Set<number>) {
       pages: realPages(s.pages, valid),
     }))
     .filter((s) => s.title && s.body_md);
+}
+
+// ---------- Fact-check ----------
+// Generated cards and questions are checked against the pages they cite before a student sees them:
+// a citation that points at a page that does not actually support the claim gets dropped. Pure prompt,
+// schema and bookkeeping here (so they run in unit tests); the LLM call itself is made by the caller,
+// which already has an LLM client.
+export const FACTCHECK_SCHEMA = {
+  type: "object",
+  additionalProperties: false,
+  required: ["results"],
+  properties: {
+    results: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["index", "supported", "quote"],
+        properties: {
+          index: { type: "integer" },
+          supported: { type: "boolean" },
+          quote: { type: "string" },
+        },
+      },
+    },
+  },
+};
+export type FactCheckOut = { results: { index: number; supported: boolean; quote: string }[] };
+
+export function factCheckPrompt(word: string) {
+  return `You check study material against the ${word}(s) it is said to come from, for a high school app.
+For each numbered item below, decide whether the given ${word} text truly states or clearly shows the specific fact, definition, formula, rule or distinction that item tests, not just a related topic.
+Reply with one result per item, by its index (0-based, in the order given):
+- supported: true only when the claim is clearly backed by the given text; false if the text does not say it, contradicts it, or no text was given.
+- quote: when supported, the exact sentence or short phrase from the given text that backs it, copied verbatim, nothing added or paraphrased. When not supported, an empty string.
+Be strict: a plausible-sounding but unstated claim is not supported.`;
+}
+
+/** One block per item: its claim, and the text of the pages it cites (trimmed, so the call stays small). */
+export function factCheckBlocks(items: { claim: string; pages: number[] }[], pageText: Map<number, string>, word: string) {
+  return items
+    .map((it, i) => {
+      const text = it.pages.map((p) => pageText.get(p)).filter((t): t is string => !!t).join("\n\n").slice(0, 2000);
+      return `Item ${i}:\nClaim: ${it.claim}\n${text ? `Cited ${word}(s):\n${text}` : "(no page cited)"}`;
+    })
+    .join("\n\n---\n\n");
+}
+
+/**
+ * Drops items the fact-check is sure are unsupported, and attaches the supporting quote to the rest.
+ * An item the model did not answer (a short or malformed reply) is kept, unquoted: this pass only
+ * removes what it is confident about, so a flaky call never empties a whole study set.
+ */
+export function applyFactCheck<T>(items: T[], out: FactCheckOut): { item: T; quote: string | null }[] {
+  const byIndex = new Map(out.results.map((r) => [r.index, r]));
+  return items
+    .map((item, i) => {
+      const r = byIndex.get(i);
+      if (r?.supported === false) return null;
+      const quote = r && typeof r.quote === "string" ? cleanText(r.quote, 400) : "";
+      return { item, quote: quote || null };
+    })
+    .filter((x): x is { item: T; quote: string | null } => x !== null);
 }
 
 /** Notes as compact input for the quiz and guide jobs, capped so huge sources stay within limits. */
