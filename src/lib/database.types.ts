@@ -865,6 +865,7 @@ export type Database = {
           filename: string
           id: string
           kind: string
+          lesson: string | null
           options: Json | null
           original_filename: string | null
           page_count: number
@@ -872,6 +873,7 @@ export type Database = {
           steps: Json
           storage_path: string | null
           subject_id: string
+          unit_id: string | null
           updated_at: string
           user_id: string
         }
@@ -884,6 +886,7 @@ export type Database = {
           filename: string
           id?: string
           kind: string
+          lesson?: string | null
           options?: Json | null
           original_filename?: string | null
           page_count?: number
@@ -891,6 +894,7 @@ export type Database = {
           steps?: Json
           storage_path?: string | null
           subject_id: string
+          unit_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -903,6 +907,7 @@ export type Database = {
           filename?: string
           id?: string
           kind?: string
+          lesson?: string | null
           options?: Json | null
           original_filename?: string | null
           page_count?: number
@@ -910,6 +915,7 @@ export type Database = {
           steps?: Json
           storage_path?: string | null
           subject_id?: string
+          unit_id?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -928,6 +934,13 @@ export type Database = {
             referencedRelation: "subjects"
             referencedColumns: ["id", "user_id"]
           },
+          {
+            foreignKeyName: "sources_unit_id_user_id_fkey"
+            columns: ["unit_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id", "user_id"]
+          },
         ]
       }
       subjects: {
@@ -938,6 +951,8 @@ export type Database = {
           color_index: number
           course_code: string | null
           created_at: string
+          current_unit_id: string | null
+          current_unit_pinned: boolean
           id: string
           level: string | null
           name: string
@@ -952,6 +967,8 @@ export type Database = {
           color_index?: number
           course_code?: string | null
           created_at?: string
+          current_unit_id?: string | null
+          current_unit_pinned?: boolean
           id?: string
           level?: string | null
           name: string
@@ -966,6 +983,8 @@ export type Database = {
           color_index?: number
           course_code?: string | null
           created_at?: string
+          current_unit_id?: string | null
+          current_unit_pinned?: boolean
           id?: string
           level?: string | null
           name?: string
@@ -973,7 +992,53 @@ export type Database = {
           study_defaults?: Json | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "subjects_current_unit_id_user_id_fkey"
+            columns: ["current_unit_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          created_at: string
+          id: string
+          number: string | null
+          subject_id: string
+          title: string | null
+          user_id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          number?: string | null
+          subject_id: string
+          title?: string | null
+          user_id?: string
+          word?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          number?: string | null
+          subject_id?: string
+          title?: string | null
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "units_subject_id_user_id_fkey"
+            columns: ["subject_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
       }
       usage_events: {
         Row: {
