@@ -68,3 +68,24 @@ export function groupCards<C extends CardLike>(cards: C[], sources: SourceLike[]
   if (loose.length) out.push({ key: "loose", title: "Your own cards", files: [{ key: "loose", title: "Made by you, from the tutor, or moved here", cards: loose }] });
   return out.filter((g) => g.files.length);
 }
+
+type Practisable = { id: string; due: string; state: number; lapses: number; difficulty: number; last_review: string | null };
+
+/**
+ * Cards for typed practice: due today first (oldest first), then weak ones (most missed first),
+ * then the rest, longest since you last saw them first (never-seen ones before those).
+ */
+export function pickPractice<C extends Practisable>(cards: C[], n: number, endOfToday: Date): C[] {
+  const end = endOfToday.getTime();
+  const isDue = (c: C) => new Date(c.due).getTime() <= end;
+  const weak = (c: C) => c.state !== 0 && (c.lapses >= 2 || c.difficulty >= 7);
+  const tier = (c: C) => (isDue(c) ? 0 : weak(c) ? 1 : 2);
+  const seen = (c: C) => (c.last_review ? new Date(c.last_review).getTime() : -Infinity);
+  return [...cards]
+    .sort((a, b) =>
+      tier(a) - tier(b) ||
+      (tier(a) === 0 ? a.due.localeCompare(b.due) : tier(a) === 1 ? b.lapses - a.lapses || b.difficulty - a.difficulty : seen(a) - seen(b)) ||
+      a.id.localeCompare(b.id),
+    )
+    .slice(0, n);
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addTag, groupCards, matchCard, normTag, parseTags, removeTag, tagCounts } from "./cardsOrg";
+import { addTag, groupCards, pickPractice, matchCard, normTag, parseTags, removeTag, tagCounts } from "./cardsOrg";
 
 describe("tags", () => {
   it("cleans tags", () => {
@@ -39,5 +39,23 @@ describe("grouping", () => {
     expect(g.map((x) => x.title)).toEqual(["Unit 10", "Unit 11 · French Revolution", "No unit", "Your own cards"]);
     expect(g[1].files.map((f) => f.key)).toEqual(["f11a", "f11b"]);
     expect(g[3].files[0].cards.map((c) => c.id)).toEqual(["5", "6"]);
+  });
+});
+
+describe("picking cards to practise", () => {
+  const end = new Date("2026-10-13T23:59:59Z");
+  const c = (id: string, due: string, extra: Partial<{ state: number; lapses: number; difficulty: number; last_review: string | null }> = {}) =>
+    ({ id, due, state: 2, lapses: 0, difficulty: 5, last_review: "2026-10-01T00:00:00Z", ...extra });
+  it("puts due cards first, then weak ones, then the longest unseen", () => {
+    const cards = [
+      c("later-seen-recently", "2026-11-01", { last_review: "2026-10-12T00:00:00Z" }),
+      c("weak-3", "2026-11-01", { lapses: 3 }),
+      c("due-2", "2026-10-13T10:00:00Z"),
+      c("never-seen", "2026-11-01", { state: 0, last_review: null }),
+      c("due-1", "2026-10-12T10:00:00Z"),
+      c("weak-hard", "2026-11-01", { difficulty: 8 }),
+    ];
+    expect(pickPractice(cards, 10, end).map((x) => x.id)).toEqual(["due-1", "due-2", "weak-3", "weak-hard", "never-seen", "later-seen-recently"]);
+    expect(pickPractice(cards, 2, end)).toHaveLength(2);
   });
 });
