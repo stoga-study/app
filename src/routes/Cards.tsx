@@ -1,6 +1,6 @@
 import { ArrowLeft, Check, Layers, Merge, Pencil, PenLine, Play, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { CardBrowser, CardForm } from "@/components/CardBrowser";
 import { PageHeader } from "@/components/PageHeader";
@@ -20,6 +20,7 @@ const dueNow = (cards: OrgCard[]) => cards.filter((c) => new Date(c.due) <= endO
 /** /subjects/:id/cards: every card in a class, by unit and file. */
 export function ClassCards() {
   const { id } = useParams();
+  const [params] = useSearchParams();
   const subjects = useAllSubjects();
   const cards = useClassCards(id);
   const sources = useSources();
@@ -66,6 +67,7 @@ export function ClassCards() {
         cards={list}
         groups={groupCards(list, sources.data ?? [], units.data ?? [], subject.id)}
         subjectId={subject.id}
+        initialQuery={params.get("q") ?? undefined}
         empty={
           <EmptyState icon={<Layers />} title="No cards here yet" action={<Button onClick={() => setAdding(true)}><Plus /> Make a card</Button>}>
             Make flashcards from a file in this class, add them from the tutor, or write your own.

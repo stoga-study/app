@@ -175,6 +175,7 @@ export type Database = {
           quote: string | null
           reps: number
           scheduled_days: number
+          search: unknown
           source_id: string | null
           stability: number
           state: number
@@ -200,6 +201,7 @@ export type Database = {
           quote?: string | null
           reps?: number
           scheduled_days?: number
+          search?: unknown
           source_id?: string | null
           stability?: number
           state?: number
@@ -225,6 +227,7 @@ export type Database = {
           quote?: string | null
           reps?: number
           scheduled_days?: number
+          search?: unknown
           source_id?: string | null
           stability?: number
           state?: number
@@ -871,6 +874,7 @@ export type Database = {
           prompt: string
           quiz_id: string
           quote: string | null
+          search: unknown
           topic: string | null
           user_id: string
         }
@@ -886,6 +890,7 @@ export type Database = {
           prompt: string
           quiz_id: string
           quote?: string | null
+          search?: unknown
           topic?: string | null
           user_id?: string
         }
@@ -901,6 +906,7 @@ export type Database = {
           prompt?: string
           quiz_id?: string
           quote?: string | null
+          search?: unknown
           topic?: string | null
           user_id?: string
         }
@@ -1444,6 +1450,20 @@ export type Database = {
           p_subject_id?: string
         }
         Returns: undefined
+      }
+      search_everything: {
+        Args: { p_limit?: number; p_query: string; p_subject?: string }
+        Returns: {
+          extra_id: string
+          id: string
+          kind: string
+          page_no: number
+          rank: number
+          snippet: string
+          source_id: string
+          subject_id: string
+          title: string
+        }[]
       }
       search_pages: {
         Args: {

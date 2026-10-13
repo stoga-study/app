@@ -18,6 +18,7 @@ import Practice from "./routes/Practice";
 import NotFound from "./routes/NotFound";
 import Onboarding from "./routes/Onboarding";
 import Settings from "./routes/Settings";
+import Search from "./routes/Search";
 import SourcePage from "./routes/Source";
 import Subject from "./routes/Subject";
 import Subjects from "./routes/Subjects";
@@ -70,6 +71,7 @@ export const router = createBrowserRouter([
           { path: "quiz/:id", element: <Quiz /> },
           { path: "mistakes", element: <Mistakes /> },
           { path: "progress", element: <Progress /> },
+          { path: "search", element: <Search /> },
           { path: "plans", element: <Plans /> },
           { path: "feedback", element: <Feedback /> },
           { path: "settings", element: <Settings /> },

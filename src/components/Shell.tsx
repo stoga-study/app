@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Heart, Home, Layers, MessageCircle, MessageSquare, Settings, Upload } from "lucide-react";
+import { BarChart3, BookOpen, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
@@ -20,6 +20,7 @@ const MAIN: Item[] = [
 const TABS = MAIN.filter((i) => i.to !== "/subjects");
 
 const SECONDARY: Item[] = [
+  { to: "/search", label: "Search", icon: <Search /> },
   { to: "/plans", label: "Plans and funding", icon: <Heart /> },
   { to: "/feedback", label: "Send feedback", icon: <MessageSquare /> },
   { to: "/settings", label: "Settings", icon: <Settings /> },
@@ -69,13 +70,22 @@ export function Shell({ aside }: { aside?: ReactNode }) {
           <NavLink to="/" className="text-ink no-underline">
             <Brand descriptor={false} />
           </NavLink>
-          <NavLink
-            to="/settings"
-            aria-label="Settings"
-            className="grid size-11 place-items-center rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
-          >
-            <Settings />
-          </NavLink>
+          <div className="flex items-center gap-2">
+            <NavLink
+              to="/search"
+              aria-label="Search"
+              className="grid size-11 place-items-center rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
+            >
+              <Search />
+            </NavLink>
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              className="grid size-11 place-items-center rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
+            >
+              <Settings />
+            </NavLink>
+          </div>
         </header>
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[70rem] flex-1 px-5 pb-28 pt-5 outline-none md:px-8 lg:px-12 lg:pb-12 lg:pt-8">
           <OfflineBanner />

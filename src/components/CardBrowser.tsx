@@ -88,7 +88,7 @@ export function CardForm({
  * Browse cards: search (words or #tags), tag chips, tap a card to edit it, and Select for bulk
  * actions (tag, add to a deck, move to another class, remove from this deck, delete).
  */
-export function CardBrowser({ cards, groups, subjectId, deckId, empty }: {
+export function CardBrowser({ cards, groups, subjectId, deckId, initialQuery, empty }: {
   cards: OrgCard[];
   /** A class's cards by unit and file. Without it, a flat list (a deck). */
   groups?: CardGroup<OrgCard>[];
@@ -96,13 +96,15 @@ export function CardBrowser({ cards, groups, subjectId, deckId, empty }: {
   subjectId?: string;
   /** Browsing a deck: offers Remove from this deck. */
   deckId?: string;
+  /** Arriving from search, with a term already in mind. */
+  initialQuery?: string;
   empty: ReactNode;
 }) {
   const org = useOrganise();
   const decks = useDecks();
   const links = useDeckLinks();
   const subjects = useSubjects();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
