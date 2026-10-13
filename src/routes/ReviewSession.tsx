@@ -13,6 +13,7 @@ import { enqueueReview } from "@/lib/offline/outbox";
 import { useAuth } from "@/lib/auth/session";
 import { sizeParam } from "@/lib/preferences";
 import { useRetention, useSubjects } from "@/lib/queries/profile";
+import { useDeckCardList, useDecks } from "@/lib/queries/organise";
 import { inScope, useDueQueue, useEditCard, useNextDue, useWeakCards, type ReviewCard } from "@/lib/queries/review";
 import { useUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
@@ -26,6 +27,9 @@ export default function ReviewSession() {
   const unitId = params.get("unit");
   const size = sizeParam(params.get("size"));
   const weakMode = params.get("mode") === "weak";
+  const deckId = params.get("deck");
+  // ?deck=…&mode=all practises a whole deck, due or not.
+  const allMode = !!deckId && params.get("mode") === "all";
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { session } = useAuth();
@@ -34,8 +38,11 @@ export default function ReviewSession() {
   const retention = useRetention().value;
   const dueQuery = useDueQueue();
   const weakQuery = useWeakCards();
-  const due = weakMode ? weakQuery : dueQuery;
-  const scope = { subjectId, unitId };
+  const deckQuery = useDeckCardList(deckId ?? undefined);
+  const decks = useDecks();
+  const deckName = decks.data?.find((d) => d.id === deckId)?.name ?? "Deck";
+  const due = weakMode ? weakQuery : allMode ? deckQuery : dueQuery;
+  const scope = { subjectId, unitId, cardIds: deckId && !allMode && deckQuery.data ? new Set(deckQuery.data.map((c) => c.id)) : null };
   const first = due.data ? inScope(due.data, { ...scope, size }) : undefined;
   const nextDue = useNextDue();
   const edit = useEditCard();
@@ -47,6 +54,8 @@ export default function ReviewSession() {
   const [flipped, setFlipped] = useState(false);
   const [editing, setEditing] = useState<{ front: string; back: string } | null>(null);
   const [ratings, setRatings] = useState<number[]>([]);
+  // Cards already done this visit, so Keep going never repeats one (weak cards and whole decks stay listed).
+  const [doneIds, setDoneIds] = useState<Set<string>>(() => new Set());
   const [startedAt, setStartedAt] = useState(() => Date.now());
 
   const card = queue?.[0];
@@ -64,6 +73,7 @@ export default function ReviewSession() {
       qc.setQueryData<ReviewCard[]>(["due-queue", session?.user.id], (q) => q?.filter((c) => c.id !== card.id));
       qc.setQueryData<ReviewCard[]>(["weak-cards", session?.user.id], (q) => q?.map((c) => (c.id === card.id ? { ...c, ...row } : c)).filter(isWeak));
       setRatings((r) => [...r, grade]);
+      setDoneIds((d) => new Set(d).add(card.id));
       setFlipped(false);
       setQueue((q) => {
         if (!q) return q;
@@ -96,7 +106,7 @@ export default function ReviewSession() {
   const here = useLocation();
   const href = here.pathname + here.search;
   const leftInSession = queue?.length ?? 0;
-  const label = weakMode ? "Weak cards" : unitId ? unitName(units.data?.find((u) => u.id === unitId) ?? { number: null, title: "Unit review" }) : subjectId ? subjectName(subjectId) || "Flashcard review" : "Flashcard review";
+  const label = deckId ? deckName : weakMode ? "Weak cards" : unitId ? unitName(units.data?.find((u) => u.id === unitId) ?? { number: null, title: "Unit review" }) : subjectId ? subjectName(subjectId) || "Flashcard review" : "Flashcard review";
   useEffect(() => {
     if (!ratings.length) return;
     if (leftInSession > 0) setRecent({ kind: "review", href, label, sub: `${leftInSession} ${leftInSession === 1 ? "card" : "cards"} left` });
@@ -113,14 +123,15 @@ export default function ReviewSession() {
   }, [queue, qc]);
 
   // Wait for the fresh list when online, so cards do not change under the student a moment later.
-  if (due.isPending || queue === null || (!ownQueue && !due.isFetchedAfterMount && due.isFetching) || (unitId && units.isPending)) return <PageSkeleton label="Getting your cards ready." />;
+  if (due.isPending || queue === null || (!ownQueue && !due.isFetchedAfterMount && due.isFetching) || (unitId && units.isPending) || (deckId && deckQuery.isPending)) return <PageSkeleton label="Getting your cards ready." />;
   if (due.isError) return <ErrorState title="We could not load your cards" onRetry={() => due.refetch()}>Check your connection, then try again.</ErrorState>;
 
-  const scopeName = weakMode ? "Weak cards" : unitId ? unitName(units.data?.find((u) => u.id === unitId) ?? { number: null, title: "This unit" }) : subjectId ? subjectName(subjectId) : "";
+  const scopeName = deckId ? deckName : weakMode ? "Weak cards" : unitId ? unitName(units.data?.find((u) => u.id === unitId) ?? { number: null, title: "This unit" }) : subjectId ? subjectName(subjectId) : "";
   // More due in the same scope after this session (the saved list already dropped what was reviewed).
-  const left = weakMode ? (due.data?.length ?? 0) : dueQuery.data ? inScope(dueQuery.data, scope).length : 0;
+  const pool = weakMode || allMode ? due.data : dueQuery.data;
+  const left = pool ? inScope(pool, scope).filter((c) => !doneIds.has(c.id)).length : 0;
   const keepGoing = () => {
-    setOwnQueue(inScope(due.data ?? [], { ...scope, size }));
+    setOwnQueue(inScope((due.data ?? []).filter((c) => !doneIds.has(c.id)), { ...scope, size }));
     setRatings([]);
     setStartedAt(() => Date.now());
   };
@@ -136,9 +147,12 @@ export default function ReviewSession() {
           <span className="chip self-start">Nothing overdue</span>
           <h1 className="text-[2.25rem]">All caught up</h1>
           <p className="text-muted">
-            {weakMode ? "You have no weak cards right now. Cards you miss twice, or find hard, show up here." : `You have finished everything due${scopeName ? ` in ${scopeName}` : ""} today.${next ? ` Next cards are due ${next}.` : ""}`}
+            {allMode ? "This deck has no cards yet." : deckId ? `Nothing in ${deckName} is due today. You can practise the whole deck any time.` : weakMode ? "You have no weak cards right now. Cards you miss twice, or find hard, show up here." : `You have finished everything due${scopeName ? ` in ${scopeName}` : ""} today.${next ? ` Next cards are due ${next}.` : ""}`}
           </p>
-          <Button asChild><Link to="/review">Back to review</Link></Button>
+          {deckId && !allMode && (deckQuery.data?.length ?? 0) > 0 && (
+            <Button asChild><Link to={`/review/session?deck=${deckId}&mode=all${size ? `&size=${size}` : ""}`}>Practise the whole deck</Link></Button>
+          )}
+          <Button asChild variant={deckId && !allMode ? "secondary" : "primary"}><Link to={deckId ? `/decks/${deckId}` : "/review"}>{deckId ? "Back to the deck" : "Back to review"}</Link></Button>
         </section>
       );
     const counts = GRADES.map(({ grade, label }) => ({ label, n: ratings.filter((r) => r === grade).length }));
@@ -164,7 +178,7 @@ export default function ReviewSession() {
           </div>
           {next && <p className="mt-4 text-[0.9375rem] text-muted">Next cards are due {next}.</p>}
         </div>
-        {left > 0 && <Button onClick={keepGoing}>Keep going: {left} more {weakMode ? "weak" : "due"}</Button>}
+        {left > 0 && <Button onClick={keepGoing}>Keep going: {left} more {weakMode ? "weak" : allMode ? "in this deck" : "due"}</Button>}
         <Button asChild variant={left > 0 ? "secondary" : "primary"}><Link to="/">Back to today</Link></Button>
         <Button asChild variant="secondary"><Link to="/review">Take a practice quiz</Link></Button>
       </section>

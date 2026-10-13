@@ -38,22 +38,30 @@ export function useDecks() {
   });
 }
 
+async function fetchDeck(id: string) {
+  const [deck, links] = await Promise.all([
+    supabase.from("decks").select("id, name, created_at").eq("id", id).maybeSingle(),
+    supabase.from("deck_cards").select(`added_at, cards(${FIELDS})`).eq("deck_id", id).order("added_at").limit(5000),
+  ]);
+  if (deck.error) throw deck.error;
+  if (links.error) throw links.error;
+  if (!deck.data) return null;
+  return { ...deck.data, cards: links.data.map((l) => l.cards as unknown as OrgCard).filter(Boolean) };
+}
+
 /** One deck and its cards (from any class). */
 export function useDeck(id: string | undefined) {
+  return useQuery({ queryKey: ["deck", id], enabled: !!id, refetchOnMount: "always", queryFn: () => fetchDeck(id!) });
+}
+
+/** Just a deck's cards, soonest due first, for a review session (shares the deck's saved copy). */
+export function useDeckCardList(id: string | undefined) {
   return useQuery({
     queryKey: ["deck", id],
     enabled: !!id,
     refetchOnMount: "always",
-    queryFn: async () => {
-      const [deck, links] = await Promise.all([
-        supabase.from("decks").select("id, name, created_at").eq("id", id!).maybeSingle(),
-        supabase.from("deck_cards").select(`added_at, cards(${FIELDS})`).eq("deck_id", id!).order("added_at").limit(5000),
-      ]);
-      if (deck.error) throw deck.error;
-      if (links.error) throw links.error;
-      if (!deck.data) return null;
-      return { ...deck.data, cards: links.data.map((l) => l.cards as unknown as OrgCard).filter(Boolean) };
-    },
+    queryFn: () => fetchDeck(id!),
+    select: (d) => [...(d?.cards ?? [])].sort((a, b) => a.due.localeCompare(b.due)),
   });
 }
 
