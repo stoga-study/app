@@ -1,7 +1,9 @@
 import { CalendarClock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
+import { MasteryChip } from "@/components/MasteryChip";
 import { PageHeader } from "@/components/PageHeader";
+import { useMastery } from "@/lib/queries/mastery";
 import { PageSkeleton } from "@/components/States";
 import { useAuth } from "@/lib/auth/session";
 import { useSubjects } from "@/lib/queries/profile";
@@ -28,6 +30,7 @@ export default function Progress() {
   const quizzes = useQuizList();
   const mistakes = useMistakes();
   const subjects = useSubjects();
+  const m = useMastery();
   if (history.isPending || stats.isPending) return <PageSkeleton label="Adding up your progress." />;
   const days = history.data ?? [];
   const week = days.reduce((n, d) => n + d.count, 0);
@@ -64,6 +67,24 @@ export default function Progress() {
           <p className="mt-3 text-[0.875rem] text-muted">{stats.data?.total ?? 0} cards in all.</p>
         </section>
       </div>
+
+      {m.ready && (subjects.data ?? []).some((x) => m.forClass(x.id)) && (
+        <section className="card mt-4 p-6" aria-labelledby="mastery-h">
+          <h2 id="mastery-h" className="text-[1.375rem]">Mastery by class</h2>
+          <p className="text-[0.875rem] text-muted">From how well your cards are sticking and your latest quiz scores. Open a class to see each unit.</p>
+          <ul className="mt-3 flex flex-col divide-y divide-line">
+            {(subjects.data ?? []).map((x) => ({ x, mm: m.forClass(x.id) })).filter(({ mm }) => mm).map(({ x, mm }) => (
+              <li key={x.id}>
+                <Link to={`/subjects/${x.id}`} className="flex items-center gap-3 py-3 text-ink no-underline">
+                  <span className="min-w-0 flex-1 truncate font-bold">{x.name}</span>
+                  <MasteryChip m={mm} />
+                  <b className="w-12 text-right tabular">{Math.round(mm!.score * 100)}%</b>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         <section className="card p-6" aria-labelledby="weak">
