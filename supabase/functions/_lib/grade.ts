@@ -46,7 +46,7 @@ export function gradeMessage(o: { front: string; back: string; answer: string; p
 export function cleanGrade(g: Partial<Grade> | null | undefined): Grade {
   const verdict: Verdict = g?.verdict === "right" || g?.verdict === "partly" ? g.verdict : "not_yet";
   // Shown as plain text, so markdown emphasis (*The Social Contract*) is dropped.
-  const plain = (t: string) => t.replace(/[*_]{1,2}([^*_]+)[*_]{1,2}/g, "$1").trim();
+  const plain = (t: string) => t.replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1").trim();
   const feedback = typeof g?.feedback === "string" && g.feedback.trim() ? plain(g.feedback).slice(0, 400) : verdict === "right" ? "That is it." : "Have another look at the answer below.";
   const missing = Array.isArray(g?.missing) ? g.missing.filter((m) => typeof m === "string" && m.trim()).map((m) => plain(m).slice(0, 120)).slice(0, 3) : [];
   return { verdict, feedback, missing: verdict === "right" ? [] : missing };
