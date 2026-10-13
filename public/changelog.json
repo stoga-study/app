@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.2.6",
+      "date": "2026-10-13",
+      "title": "AI help for your own notes",
+      "intro": "Your own notes, now with three AI helpers. v1.2 is complete.",
+      "highlights": [
+        {
+          "icon": "tidy",
+          "title": "Tidy",
+          "text": "Cleans up structure, grammar and formatting, keeping everything you wrote. Review it before it replaces your note."
+        },
+        {
+          "icon": "gaps",
+          "title": "Fill gaps from the file",
+          "text": "Finds facts the file covers that your notes do not mention yet, each with the page it came from, ready to add."
+        },
+        {
+          "icon": "cards",
+          "title": "Make cards from my notes",
+          "text": "Turns what you wrote into real flashcards in one tap."
+        }
+      ]
+    },
+    {
       "version": "1.2.5",
       "date": "2026-10-13",
       "title": "Ask about just one file or unit",
