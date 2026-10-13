@@ -33,7 +33,9 @@ async function retrieve(db: SupabaseClient, subjectId: string, words: string[], 
 /** Rank the student's own notes the same way, as a second kind of "source": their own words, not a file. */
 async function retrieveNotes(db: SupabaseClient, subjectId: string, words: string[], scope: Scope) {
   if (!words.length) return [];
-  let q = db.from("student_notes").select("id, title, body").eq("subject_id", subjectId).textSearch("search", words.join(" "), { type: "websearch", config: "english" });
+  // "or", not a plain join: websearch_to_tsquery ANDs bare words, and a note matching some but not
+  // all of them (the usual case) would otherwise never match, the same reason search_pages does this.
+  let q = db.from("student_notes").select("id, title, body").eq("subject_id", subjectId).textSearch("search", words.join(" or "), { type: "websearch", config: "english" });
   if (scope.sourceId) q = q.eq("source_id", scope.sourceId);
   if (scope.unitId) q = q.eq("unit_id", scope.unitId);
   const { data, error } = await q.limit(3);
