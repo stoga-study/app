@@ -69,3 +69,11 @@ export const useTextSize = () => usePreference<TextSize>(TEXT_KEY, SIZES, "stand
 
 export const THEME_LABEL: Record<ThemeChoice, string> = { system: "Match device", light: "Light", dark: "Dark" };
 export const TEXT_LABEL: Record<TextSize, string> = { standard: "Standard", large: "Large", largest: "Largest" };
+
+// How many cards a review session holds. Remembered on this device.
+export type SessionSize = "10" | "20" | "all";
+const SESSION_SIZES = ["10", "20", "all"] as const;
+export const useSessionSize = () => usePreference<SessionSize>("stoga-session-size", SESSION_SIZES, "20", () => {});
+export const SESSION_LABEL: Record<SessionSize, string> = { "10": "10 cards", "20": "20 cards", all: "All due" };
+/** The ?size= of a review link as a number of cards, or null for all. */
+export const sizeParam = (v: string | null) => (v === "10" || v === "20" ? Number(v) : null);

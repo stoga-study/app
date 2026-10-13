@@ -7,43 +7,61 @@ import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
-import { GRADES, previewIntervals, rate } from "@/lib/fsrs";
+import { GRADES, isWeak, previewIntervals, rate } from "@/lib/fsrs";
 import type { Grade } from "ts-fsrs";
 import { enqueueReview } from "@/lib/offline/outbox";
-import { useSubjects } from "@/lib/queries/profile";
-import { useDueQueue, useEditCard, useNextDue, type ReviewCard } from "@/lib/queries/review";
+import { useAuth } from "@/lib/auth/session";
+import { sizeParam } from "@/lib/preferences";
+import { useRetention, useSubjects } from "@/lib/queries/profile";
+import { inScope, useDueQueue, useEditCard, useNextDue, useWeakCards, type ReviewCard } from "@/lib/queries/review";
+import { useUnits } from "@/lib/queries/units";
+import { unitName } from "@/lib/units";
 
 const REQUEUE_MINUTES = 20; // cards marked Again that are due within this window come back in this session
 
 export default function ReviewSession() {
   const [params] = useSearchParams();
   const subjectId = params.get("subject");
+  const unitId = params.get("unit");
+  const size = sizeParam(params.get("size"));
+  const weakMode = params.get("mode") === "weak";
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { session } = useAuth();
   const subjects = useSubjects();
-  const due = useDueQueue(subjectId);
+  const units = useUnits(subjectId ?? undefined);
+  const retention = useRetention().value;
+  const dueQuery = useDueQueue();
+  const weakQuery = useWeakCards();
+  const due = weakMode ? weakQuery : dueQuery;
+  const scope = { subjectId, unitId };
+  const first = due.data ? inScope(due.data, { ...scope, size }) : undefined;
   const nextDue = useNextDue();
   const edit = useEditCard();
 
   // The session's own queue; until the first rating it is simply the cards that were due.
   const [ownQueue, setOwnQueue] = useState<ReviewCard[] | null>(null);
-  const queue = ownQueue ?? due.data ?? null;
+  const queue = ownQueue ?? first ?? null;
   const setQueue = (fn: (q: ReviewCard[] | null) => ReviewCard[] | null) => setOwnQueue(() => fn(queue));
   const [flipped, setFlipped] = useState(false);
   const [editing, setEditing] = useState<{ front: string; back: string } | null>(null);
   const [ratings, setRatings] = useState<number[]>([]);
-  const [startedAt] = useState(() => Date.now());
+  const [startedAt, setStartedAt] = useState(() => Date.now());
 
   const card = queue?.[0];
   const subjectName = useMemo(() => (id?: string) => subjects.data?.find((s) => s.id === id)?.name ?? "", [subjects.data]);
-  const intervals = useMemo(() => (card ? previewIntervals(card) : []), [card]);
+  // Cheap to work out, and must follow the retention setting.
+  const intervals = card ? previewIntervals(card, new Date(), retention) : [];
 
   const onRate = useCallback(
     (grade: number) => {
       if (!card) return;
       const now = new Date();
-      const { row, state } = rate(card, grade as Grade, now);
+      const { row, state } = rate(card, grade as Grade, now, retention);
       void enqueueReview({ client_id: crypto.randomUUID(), card_id: card.id, schedule: row, rating: grade, state, reviewed_at: now.toISOString() });
+      // The saved lists drop this card now, so the next session (even offline) does not repeat it.
+      qc.setQueryData<ReviewCard[]>(["due-queue", session?.user.id], (q) => q?.filter((c) => c.id !== card.id));
+      qc.setQueryData<ReviewCard[]>(["weak-cards", session?.user.id], (q) => q?.map((c) => (c.id === card.id ? { ...c, ...row } : c)).filter(isWeak));
       setRatings((r) => [...r, grade]);
       setFlipped(false);
       setQueue((q) => {
@@ -57,7 +75,7 @@ export default function ReviewSession() {
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [card, queue],
+    [card, queue, retention],
   );
 
   // Keyboard: space flips, 1-4 rate.
@@ -82,8 +100,18 @@ export default function ReviewSession() {
     }
   }, [queue, qc]);
 
-  if (due.isPending || queue === null) return <PageSkeleton label="Getting your cards ready." />;
+  // Wait for the fresh list when online, so cards do not change under the student a moment later.
+  if (due.isPending || queue === null || (!ownQueue && !due.isFetchedAfterMount && due.isFetching)) return <PageSkeleton label="Getting your cards ready." />;
   if (due.isError) return <ErrorState title="We could not load your cards" onRetry={() => due.refetch()}>Check your connection, then try again.</ErrorState>;
+
+  const scopeName = weakMode ? "Weak cards" : unitId ? unitName(units.data?.find((u) => u.id === unitId) ?? { number: null, title: "This unit" }) : subjectId ? subjectName(subjectId) : "";
+  // More due in the same scope after this session (the saved list already dropped what was reviewed).
+  const left = weakMode ? (due.data?.length ?? 0) : dueQuery.data ? inScope(dueQuery.data, scope).length : 0;
+  const keepGoing = () => {
+    setOwnQueue(inScope(due.data ?? [], { ...scope, size }));
+    setRatings([]);
+    setStartedAt(() => Date.now());
+  };
 
   if (!card) {
     const reviewed = ratings.length;
@@ -95,7 +123,9 @@ export default function ReviewSession() {
         <section className="mx-auto flex max-w-xl flex-col gap-4">
           <span className="chip self-start">Nothing overdue</span>
           <h1 className="text-[2.25rem]">All caught up</h1>
-          <p className="text-muted">You have finished everything due today.{next ? ` Next cards are due ${next}.` : ""}</p>
+          <p className="text-muted">
+            {weakMode ? "You have no weak cards right now. Cards you miss twice, or find hard, show up here." : `You have finished everything due${scopeName ? ` in ${scopeName}` : ""} today.${next ? ` Next cards are due ${next}.` : ""}`}
+          </p>
           <Button asChild><Link to="/review">Back to review</Link></Button>
         </section>
       );
@@ -105,7 +135,7 @@ export default function ReviewSession() {
         <div className="ink-panel pop p-6">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-52" aria-hidden="true" />
           <span className="circle circle-hot right-8 top-8 size-8" aria-hidden="true" />
-          <p className="ink-muted text-[0.9375rem]">Session complete{subjectId ? `, ${subjectName(subjectId)}` : ""}</p>
+          <p className="ink-muted text-[0.9375rem]">Session complete{scopeName ? `, ${scopeName}` : ""}</p>
           <p className="big-num mt-2 text-[5rem]">{reviewed}<span className="ml-2 font-body text-[1.125rem] tracking-normal">{reviewed === 1 ? "card" : "cards"} reviewed</span></p>
           <p className="ink-muted mt-2">About {mins} {mins === 1 ? "minute" : "minutes"}. {good} of {reviewed} felt good or easy.</p>
         </div>
@@ -122,7 +152,8 @@ export default function ReviewSession() {
           </div>
           {next && <p className="mt-4 text-[0.9375rem] text-muted">Next cards are due {next}.</p>}
         </div>
-        <Button asChild><Link to="/">Back to today</Link></Button>
+        {left > 0 && <Button onClick={keepGoing}>Keep going: {left} more {weakMode ? "weak" : "due"}</Button>}
+        <Button asChild variant={left > 0 ? "secondary" : "primary"}><Link to="/">Back to today</Link></Button>
         <Button asChild variant="secondary"><Link to="/review">Take a practice quiz</Link></Button>
       </section>
     );
@@ -139,7 +170,7 @@ export default function ReviewSession() {
           <ArrowLeft className="size-5" />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-[1.25rem] font-bold">{subjectName(card.subject_id) || "Flashcards"}</p>
+          <p className="truncate font-display text-[1.25rem] font-bold">{scopeName || subjectName(card.subject_id) || "Flashcards"}</p>
           <p className="text-[0.875rem] text-muted tabular">Card {done + 1} of {total}. Review pace is up to you.</p>
         </div>
       </div>
