@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ExternalLink, FileText, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, ExternalLink, FileText, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -7,10 +7,12 @@ import { ErrorState, PageSkeleton } from "@/components/States";
 import { Failed, Processing, SetView } from "@/components/StudySet";
 import { StudySetChooser } from "@/components/StudySetChooser";
 import { Button } from "@/components/ui/button";
+import { NoteList } from "@/components/NoteList";
 import { UnitPicker } from "@/components/UnitPicker";
 import { useSubjects } from "@/lib/queries/profile";
 import { openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages } from "@/lib/queries/sources";
 import { startErrorText, startGeneration, useCaps, useLiveSource, useStudySet } from "@/lib/queries/studyset";
+import { newNoteUrl, useNotes } from "@/lib/queries/notes";
 import { useFileUnder, useUnits } from "@/lib/queries/units";
 import { findUnit } from "@/lib/units";
 import type { GenOptions } from "../../supabase/functions/_lib/options";
@@ -44,6 +46,7 @@ export default function SourcePage() {
   const [more, setMore] = useState(false);
   const units = useUnits(source.data?.subject_id);
   const fileUnder = useFileUnder();
+  const notes = useNotes(source.data?.subject_id);
 
   /** Make a study set (or more of one) with these choices, or resume a failed one (no choices). */
   async function start(options?: GenOptions) {
@@ -192,6 +195,19 @@ export default function SourcePage() {
         <Button variant="secondary" className="mt-4" onClick={() => setMore(true)}><Plus /> Make more from this file</Button>
       )}
       {ready && <SetView source={s} pagesSlot={pagesList} />}
+
+      <section className="mt-8" aria-labelledby="my-notes">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <h2 id="my-notes" className="flex-1 text-[1.375rem]">My notes</h2>
+          <Button variant="secondary" size="sm" onClick={() => navigate(newNoteUrl({ subjectId: s.subject_id, unitId: s.unit_id, sourceId: s.id }))}>
+            <NotebookPen /> Write notes
+          </Button>
+        </div>
+        {(() => {
+          const mine = (notes.data ?? []).filter((n) => n.source_id === s.id);
+          return mine.length ? <NoteList notes={mine} /> : <p className="text-muted">Write your own notes with this file open beside them.</p>;
+        })()}
+      </section>
 
       <div className="mt-4 flex flex-wrap gap-2">
         {s.storage_path && (

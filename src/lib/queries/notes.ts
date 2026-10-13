@@ -154,3 +154,11 @@ export function useDeleteNote() {
     await qc.invalidateQueries({ queryKey: ["notes"] });
   };
 }
+
+/** Where a new note starts: its id is made here, so it can be written offline. */
+export function newNoteUrl(o: { subjectId: string; unitId?: string | null; sourceId?: string | null }) {
+  const q = new URLSearchParams({ subject: o.subjectId });
+  if (o.unitId) q.set("unit", o.unitId);
+  if (o.sourceId) q.set("source", o.sourceId);
+  return `/notes/${crypto.randomUUID()}?${q}`;
+}
