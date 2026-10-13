@@ -9,7 +9,11 @@ import { useAllSubjects } from "@/lib/queries/profile";
 import { reviewMinutes, useDueCards } from "@/lib/queries/cards";
 import { useQuizList } from "@/lib/queries/quiz";
 import { pageWord, useSources, type Source } from "@/lib/queries/sources";
+import { MasteryChip } from "@/components/MasteryChip";
 import { NoteList } from "@/components/NoteList";
+import type { Mastery } from "@/lib/mastery";
+import { useMastery } from "@/lib/queries/mastery";
+import { useUnitQuestionCounts } from "@/lib/queries/quiz";
 import { newNoteUrl, useNotes, type NoteSummary } from "@/lib/queries/notes";
 import { useCurrentUnit, useRenameUnit, useUnits, type Unit } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
@@ -24,6 +28,7 @@ export default function Subject() {
   const due = useDueCards();
   const quizzes = useQuizList();
   const units = useUnits(id);
+  const masteryAll = useMastery();
   const notes = useNotes(id);
   const navigate = useNavigate();
   if (subjects.isPending) return <PageSkeleton />;
@@ -31,6 +36,7 @@ export default function Subject() {
   if (!subject) return <ErrorState title="We could not find that class">It may have been removed. <Link to="/subjects">See your subjects</Link>.</ErrorState>;
   const mine = (sources.data ?? []).filter((s) => s.subject_id === subject.id && s.status !== "uploaded");
   const myNotes = notes.data ?? [];
+  const classMastery = masteryAll.forClass(subject.id);
 
   return (
     <>
@@ -55,6 +61,7 @@ export default function Subject() {
             <div className="card flex flex-col gap-2 p-5">
               <span className="flex items-center gap-2 font-bold"><Layers className="size-5 text-brand" /> Flashcards</span>
               <span className="text-muted">{n ? `${n} due, ${reviewMinutes(n).toLowerCase()}` : "Nothing due right now"}</span>
+              <MasteryChip m={classMastery} />
               <span className="mt-auto flex flex-wrap gap-2">
                 {n > 0 && <Button asChild size="sm"><Link to={`/review/session?subject=${subject.id}`}>Review</Link></Button>}
                 <Button asChild size="sm" variant="secondary"><Link to={`/subjects/${subject.id}/cards`}>Browse cards</Link></Button>
@@ -83,7 +90,7 @@ export default function Subject() {
           Add class notes, slides or a reading. Your study set is built from them.
         </EmptyState>
       ) : (
-        <ByUnit files={mine} notes={myNotes} units={units.data ?? []} currentId={subject.current_unit_id} />
+        <ByUnit files={mine} notes={myNotes} units={units.data ?? []} currentId={subject.current_unit_id} subjectId={subject.id} />
       )}
     </>
   );
@@ -129,7 +136,9 @@ const lessonNo = (l: string | null) => (l ? Number(l.split(".")[1]) : Infinity);
 const byLesson = (a: Source, b: Source) => lessonNo(a.lesson) - lessonNo(b.lesson) || b.created_at.localeCompare(a.created_at);
 
 /** Files and your notes grouped by unit: the current unit first, then in teaching order, then no unit. */
-function ByUnit({ files, notes, units, currentId }: { files: Source[]; notes: NoteSummary[]; units: Unit[]; currentId: string | null }) {
+function ByUnit({ files, notes, units, currentId, subjectId }: { files: Source[]; notes: NoteSummary[]; units: Unit[]; currentId: string | null; subjectId: string }) {
+  const m = useMastery();
+  const practice = useUnitQuestionCounts(subjectId);
   if (!units.length)
     return (
       <div className="flex flex-col gap-2">
@@ -149,7 +158,7 @@ function ByUnit({ files, notes, units, currentId }: { files: Source[]; notes: No
         const count = g.files.length + g.notes.length;
         return (
           <section key={g.unit?.id ?? "none"} aria-label={g.unit ? unitName(g.unit) : "No unit"} className="flex flex-col gap-2">
-            {g.unit ? <UnitHeading unit={g.unit} current={g.unit.id === currentId} count={count} /> : <h3 className="text-[1.0625rem] text-muted">No unit · {count}</h3>}
+            {g.unit ? <UnitHeading unit={g.unit} current={g.unit.id === currentId} count={count} mastery={m.forUnit(g.unit.id)} questions={practice.data?.[g.unit.id] ?? 0} /> : <h3 className="text-[1.0625rem] text-muted">No unit · {count}</h3>}
             {!!g.notes.length && <NoteList notes={g.notes} />}
             <FileList files={g.files} />
           </section>
@@ -159,7 +168,7 @@ function ByUnit({ files, notes, units, currentId }: { files: Source[]; notes: No
   );
 }
 
-function UnitHeading({ unit, current, count }: { unit: Unit; current: boolean; count: number }) {
+function UnitHeading({ unit, current, count, mastery, questions }: { unit: Unit; current: boolean; count: number; mastery: Mastery | null; questions: number }) {
   const rename = useRenameUnit();
   const [editing, setEditing] = useState<string | null>(null);
   if (editing !== null)
@@ -179,7 +188,7 @@ function UnitHeading({ unit, current, count }: { unit: Unit; current: boolean; c
       </form>
     );
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-1">
       <h3 className="text-[1.0625rem]">
         {unitName(unit)} <span className="font-normal text-muted">· {count}</span>
         {current && <span className="ml-2 rounded-full bg-tint px-2 py-0.5 align-middle text-[0.75rem] font-bold text-brand">Now</span>}
@@ -187,6 +196,10 @@ function UnitHeading({ unit, current, count }: { unit: Unit; current: boolean; c
       <button type="button" aria-label={`Rename ${unitName(unit)}`} onClick={() => setEditing(unit.title ?? "")} className="grid size-9 place-items-center rounded-full text-muted hover:bg-soft">
         <Pencil className="size-4" />
       </button>
+      <span className="ml-auto flex flex-wrap items-center justify-end gap-x-3 gap-y-1">
+        <MasteryChip m={mastery} />
+        {questions > 0 && <Link to={`/quiz/unit?unit=${unit.id}`} className="text-[0.875rem] font-bold">Practise this unit</Link>}
+      </span>
     </div>
   );
 }
