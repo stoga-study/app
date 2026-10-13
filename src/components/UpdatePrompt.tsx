@@ -35,12 +35,16 @@ export function UpdatePrompt() {
     const onHide = () => {
       if (document.visibilityState !== "hidden" || BUSY.test(location.pathname)) return;
       navigator.serviceWorker?.getRegistration().then((reg) => {
-        if (reg?.waiting) void updateServiceWorker(true);
+        const next = reg?.waiting;
+        if (!next) return;
+        // Let the new version take over, then load it once it is in charge.
+        navigator.serviceWorker.addEventListener("controllerchange", () => location.reload(), { once: true });
+        next.postMessage({ type: "SKIP_WAITING" });
       });
     };
     document.addEventListener("visibilitychange", onHide);
     return () => document.removeEventListener("visibilitychange", onHide);
-  }, [updateServiceWorker]);
+  }, []);
 
   return null;
 }
