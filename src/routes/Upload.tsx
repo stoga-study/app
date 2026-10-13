@@ -139,8 +139,9 @@ export default function Upload() {
       qc.invalidateQueries({ queryKey: ["allowance"] });
       // Make what the student chose; the file page shows the progress. Just saving makes nothing.
       if (make) await startGeneration(id, make).catch((e) => toast(startErrorText(e)));
-      // The class now remembers this choice for next time.
-      qc.invalidateQueries({ queryKey: ["subjects"] });
+      // The class now remembers this choice, and may be on a new unit. Waited for, so the cache saved on the
+      // device has it before we move on.
+      await qc.invalidateQueries({ queryKey: ["subjects"] });
       qc.invalidateQueries({ queryKey: ["allowance"] });
       // A smarter title arrives a moment later for files; pasted notes keep the title the student typed.
       if (file)
