@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Bold, CheckSquare, Cloud, CloudOff, FileText, Heading, List, Sigma, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Markdown } from "@/components/Markdown";
@@ -40,6 +40,7 @@ function Editor({ start, isNew }: { start: NoteDraft; isNew: boolean }) {
   const [symbols, setSymbols] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const area = useRef<HTMLTextAreaElement>(null);
+  const selection = useRef<[number, number] | null>(null);
   const latest = useRef<NoteDraft | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   const subjects = useAllSubjects();
@@ -91,12 +92,19 @@ function Editor({ start, isNew }: { start: NoteDraft; isNew: boolean }) {
     const ta = area.current;
     if (!ta) return;
     const r = fn({ text: note.body, start: ta.selectionStart, end: ta.selectionEnd });
+    // Put the cursor back as soon as React has written the new text (see the layout effect below).
+    selection.current = [r.start, r.end];
     change({ body: r.text });
-    requestAnimationFrame(() => {
-      ta.focus();
-      ta.setSelectionRange(r.start, r.end);
-    });
   }
+
+  // Restoring it later (a frame afterwards) could move the cursor while the student is already typing.
+  useLayoutEffect(() => {
+    const ta = area.current, sel = selection.current;
+    if (!ta || !sel) return;
+    selection.current = null;
+    ta.focus();
+    ta.setSelectionRange(sel[0], sel[1]);
+  });
 
   async function onDelete() {
     try {
