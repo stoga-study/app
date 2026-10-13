@@ -88,6 +88,8 @@ export function useNotes(subjectId: string | undefined) {
   return useQuery({
     queryKey: ["notes", subjectId],
     enabled: !!session && !!subjectId,
+    // Small, and edited from other screens and devices: always check when a page opens.
+    refetchOnMount: "always",
     queryFn: async () => {
       const { data, error } = await supabase
         .from("student_notes")
