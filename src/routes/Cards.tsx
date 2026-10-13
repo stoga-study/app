@@ -128,9 +128,14 @@ export function Decks() {
   );
 }
 
-/** /decks/:id: one deck. Review it, add or edit cards, rename, merge or delete it. */
+/** /decks/:id: one deck. Fresh for each deck, so nothing open on one (like Merge) carries to the next. */
 export function DeckPage() {
   const { id } = useParams();
+  return <DeckView key={id} id={id} />;
+}
+
+/** Review a deck, add or edit cards, rename, merge or delete it. */
+function DeckView({ id }: { id: string | undefined }) {
   const deck = useDeck(id);
   const decks = useDecks();
   const subjects = useSubjects();
