@@ -14,6 +14,7 @@ import ReviewSession from "./routes/ReviewSession";
 import Home from "./routes/Home";
 import { ClassCards, DeckPage, Decks } from "./routes/Cards";
 import NotePage from "./routes/Note";
+import Practice from "./routes/Practice";
 import NotFound from "./routes/NotFound";
 import Onboarding from "./routes/Onboarding";
 import Settings from "./routes/Settings";
@@ -56,6 +57,7 @@ export const router = createBrowserRouter([
           { path: "subjects/:id", element: <Subject /> },
           { path: "subjects/:id/cards", element: <ClassCards /> },
           { path: "decks", element: <Decks /> },
+          { path: "practice", element: <Practice /> },
           { path: "decks/:id", element: <DeckPage /> },
           { path: "sources/:id", element: <SourcePage /> },
           { path: "notes/:id", element: <NotePage /> },

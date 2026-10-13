@@ -77,3 +77,7 @@ export const useSessionSize = () => usePreference<SessionSize>("stoga-session-si
 export const SESSION_LABEL: Record<SessionSize, string> = { "10": "10 cards", "20": "20 cards", all: "All due" };
 /** The ?size= of a review link as a number of cards, or null for all. */
 export const sizeParam = (v: string | null) => (v === "10" || v === "20" ? Number(v) : null);
+
+// How typed answers are checked: by the AI, or by the student against the answer. This device only.
+export type Grading = "ai" | "self";
+export const useGrading = () => usePreference<Grading>("stoga-grading", ["ai", "self"] as const, "ai", () => {});

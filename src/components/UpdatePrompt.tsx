@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 /** Screens where a reload would interrupt something (a review, a quiz, writing, an upload). */
-const BUSY = /^\/(review\/session|quiz\/|notes\/|upload)/;
+const BUSY = /^\/(review\/session|quiz\/|notes\/|upload|practice)/;
 const CHECK_EVERY = 30 * 60 * 1000;
 
 // A calm notice when a new version is ready. If the student does not tap it, the update is put in

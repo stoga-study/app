@@ -7,7 +7,7 @@ import { useMarkSeen } from "@/routes/WhatsNew";
 // Once per app open, at most: never interrupt a student twice in one sitting.
 let shownThisOpen = false;
 // Mid-task screens are never interrupted; the update shows on the next screen instead.
-const BUSY = /^\/(review\/session|quiz\/|upload|notes\/)/;
+const BUSY = /^\/(review\/session|quiz\/|upload|notes\/|practice)/;
 
 /** After an update, opens the full-screen "What's new" once. Brand-new students are simply marked up to date. */
 export function WhatsNewGate() {
