@@ -9,6 +9,7 @@ import { lastYearClasses, useAllSubjects, useProfile, useSubjects } from "@/lib/
 import { joinNames, reviewMinutes, useDueCards } from "@/lib/queries/cards";
 import { useDueQueue } from "@/lib/queries/review";
 import { useSources } from "@/lib/queries/sources";
+import { useSessionSize } from "@/lib/preferences";
 import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
 
@@ -26,6 +27,7 @@ export default function Home() {
   for (const s of sources.data ?? []) counts.set(s.subject_id, (counts.get(s.subject_id) ?? 0) + 1);
   const name = profile.data?.first_name;
   const due = useDueCards();
+  const [size] = useSessionSize();
   // Fetch today's review queue in the background, so review works even if the connection drops.
   useDueQueue();
   const dueNames = Object.entries(due.data?.bySubject ?? {})
@@ -62,7 +64,7 @@ export default function Home() {
             </p>
           </div>
           {due.data && due.data.count > 0 && (
-            <Button asChild variant="inverse" block className="mt-4"><Link to="/review/session">Start review</Link></Button>
+            <Button asChild variant="inverse" block className="mt-4"><Link to={`/review/session?size=${size}`}>Start review</Link></Button>
           )}
         </section>
         <section className="card card-dashed flex flex-col justify-center gap-3 p-6">
