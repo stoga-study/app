@@ -25,6 +25,43 @@ async function retrieve(db: SupabaseClient, subjectId: string, words: string[]) 
   return (data ?? []) as { source_id: string; filename: string; page_no: number; text: string; rank: number }[];
 }
 
+/** The exact pages a card or quiz question cites, not a search: "Explain this" must be grounded in them. */
+async function retrieveExact(db: SupabaseClient, sourceId: string, pages: number[]) {
+  const { data: src } = await db.from("sources").select("filename").eq("id", sourceId).maybeSingle();
+  if (!src || !pages.length) return [];
+  const { data } = await db.from("source_pages").select("page_no, text").eq("source_id", sourceId).in("page_no", pages.slice(0, 4)).order("page_no");
+  return (data ?? []).map((p) => ({ source_id: sourceId, filename: src.filename, page_no: p.page_no, text: p.text, rank: 1 }));
+}
+
+type ExplainContext = { kind: "card" | "quiz_question"; id: string };
+
+/** Turns a card or a missed quiz question into a question for the tutor, grounded in its own pages. */
+async function contextQuestion(db: SupabaseClient, ctx: ExplainContext) {
+  if (ctx.kind === "card") {
+    const { data } = await db.from("cards").select("front, back, source_id, pages").eq("id", ctx.id).maybeSingle();
+    if (!data) return null;
+    return {
+      llmText: `Help me understand this flashcard, not just repeat the answer.\nQuestion: ${data.front}\nAnswer: ${data.back}`,
+      display: `Explain: ${data.front}`,
+      title: data.front.slice(0, 80),
+      sourceId: data.source_id,
+      pages: data.pages ?? [],
+    };
+  }
+  const { data } = await db.from("quiz_questions").select("prompt, options, answer_index, explanation, pages, quizzes(source_id)").eq("id", ctx.id).maybeSingle();
+  if (!data) return null;
+  const options = (data.options as string[]) ?? [];
+  const correct = options[data.answer_index] ?? "";
+  const sourceId = (data.quizzes as unknown as { source_id: string | null } | null)?.source_id ?? null;
+  return {
+    llmText: `Help me understand this quiz question I got wrong, so I get the idea, not just this one answer.\nQuestion: ${data.prompt}\nOptions: ${options.map((o, i) => `${"ABCD"[i]}) ${o}`).join(" ")}\nThe correct answer: ${correct}\nGiven reason: ${data.explanation}`,
+    display: `Explain: ${data.prompt}`,
+    title: data.prompt.slice(0, 80),
+    sourceId,
+    pages: data.pages ?? [],
+  };
+}
+
 /** Section titles from the subject's study sets, so the tutor knows what the student has uploaded. */
 async function noteTopics(db: SupabaseClient, subjectId: string) {
   const { data: srcs } = await db.from("sources").select("id").eq("subject_id", subjectId).eq("status", "ready").order("created_at", { ascending: false }).limit(10);
@@ -93,9 +130,26 @@ Deno.serve(async (req) => {
     }
   }
 
-  const question = cleanText(body.question, MAX_Q);
+  if (typeof body.subject_id !== "string") return json(req, { error: "question_required" }, 400);
   const level = [1, 2, 3].includes(body.hint_level) ? body.hint_level : 1;
-  if (!question || typeof body.subject_id !== "string") return json(req, { error: "question_required" }, 400);
+  const wantsContext = body.context && typeof body.context === "object" && ["card", "quiz_question"].includes(body.context.kind) && typeof body.context.id === "string";
+  let question: string;
+  let display: string | null = null;
+  let threadTitle: string | null = null;
+  let forcedMode: Mode | null = null;
+  let explicitPages: { sourceId: string; pages: number[] } | null = null;
+  if (wantsContext) {
+    const ctx = await contextQuestion(student.db, body.context as ExplainContext);
+    if (!ctx) return json(req, { error: "not_found" }, 404);
+    question = ctx.llmText;
+    display = ctx.display;
+    threadTitle = ctx.title;
+    forcedMode = "explain";
+    if (ctx.sourceId && ctx.pages.length) explicitPages = { sourceId: ctx.sourceId, pages: ctx.pages };
+  } else {
+    question = cleanText(body.question, MAX_Q);
+    if (!question) return json(req, { error: "question_required" }, 400);
+  }
   const { data: subject } = await student.db.from("subjects").select("id, name").eq("id", body.subject_id).maybeSingle();
   if (!subject) return json(req, { error: "not_found" }, 404);
 
@@ -118,7 +172,7 @@ Deno.serve(async (req) => {
       if (!t) threadId = null;
     }
     if (!threadId) {
-      const { data: t, error } = await student.db.from("chat_threads").insert({ subject_id: subject.id, title: question.slice(0, 80) }).select("id").single();
+      const { data: t, error } = await student.db.from("chat_threads").insert({ subject_id: subject.id, title: threadTitle ?? question.slice(0, 80) }).select("id").single();
       if (error) throw error;
       threadId = t.id;
     }
@@ -129,9 +183,9 @@ Deno.serve(async (req) => {
     const previous = [...history].reverse().find((m) => m.role === "user" && m.content !== question)?.content ?? null;
     const feeling = body.followup ? null : wellbeing(question);
     const [hits, topics, routed] = await Promise.all([
-      retrieve(student.db, subject.id, searchTerms(question, previous)),
+      explicitPages ? retrieveExact(student.db, explicitPages.sourceId, explicitPages.pages) : retrieve(student.db, subject.id, searchTerms(question, previous)),
       noteTopics(student.db, subject.id),
-      body.followup ? Promise.resolve<Mode>("hint") : route(history, question, own, student.userId),
+      forcedMode ? Promise.resolve(forcedMode) : body.followup ? Promise.resolve<Mode>("hint") : route(history, question, own, student.userId),
     ]);
     // A student who may be in crisis gets a caring reply, not schoolwork.
     const mode: Mode = feeling === "crisis" ? "chat" : routed;
@@ -174,7 +228,7 @@ Deno.serve(async (req) => {
     // Saved only once the answer is on its way, so a retry after "busy" does not repeat the question.
     let askedId: string | null = null;
     if (!body.followup) {
-      const { data: asked } = await student.db.from("chat_messages").insert({ thread_id: threadId, role: "user", content: question }).select("id").single();
+      const { data: asked } = await student.db.from("chat_messages").insert({ thread_id: threadId, role: "user", content: display ?? question }).select("id").single();
       askedId = asked?.id ?? null;
     }
 

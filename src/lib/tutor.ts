@@ -14,9 +14,15 @@ export type TutorEvent =
   | { type: "done"; message_id: string; content: string; citations: Citation[]; mode: TutorMode }
   | { type: "error"; error: string; resets_at?: string; used?: number; limit?: number; retry_after?: number };
 
-/** Ask the tutor and stream its answer. Errors before the stream starts arrive as an "error" event too. */
+export type ExplainContext = { kind: "card" | "quiz_question"; id: string };
+
+/** Ask the tutor and stream its answer. Errors before the stream starts arrive as an "error" event too.
+ * Either a typed question, or `context`: turns a card or a missed quiz question straight into an
+ * "explain" answer grounded in its own pages, skipping the router. */
 export async function askTutor(
-  body: { subject_id: string; question: string; hint_level: 1 | 2 | 3; thread_id?: string | null; followup?: boolean },
+  body:
+    | { subject_id: string; question: string; hint_level: 1 | 2 | 3; thread_id?: string | null; followup?: boolean }
+    | { subject_id: string; context: ExplainContext; thread_id?: string | null },
   onEvent: (e: TutorEvent) => void,
   signal?: AbortSignal,
 ) {

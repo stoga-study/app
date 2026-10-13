@@ -10,7 +10,7 @@ import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useSubjects } from "@/lib/queries/profile";
 import { useAllowance } from "@/lib/queries/sources";
-import { askTutor, citesNotes, displayText, HINT_LABEL, makeCardFromAnswer, modeOf, useThreadMessages, useThreads, type Citation, type SourceRef, type TutorMessage, type TutorMode } from "@/lib/tutor";
+import { askTutor, citesNotes, displayText, HINT_LABEL, makeCardFromAnswer, modeOf, useThreadMessages, useThreads, type Citation, type ExplainContext, type SourceRef, type TutorMessage, type TutorMode } from "@/lib/tutor";
 import { useOnline } from "@/lib/useOnline";
 
 const fmtWhen = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
@@ -117,6 +117,21 @@ export default function Tutor() {
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [history.data?.length, live?.text]);
 
   const subject = subjects.data?.find((s) => s.id === subjectId);
+
+  // "Explain this" (from a card back or a missed quiz question) arrives as ?explain=card:<id> or
+  // ?explain=quiz_question:<id> on a fresh conversation; fire it once, then drop the param.
+  const explainFired = useRef(false);
+  useEffect(() => {
+    const spec = params.get("explain");
+    if (!spec || explainFired.current || threadId || live || !subject) return;
+    const [kind, id] = spec.split(":");
+    if ((kind !== "card" && kind !== "quiz_question") || !id) return;
+    explainFired.current = true;
+    setParams((p) => { const n = new URLSearchParams(p); n.delete("explain"); return n; }, { replace: true });
+    void ask(kind === "card" ? "Explain this flashcard" : "Explain this question", 1, false, { kind, id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params, threadId, live, subject]);
+
   if (subjects.isPending) return <PageSkeleton />;
   if (!subject) return <ErrorState title="We could not find that class"><Link to="/tutor">Pick a class</Link>.</ErrorState>;
 
@@ -125,11 +140,11 @@ export default function Tutor() {
   const lastAnswer = [...msgs].reverse().find((m) => m.role === "assistant");
   const tutorUse = allowance.data?.tutor_message;
 
-  async function ask(question: string, level: 1 | 2 | 3, followup: boolean) {
+  async function ask(question: string, level: 1 | 2 | 3, followup: boolean, context?: ExplainContext) {
     if (live) return;
     setLive({ question: followup ? "" : question, level, mode: null, text: "", sources: [] });
     let thread = threadId;
-    await askTutor({ subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup }, (e) => {
+    await askTutor(context ? { subject_id: subject!.id, context, thread_id: thread } : { subject_id: subject!.id, question, hint_level: level, thread_id: thread, followup }, (e) => {
       if (e.type === "meta") {
         thread = e.thread_id;
         setLive((l) => (l ? { ...l, sources: e.sources } : l));
