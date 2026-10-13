@@ -71,7 +71,7 @@ export default function Review() {
                     {unit && inUnit > 0 && <span className="block text-[0.875rem] text-muted">{inUnit} from {unitName(unit)}</span>}
                   </span>
                   <b className="tabular">{n}</b>
-                  <span className="flex gap-2">
+                  <span className="flex w-full gap-2 pl-8 sm:w-auto sm:pl-0">
                     {unit && inUnit > 0 && inUnit < n && (
                       <Button asChild size="sm" variant="secondary"><Link to={sized(`/review/session?subject=${id}&unit=${unit.id}`)} aria-label={`Review ${unitName(unit)}`}>This unit</Link></Button>
                     )}
