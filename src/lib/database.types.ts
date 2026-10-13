@@ -943,6 +943,67 @@ export type Database = {
           },
         ]
       }
+      student_notes: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          search: unknown
+          source_id: string | null
+          subject_id: string
+          title: string
+          unit_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id: string
+          search?: unknown
+          source_id?: string | null
+          subject_id: string
+          title?: string
+          unit_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          search?: unknown
+          source_id?: string | null
+          subject_id?: string
+          title?: string
+          unit_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_notes_source_id_user_id_fkey"
+            columns: ["source_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "student_notes_subject_id_user_id_fkey"
+            columns: ["subject_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "student_notes_unit_id_user_id_fkey"
+            columns: ["unit_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       subjects: {
         Row: {
           archived: boolean
