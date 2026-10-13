@@ -22,7 +22,12 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <PersistQueryClientProvider client={queryClient} persistOptions={{ persister, maxAge: MAX_AGE, buster: CACHE_VERSION, dehydrateOptions: { shouldDehydrateQuery: shouldKeep } }}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: MAX_AGE, buster: CACHE_VERSION, dehydrateOptions: { shouldDehydrateQuery: shouldKeep } }}
+      // The saved copy shows instantly (and offline); check every screen against the server once per start.
+      onSuccess={() => void queryClient.invalidateQueries()}
+    >
       <AuthProvider>
         <RouterProvider router={router} />
       </AuthProvider>
