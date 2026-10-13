@@ -22,6 +22,7 @@ function titleAfter(rest: string): string | null {
     // Extra lessons in one file ("U2L6 + U2L7 …", "Unit 3 & 4 …") are not part of the title.
     .replace(/^(\s*([+&,]|and)\s*(u\s?\d{1,2}\s?l\s?\d{1,2}|\d{1,2}(\.\d{1,2})?))+/i, "")
     .replace(/^[\s:–—\-.,|]+/, "")
+    .replace(/^(notes?|slides?)\s+(on\s+)?(?=\S)/i, "")
     .split(/\n|\s{2,}|\s[|•]\s/)[0]
     .replace(/\.(pdf|docx?|pptx?|txt|md|jpe?g|png|heic)$/i, "")
     .replace(/[_]+/g, " ")
@@ -37,7 +38,8 @@ function titleAfter(rest: string): string | null {
  */
 export function findUnit(filename: string, firstPage = ""): UnitLabel | null {
   for (const raw of [filename, firstPage.slice(0, 1500)]) {
-    const text = raw.replace(/[_]+/g, " ");
+    // Downloaded names often use "+" for spaces ("U2L6+Notes+Radicals.pdf").
+    const text = (/\s/.test(raw.trim()) ? raw : raw.replace(/\+/g, " ")).replace(/[_]+/g, " ");
     // U2L6 / U2 L6 (common teacher shorthand): unit 2, lesson 6.
     const short = /\bU\s?(\d{1,2})\s?L\s?(\d{1,2})\b/i.exec(text);
     if (short) return { number: short[1], lesson: `${short[1]}.${short[2]}`, title: titleAfter(text.slice(short.index + short[0].length)), word: "Unit" };

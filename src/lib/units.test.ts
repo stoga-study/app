@@ -11,6 +11,7 @@ describe("findUnit", () => {
     expect(findUnit("Ch.7 review.docx")).toMatchObject({ number: "7", word: "Chapter", title: null });
     expect(findUnit("ch12_stoichiometry.pdf")).toMatchObject({ number: "12", title: "stoichiometry" });
     expect(findUnit("Module 3 Quadratics.pptx")).toMatchObject({ number: "3", word: "Module", title: "Quadratics" });
+    expect(findUnit("U2L6+Notes+Equations+with+Radicals.pdf")).toMatchObject({ number: "2", lesson: "2.6", title: "Equations with Radicals" });
     expect(findUnit("Lesson 5.2 Graphing.pdf")).toMatchObject({ number: "5", lesson: "5.2", title: "Graphing" });
   });
   it("falls back to the first page", () => {
