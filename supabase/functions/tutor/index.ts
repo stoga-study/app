@@ -17,12 +17,29 @@ setUsageLogger((row) => admin.from("ai_usage").insert(row));
 const MAX_Q = 2000;
 const MAX_PAGES = 6;
 
-/** Rank the subject's pages for these words (any of them), as the student, so RLS applies. */
-async function retrieve(db: SupabaseClient, subjectId: string, words: string[]) {
+type Scope = { sourceId: string | null; unitId: string | null };
+
+/** Rank the subject's pages for these words (any of them), as the student, so RLS applies. Narrowed to
+ * one file or one unit when the conversation is scoped to it. */
+async function retrieve(db: SupabaseClient, subjectId: string, words: string[], scope: Scope) {
   if (!words.length) return [];
-  const { data, error } = await db.rpc("search_pages", { p_subject: subjectId, p_query: words.join(" or "), p_limit: MAX_PAGES });
+  const { data, error } = await db.rpc("search_pages", {
+    p_subject: subjectId, p_query: words.join(" or "), p_limit: MAX_PAGES, p_source_id: scope.sourceId ?? undefined, p_unit_id: scope.unitId ?? undefined,
+  });
   if (error) throw error;
   return (data ?? []) as { source_id: string; filename: string; page_no: number; text: string; rank: number }[];
+}
+
+/** Rank the student's own notes the same way, as a second kind of "source": their own words, not a file. */
+async function retrieveNotes(db: SupabaseClient, subjectId: string, words: string[], scope: Scope) {
+  if (!words.length) return [];
+  let q = db.from("student_notes").select("id, title, body").eq("subject_id", subjectId).textSearch("search", words.join(" "), { type: "websearch", config: "english" });
+  if (scope.sourceId) q = q.eq("source_id", scope.sourceId);
+  if (scope.unitId) q = q.eq("unit_id", scope.unitId);
+  const { data, error } = await q.limit(3);
+  if (error) throw error;
+  // Reuses the page-hit shape (page_no fixed at 1: a note has no pages), so it flows through the same pipeline.
+  return (data ?? []).filter((n) => n.body.trim()).map((n) => ({ source_id: n.id, filename: n.title.trim() || "Untitled note", page_no: 1, text: n.body, rank: 1 }));
 }
 
 /** The exact pages a card or quiz question cites, not a search: "Explain this" must be grounded in them. */
@@ -171,25 +188,38 @@ Deno.serve(async (req) => {
   const refund = () => admin.rpc("refund_allowance", { p_user: student.userId, p_kind: "tutor_message" });
 
   try {
-    // Thread and history.
+    // Thread, its scope (one file, one unit, or the whole class) and history.
     let threadId: string | null = typeof body.thread_id === "string" ? body.thread_id : null;
+    let scope: Scope = { sourceId: null, unitId: null };
     if (threadId) {
-      const { data: t } = await student.db.from("chat_threads").select("id").eq("id", threadId).eq("subject_id", subject.id).maybeSingle();
+      const { data: t } = await student.db.from("chat_threads").select("id, scope_source_id, scope_unit_id").eq("id", threadId).eq("subject_id", subject.id).maybeSingle();
       if (!t) threadId = null;
+      else scope = { sourceId: t.scope_source_id, unitId: t.scope_unit_id };
     }
     if (!threadId) {
-      const { data: t, error } = await student.db.from("chat_threads").insert({ subject_id: subject.id, title: threadTitle ?? question.slice(0, 80) }).select("id").single();
+      // A new thread's scope comes from the client, and only from one place a student can actually open
+      // a scoped chat from: a specific file or a specific unit, both still checked by row-level security.
+      const wantsScope = body.scope && typeof body.scope === "object";
+      const scopeSourceId = wantsScope && typeof body.scope.source_id === "string" ? body.scope.source_id : null;
+      const scopeUnitId = !scopeSourceId && wantsScope && typeof body.scope.unit_id === "string" ? body.scope.unit_id : null;
+      const { data: t, error } = await student.db.from("chat_threads")
+        .insert({ subject_id: subject.id, title: threadTitle ?? question.slice(0, 80), scope_source_id: scopeSourceId, scope_unit_id: scopeUnitId })
+        .select("id, scope_source_id, scope_unit_id").single();
       if (error) throw error;
       threadId = t.id;
+      scope = { sourceId: t.scope_source_id, unitId: t.scope_unit_id };
     }
+    // "Explain this" already grounds in its own exact pages; a scope would only narrow that further for no reason.
+    if (explicitPages) scope = { sourceId: null, unitId: null };
     const { data: recent } = await student.db.from("chat_messages").select("role, content, mode").eq("thread_id", threadId).order("created_at", { ascending: false }).limit(10);
     const history = ((recent ?? []) as Turn[]).reverse();
 
-    // Sources.
+    // Sources: the student's uploaded pages, and their own notes, both searched the same way.
     const previous = [...history].reverse().find((m) => m.role === "user" && m.content !== question)?.content ?? null;
     const feeling = body.followup || isRetry ? null : wellbeing(question);
-    const [hits, topics, routed, profileRow] = await Promise.all([
-      explicitPages ? retrieveExact(student.db, explicitPages.sourceId, explicitPages.pages) : retrieve(student.db, subject.id, searchTerms(question, previous)),
+    const [pageHits, noteHits, topics, routed, profileRow] = await Promise.all([
+      explicitPages ? retrieveExact(student.db, explicitPages.sourceId, explicitPages.pages) : retrieve(student.db, subject.id, searchTerms(question, previous), scope),
+      explicitPages ? Promise.resolve([]) : retrieveNotes(student.db, subject.id, searchTerms(question, previous), scope),
       noteTopics(student.db, subject.id),
       forcedMode ? Promise.resolve(forcedMode) : body.followup ? Promise.resolve<Mode>("hint") : route(history, question, own, student.userId),
       depthOverride ? Promise.resolve(null) : student.db.from("profiles").select("tutor_depth").maybeSingle(),
@@ -197,19 +227,21 @@ Deno.serve(async (req) => {
     // A student who may be in crisis gets a caring reply, not schoolwork.
     const mode: Mode = feeling === "crisis" ? "chat" : routed;
     const depth: Depth = depthOverride === "simpler" ? "simple" : depthOverride === "deeper" ? "deep" : (profileRow?.data?.tutor_depth as Depth | undefined) ?? "standard";
+    const ownNoteIds = new Set(noteHits.map((h) => h.source_id));
     const sources: Src[] = [];
     const blocks: string[] = [];
-    for (const h of hits) {
+    for (const h of [...pageHits, ...noteHits]) {
       let s = sources.find((x) => x.source_id === h.source_id);
       if (!s) {
-        s = { key: `S${sources.length + 1}`, source_id: h.source_id, filename: h.filename, kind: "pdf", pages: [] };
+        s = { key: `S${sources.length + 1}`, source_id: h.source_id, filename: h.filename, kind: ownNoteIds.has(h.source_id) ? "note" : "pdf", pages: [] };
         sources.push(s);
       }
       s.pages.push(h.page_no);
-      blocks.push(`[${s.key} p.${h.page_no}] (${h.filename})\n${h.text.slice(0, 2500)}`);
+      blocks.push(`[${s.key} p.${h.page_no}] (${ownNoteIds.has(h.source_id) ? `from your own notes: ${h.filename}` : h.filename})\n${h.text.slice(0, 2500)}`);
     }
-    if (sources.length) {
-      const { data: kinds } = await student.db.from("sources").select("id, kind").in("id", sources.map((s) => s.source_id));
+    const fileSources = sources.filter((s) => !ownNoteIds.has(s.source_id));
+    if (fileSources.length) {
+      const { data: kinds } = await student.db.from("sources").select("id, kind").in("id", fileSources.map((s) => s.source_id));
       for (const k of kinds ?? []) { const s = sources.find((x) => x.source_id === k.id); if (s) s.kind = k.kind; }
     }
 

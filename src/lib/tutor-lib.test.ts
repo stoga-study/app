@@ -128,6 +128,9 @@ describe("prompts", () => {
     expect(userTurn([], "find x: 2x + 3 = 11", "worked")).toContain("a worked example");
     expect(userTurn([], "find x: 2x + 3 = 11", "worked")).not.toContain("2x + 3");
   });
+  it("tells the model how to treat the student's own notes as a source", () => {
+    expect(systemPrompt({ ...base, mode: "explain" })).toContain("from your own notes");
+  });
   it("swaps in the worked-example task only for hint mode", () => {
     expect(systemPrompt({ ...base, mode: "hint", workedExample: true })).toContain("WORKED EXAMPLE");
     expect(systemPrompt({ ...base, mode: "hint", workedExample: true })).not.toContain("HINT 1 of 3");

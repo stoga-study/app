@@ -311,6 +311,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          scope_source_id: string | null
+          scope_unit_id: string | null
           subject_id: string
           title: string | null
           updated_at: string
@@ -319,6 +321,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          scope_source_id?: string | null
+          scope_unit_id?: string | null
           subject_id: string
           title?: string | null
           updated_at?: string
@@ -327,12 +331,28 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          scope_source_id?: string | null
+          scope_unit_id?: string | null
           subject_id?: string
           title?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "chat_threads_scope_source"
+            columns: ["scope_source_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "chat_threads_scope_unit"
+            columns: ["scope_unit_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id", "user_id"]
+          },
           {
             foreignKeyName: "chat_threads_subject_id_fkey"
             columns: ["subject_id"]
@@ -1426,7 +1446,13 @@ export type Database = {
         Returns: undefined
       }
       search_pages: {
-        Args: { p_limit?: number; p_query: string; p_subject: string }
+        Args: {
+          p_limit?: number
+          p_query: string
+          p_source_id?: string
+          p_subject: string
+          p_unit_id?: string
+        }
         Returns: {
           filename: string
           page_no: number
