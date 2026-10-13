@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, Layers, Merge, Pencil, Play, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, Layers, Merge, Pencil, PenLine, Play, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -45,6 +45,7 @@ export function ClassCards() {
         end={
           <div className="flex flex-wrap gap-2">
             {due > 0 && <Button asChild><Link to={`/review/session?subject=${subject.id}&size=${size}`}><Play /> Review {due} due</Link></Button>}
+            {list.length > 0 && <Button asChild variant="secondary"><Link to={`/practice?subject=${subject.id}`}><PenLine /> Type answers</Link></Button>}
             <Button variant="secondary" onClick={() => setAdding(true)}><Plus /> New card</Button>
           </div>
         }
@@ -186,6 +187,7 @@ function DeckView({ id }: { id: string | undefined }) {
       <div className="mb-6 flex flex-wrap gap-2">
         {due > 0 && <Button asChild><Link to={`/review/session?deck=${d.id}&size=${size}`}><Play /> Review {due} due</Link></Button>}
         {d.cards.length > 0 && <Button asChild variant={due ? "secondary" : "primary"}><Link to={`/review/session?deck=${d.id}&mode=all&size=${size}`}><Play /> Practise all</Link></Button>}
+        {d.cards.length > 0 && <Button asChild variant="secondary"><Link to={`/practice?deck=${d.id}`}><PenLine /> Type answers</Link></Button>}
         <Button variant="secondary" onClick={() => setAdding(true)}><Plus /> New card</Button>
         {others.length > 0 && <Button variant="ghost" onClick={() => setPanel((p) => (p === "merge" ? null : "merge"))}><Merge /> Merge</Button>}
         <Button variant="ghost" onClick={() => setPanel((p) => (p === "delete" ? null : "delete"))}><Trash2 /> Delete deck</Button>

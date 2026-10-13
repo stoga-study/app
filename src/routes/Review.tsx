@@ -1,4 +1,4 @@
-import { Flame, Layers, ListChecks, Play, RotateCcw } from "lucide-react";
+import { Flame, Layers, ListChecks, PenLine, Play, RotateCcw } from "lucide-react";
 import { Link } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, PageSkeleton } from "@/components/States";
@@ -93,6 +93,18 @@ export default function Review() {
             <span className="flex-1">
               <span id="weak-title" className="block font-display text-[1.25rem] font-bold">Weak cards</span>
               <span className="block text-muted">{weak.data!.length} {weak.data!.length === 1 ? "card" : "cards"} you have missed more than once or find hard. Practise them any time.</span>
+            </span>
+          </Link>
+        </section>
+      )}
+
+      {(due.data?.total ?? 0) > 0 && (
+        <section className="mt-6" aria-labelledby="short-title">
+          <Link to="/practice" className="card flex items-center gap-4 p-5 text-ink no-underline">
+            <span className="tile soft"><PenLine /></span>
+            <span className="flex-1">
+              <span id="short-title" className="block font-display text-[1.25rem] font-bold">Short-answer practice</span>
+              <span className="block text-muted">Type your answers, then the AI checks them, or you do. Due cards count as your review.</span>
             </span>
           </Link>
         </section>
