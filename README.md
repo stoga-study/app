@@ -48,9 +48,7 @@ PDF pages with no text (scans) and photos (JPG, PNG, WebP, HEIC) are rendered to
 
 `public/changelog.json` is the single list of releases (newest first, plain words for students). After an update, each student sees the full-screen What's new once (`profiles.last_seen_version`; brand-new students are marked up to date). `/changelog` lists every release, linked from Settings.
 
-The breakdown email for a release is built from the same file by the `release-email` function and sent through Resend. It is only sent when you press "Send to everyone" in the local admin dashboard (Updates tab); "Send preview" emails just you first. Students who already got a release are skipped, and every email has a one-tap unsubscribe (`profiles.email_updates`). Secrets: `RESEND_API_KEY`, `ADMIN_TOKEN` (also in the admin dashboard's `.env`), `UNSUBSCRIBE_SECRET`, optional `RELEASE_EMAIL_FROM`.
-
-Shipping a release: add its entry to `public/changelog.json`, push, tag it (`git tag v1.1.0 && git push --tags`), then send the email from the dashboard.
+Shipping a release: add its entry to `public/changelog.json`, push, and tag it (`git tag v1.1.0 && git push --tags`).
 
 ### Switching models
 
