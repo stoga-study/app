@@ -9,6 +9,7 @@ import { useMistakes, useQuizList } from "@/lib/queries/quiz";
 import { SESSION_LABEL, useSessionSize, type SessionSize } from "@/lib/preferences";
 import { inScope, useDueQueue, useNextDue, useWeakCards } from "@/lib/queries/review";
 import { useAllUnits } from "@/lib/queries/units";
+import { useDecks } from "@/lib/queries/organise";
 import { unitName } from "@/lib/units";
 
 export default function Review() {
@@ -20,6 +21,7 @@ export default function Review() {
   const queue = useDueQueue();
   const weak = useWeakCards();
   const units = useAllUnits();
+  const decks = useDecks();
   const [size, setSize] = useSessionSize();
   const sized = (base: string) => `${base}${base.includes("?") ? "&" : "?"}size=${size}`;
   if (due.isPending || subjects.isPending) return <PageSkeleton label="Getting your review ready." />;
@@ -95,6 +97,30 @@ export default function Review() {
           </Link>
         </section>
       )}
+
+      <section className="mt-6" aria-labelledby="decks-title">
+        <div className="mb-3 flex items-end justify-between gap-2">
+          <h2 id="decks-title" className="text-[1.375rem]">Decks</h2>
+          <Button asChild size="sm" variant="secondary"><Link to="/decks">{decks.data?.length ? "All decks" : "Make a deck"}</Link></Button>
+        </div>
+        {decks.data?.length ? (
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {decks.data.slice(0, 4).map((d) => (
+              <li key={d.id}>
+                <Link to={`/decks/${d.id}`} className="card flex items-center gap-4 p-4 text-ink no-underline">
+                  <span className="tile soft !size-11 [&_svg]:!size-5"><Layers /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-bold">{d.name}</span>
+                    <span className="block text-[0.875rem] text-muted">{d.count} {d.count === 1 ? "card" : "cards"}</span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-muted">Group cards from any class into your own deck, like Midterm review.</p>
+        )}
+      </section>
 
       <section className="mt-6" aria-labelledby="mistakes-title">
         <Link to="/mistakes" className="card flex items-center gap-4 p-5 text-ink no-underline">

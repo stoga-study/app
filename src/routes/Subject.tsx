@@ -55,7 +55,10 @@ export default function Subject() {
             <div className="card flex flex-col gap-2 p-5">
               <span className="flex items-center gap-2 font-bold"><Layers className="size-5 text-brand" /> Flashcards</span>
               <span className="text-muted">{n ? `${n} due, ${reviewMinutes(n).toLowerCase()}` : "Nothing due right now"}</span>
-              {n > 0 && <Button asChild size="sm" className="mt-auto self-start"><Link to={`/review/session?subject=${subject.id}`}>Review</Link></Button>}
+              <span className="mt-auto flex flex-wrap gap-2">
+                {n > 0 && <Button asChild size="sm"><Link to={`/review/session?subject=${subject.id}`}>Review</Link></Button>}
+                <Button asChild size="sm" variant="secondary"><Link to={`/subjects/${subject.id}/cards`}>Browse cards</Link></Button>
+              </span>
             </div>
             <div className="card flex flex-col gap-2 p-5">
               <span className="flex items-center gap-2 font-bold"><ListChecks className="size-5 text-brand" /> Practice quizzes</span>
