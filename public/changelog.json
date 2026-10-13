@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.1.6",
+      "date": "2026-10-13",
+      "title": "See what you know",
+      "intro": "Mastery for every unit, whole-unit practice, and a clear next step after each session.",
+      "highlights": [
+        {
+          "icon": "mastery",
+          "title": "Mastery",
+          "text": "Each class and unit shows Just started, Getting there or Mastered, from how well your cards stick and your latest quiz scores. See them all on Progress."
+        },
+        {
+          "icon": "unitquiz",
+          "title": "Practise this unit",
+          "text": "A mixed quiz from every file in a unit, with questions you missed before coming first. Find it next to each unit on the class page."
+        },
+        {
+          "icon": "summary",
+          "title": "Better summaries",
+          "text": "After a review or a quiz you see what did not stick yet, your weak topics, and one next step."
+        }
+      ]
+    },
+    {
       "version": "1.1.5",
       "date": "2026-10-13",
       "title": "Short-answer practice",
