@@ -1,6 +1,6 @@
-import { ArrowLeft, Check, ChevronRight, FileText, Layers, ListChecks, MessageCircle, Pencil, Pin, PinOff, Upload } from "lucide-react";
+import { ArrowLeft, Check, NotebookPen, ChevronRight, FileText, Layers, ListChecks, MessageCircle, Pencil, Pin, PinOff, Upload } from "lucide-react";
 import { useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { useAllSubjects } from "@/lib/queries/profile";
 import { reviewMinutes, useDueCards } from "@/lib/queries/cards";
 import { useQuizList } from "@/lib/queries/quiz";
 import { pageWord, useSources, type Source } from "@/lib/queries/sources";
+import { NoteList } from "@/components/NoteList";
+import { newNoteUrl, useNotes, type NoteSummary } from "@/lib/queries/notes";
 import { useCurrentUnit, useRenameUnit, useUnits, type Unit } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
 import { toast } from "sonner";
@@ -22,10 +24,13 @@ export default function Subject() {
   const due = useDueCards();
   const quizzes = useQuizList();
   const units = useUnits(id);
+  const notes = useNotes(id);
+  const navigate = useNavigate();
   if (subjects.isPending) return <PageSkeleton />;
   const subject = subjects.data?.find((s) => s.id === id);
   if (!subject) return <ErrorState title="We could not find that class">It may have been removed. <Link to="/subjects">See your subjects</Link>.</ErrorState>;
   const mine = (sources.data ?? []).filter((s) => s.subject_id === subject.id && s.status !== "uploaded");
+  const myNotes = notes.data ?? [];
 
   return (
     <>
@@ -35,7 +40,12 @@ export default function Subject() {
       <PageHeader
         eyebrow={[subject.area, subject.level ? LEVEL_LABEL[subject.level as Level] : null, subject.archived ? "Archived" : null].filter(Boolean).join(" · ")}
         title={subject.name}
-        end={<Button asChild><Link to={`/upload?subject=${subject.id}`}><Upload /> Add notes</Link></Button>}
+        end={
+          <div className="flex flex-wrap gap-2">
+            <Button asChild><Link to={`/upload?subject=${subject.id}`}><Upload /> Add notes</Link></Button>
+            <Button variant="secondary" onClick={() => navigate(newNoteUrl({ subjectId: subject.id, unitId: subject.current_unit_id }))}><NotebookPen /> Write notes</Button>
+          </div>
+        }
       />
       {(() => {
         const n = due.data?.bySubject[subject.id] ?? 0;
@@ -65,12 +75,12 @@ export default function Subject() {
       <h2 className="mb-3 text-[1.375rem]">Sources</h2>
       {sources.isPending ? (
         <div className="skeleton h-24 rounded-[1.5rem]" />
-      ) : mine.length === 0 ? (
+      ) : mine.length === 0 && !myNotes.length ? (
         <EmptyState icon={<Upload />} title={`${subject.name} has no material yet`} action={<Button asChild><Link to={`/upload?subject=${subject.id}`}>Add a PDF or notes</Link></Button>}>
           Add class notes, slides or a reading. Your study set is built from them.
         </EmptyState>
       ) : (
-        <ByUnit files={mine} units={units.data ?? []} currentId={subject.current_unit_id} />
+        <ByUnit files={mine} notes={myNotes} units={units.data ?? []} currentId={subject.current_unit_id} />
       )}
     </>
   );
@@ -115,22 +125,33 @@ function NowStudying({ subjectId, units, currentId, pinned }: { subjectId: strin
 const lessonNo = (l: string | null) => (l ? Number(l.split(".")[1]) : Infinity);
 const byLesson = (a: Source, b: Source) => lessonNo(a.lesson) - lessonNo(b.lesson) || b.created_at.localeCompare(a.created_at);
 
-/** Files grouped by unit: the current unit first, then in teaching order, then files with no unit. */
-function ByUnit({ files, units, currentId }: { files: Source[]; units: Unit[]; currentId: string | null }) {
-  if (!units.length) return <FileList files={files} />;
+/** Files and your notes grouped by unit: the current unit first, then in teaching order, then no unit. */
+function ByUnit({ files, notes, units, currentId }: { files: Source[]; notes: NoteSummary[]; units: Unit[]; currentId: string | null }) {
+  if (!units.length)
+    return (
+      <div className="flex flex-col gap-2">
+        {!!notes.length && <NoteList notes={notes} />}
+        <FileList files={files} />
+      </div>
+    );
+  const known = (id: string | null) => !!id && units.some((u) => u.id === id);
   const groups = [...units].sort((a, b) => Number(b.id === currentId) - Number(a.id === currentId))
-    .map((u) => ({ unit: u as Unit | null, files: files.filter((f) => f.unit_id === u.id).sort(byLesson) }))
-    .filter((g) => g.files.length);
-  const unfiled = files.filter((f) => !f.unit_id || !units.some((u) => u.id === f.unit_id));
-  if (unfiled.length) groups.push({ unit: null, files: unfiled });
+    .map((u) => ({ unit: u as Unit | null, files: files.filter((f) => f.unit_id === u.id).sort(byLesson), notes: notes.filter((n) => n.unit_id === u.id) }))
+    .filter((g) => g.files.length || g.notes.length);
+  const loose = { unit: null, files: files.filter((f) => !known(f.unit_id)), notes: notes.filter((n) => !known(n.unit_id)) };
+  if (loose.files.length || loose.notes.length) groups.push(loose);
   return (
     <div className="flex flex-col gap-6">
-      {groups.map((g) => (
-        <section key={g.unit?.id ?? "none"} aria-label={g.unit ? unitName(g.unit) : "No unit"}>
-          {g.unit ? <UnitHeading unit={g.unit} current={g.unit.id === currentId} count={g.files.length} /> : <h3 className="mb-2 text-[1.0625rem] text-muted">No unit · {g.files.length}</h3>}
-          <FileList files={g.files} />
-        </section>
-      ))}
+      {groups.map((g) => {
+        const count = g.files.length + g.notes.length;
+        return (
+          <section key={g.unit?.id ?? "none"} aria-label={g.unit ? unitName(g.unit) : "No unit"} className="flex flex-col gap-2">
+            {g.unit ? <UnitHeading unit={g.unit} current={g.unit.id === currentId} count={count} /> : <h3 className="text-[1.0625rem] text-muted">No unit · {count}</h3>}
+            {!!g.notes.length && <NoteList notes={g.notes} />}
+            <FileList files={g.files} />
+          </section>
+        );
+      })}
     </div>
   );
 }
@@ -141,7 +162,7 @@ function UnitHeading({ unit, current, count }: { unit: Unit; current: boolean; c
   if (editing !== null)
     return (
       <form
-        className="mb-2 flex max-w-md gap-2"
+        className="flex max-w-md gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           // A unit without a number needs a name.
@@ -155,7 +176,7 @@ function UnitHeading({ unit, current, count }: { unit: Unit; current: boolean; c
       </form>
     );
   return (
-    <div className="mb-2 flex items-center gap-1">
+    <div className="flex items-center gap-1">
       <h3 className="text-[1.0625rem]">
         {unitName(unit)} <span className="font-normal text-muted">· {count}</span>
         {current && <span className="ml-2 rounded-full bg-tint px-2 py-0.5 align-middle text-[0.75rem] font-bold text-brand">Now</span>}
