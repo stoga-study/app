@@ -2,7 +2,29 @@ import { fsrs, generatorParameters, Rating, type Card, type Grade } from "ts-fsr
 
 // Spaced repetition (FSRS). Cards come back just before they would be forgotten.
 // Fuzz spreads reviews so a batch of new cards does not all return on the same day.
-export const scheduler = fsrs(generatorParameters({ enable_fuzz: true, request_retention: 0.9 }));
+// Desired retention is the student's choice (Settings); each value gets its own scheduler.
+export const DEFAULT_RETENTION = 0.9;
+const schedulers = new Map<number, ReturnType<typeof fsrs>>();
+export function schedulerFor(retention = DEFAULT_RETENTION) {
+  const r = Math.min(0.97, Math.max(0.8, retention || DEFAULT_RETENTION));
+  let s = schedulers.get(r);
+  if (!s) schedulers.set(r, (s = fsrs(generatorParameters({ enable_fuzz: true, request_retention: r }))));
+  return s;
+}
+
+/** The choices offered in Settings. */
+export const RETENTION_CHOICES = [
+  { value: 0.85, label: "Lighter", desc: "Fewer reviews. Good for a busy week." },
+  { value: 0.9, label: "Balanced", desc: "Recommended. Remember about 9 in 10 cards." },
+  { value: 0.95, label: "Thorough", desc: "About twice the reviews, for the run-up to a big test." },
+] as const;
+
+/**
+ * Weak cards: ones you have forgotten twice or more, or that FSRS rates as hard for you
+ * (difficulty runs 1 to 10). New cards are never weak.
+ */
+export const WEAK = { lapses: 2, difficulty: 7 };
+export const isWeak = (c: { lapses: number; difficulty: number; state: number }) => c.state !== 0 && (c.lapses >= WEAK.lapses || c.difficulty >= WEAK.difficulty);
 
 export type CardRow = {
   due: string; stability: number; difficulty: number; elapsed_days: number; scheduled_days: number;
@@ -33,8 +55,8 @@ export function toRow(c: Card): CardRow {
 }
 
 /** The next schedule after rating a card, plus the review log fields. */
-export function rate(row: CardRow, grade: Grade, now = new Date()) {
-  const { card, log } = scheduler.next(toCard(row), now, grade);
+export function rate(row: CardRow, grade: Grade, now = new Date(), retention = DEFAULT_RETENTION) {
+  const { card, log } = schedulerFor(retention).next(toCard(row), now, grade);
   return { row: toRow(card), state: log.state };
 }
 
@@ -52,7 +74,7 @@ export function intervalLabel(due: Date, now = new Date()) {
   return months < 12 ? `${months} mo` : `${Math.round(months / 12)} yr`;
 }
 
-export function previewIntervals(row: CardRow, now = new Date()) {
-  const preview = scheduler.repeat(toCard(row), now);
+export function previewIntervals(row: CardRow, now = new Date(), retention = DEFAULT_RETENTION) {
+  const preview = schedulerFor(retention).repeat(toCard(row), now);
   return GRADES.map(({ grade, label }) => ({ grade, label, when: intervalLabel(preview[grade].card.due, now) }));
 }
