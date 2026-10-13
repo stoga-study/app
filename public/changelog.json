@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.2.0",
+      "date": "2026-10-13",
+      "title": "Report anything wrong",
+      "intro": "AI is not perfect. Now you can flag it, and it is checked before it even reaches you.",
+      "highlights": [
+        {
+          "icon": "flag",
+          "title": "Something wrong here?",
+          "text": "On any card, quiz question, note, study guide section or tutor answer, flag it. Cards, questions, notes and guide sections hide right away."
+        },
+        {
+          "icon": "check",
+          "title": "Fact-checked before you see it",
+          "text": "New flashcards and quiz questions are now checked against the page they cite, and ones that are not actually supported are dropped automatically."
+        }
+      ]
+    },
+    {
       "version": "1.1.6",
       "date": "2026-10-13",
       "title": "See what you know",
