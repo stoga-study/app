@@ -1,4 +1,4 @@
-import { AlertCircle, BookOpen, Check, FileText, Layers, ListChecks, NotebookPen, Sparkles } from "lucide-react";
+import { AlertCircle, BookMarked, BookOpen, Check, FileText, Layers, ListChecks, NotebookPen, Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Markdown } from "@/components/Markdown";
@@ -82,10 +82,30 @@ export function Failed({ source, onRetry, retrying }: { source: Source; onRetry:
   );
 }
 
-type Tab = "notes" | "cards" | "quiz" | "guide" | "pages";
+type Tab = "notes" | "cards" | "quiz" | "guide" | "summary" | "terms" | "pages";
+
+function RegenerateGuide({ onRegenerate, busy }: { onRegenerate: (focus: string) => void; busy: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [focus, setFocus] = useState("");
+  if (!open) return <Button variant="ghost" size="sm" className="self-start" onClick={() => setOpen(true)}><Sparkles /> Regenerate with a focus</Button>;
+  return (
+    <form
+      className="card flex flex-col gap-2 p-4"
+      onSubmit={(e) => { e.preventDefault(); if (focus.trim()) onRegenerate(focus.trim()); }}
+    >
+      <label htmlFor="guide-focus" className="field-label">What should this guide focus on?</label>
+      <input id="guide-focus" className="input" maxLength={120} placeholder="e.g. the midterm, shorter, Unit 4 only" value={focus} onChange={(e) => setFocus(e.target.value)} />
+      <div className="flex gap-2">
+        <Button type="submit" size="sm" disabled={busy || !focus.trim()}>{busy ? "Remaking…" : "Remake the guide"}</Button>
+        <Button type="button" variant="secondary" size="sm" onClick={() => setOpen(false)} disabled={busy}>Cancel</Button>
+      </div>
+      <p className="field-hint">Replaces the current guide for this file.</p>
+    </form>
+  );
+}
 
 /** The finished study set: what was made, then each part to read. */
-export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: ReactNode }) {
+export function SetView({ source, pagesSlot, onRegenerateGuide, regenerating }: { source: Source; pagesSlot: ReactNode; onRegenerateGuide?: (focus: string) => void; regenerating?: boolean }) {
   const set = useStudySet(source.id, true);
   const [tab, setTab] = useState<Tab>("notes");
   const [open, setOpen] = useState<Record<string, boolean>>({});
@@ -98,6 +118,8 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
     ["cards", "Cards", <Layers key="c" />, d.cards.length],
     ["quiz", d.quizzes.length > 1 ? "Quizzes" : "Quiz", <ListChecks key="q" />, d.questions.length],
     ["guide", "Guide", <BookOpen key="g" />, d.guide.length],
+    ["summary", "Summary", <Sparkles key="s" />, d.summary ? 1 : 0],
+    ["terms", "Key terms", <BookMarked key="t" />, d.terms.length],
     ["pages", pageWord(source.kind, 2).replace(/^./, (c) => c.toUpperCase()), <FileText key="p" />, source.page_count],
   ] as [Tab, string, ReactNode, number][]).filter(([key, , , n]) => key === "pages" || n > 0);
   const shown = tabs.some(([k]) => k === tab) ? tab : tabs[0][0];
@@ -111,6 +133,7 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           [<Layers key="c" />, d.cards.length, "flashcards"],
           [<ListChecks key="q" />, d.questions.length, d.quizzes.length > 1 ? `quiz questions in ${d.quizzes.length} quizzes` : "quiz questions"],
           [<BookOpen key="g" />, d.guide.length, `study guide sections${minutes ? `, about ${minutes} minutes` : ""}`],
+          [<BookMarked key="t" />, d.terms.length, "key terms"],
         ] as [ReactNode, number, string][]).filter(([, n]) => n > 0).map(([icon, n, label], i) => (
           <li key={i} className="flex items-center gap-3 py-3 [&_svg]:size-5 [&_svg]:text-brand">
             {icon}
@@ -192,13 +215,32 @@ export function SetView({ source, pagesSlot }: { source: Source; pagesSlot: Reac
           </section>
         ))}
 
-        {shown === "guide" && d.guide.map((g, i) => (
-          <article key={g.id} className="card p-5">
-            <p className="text-[0.8125rem] font-bold text-muted">Section {i + 1} of {d.guide.length}{g.minutes ? `, about ${g.minutes} minutes` : ""}</p>
-            <h3 className="mt-1 text-[1.25rem]">{g.title}</h3>
-            <Markdown text={g.body_md} className="text-ink-2" />
-            <PageChips pages={g.pages} kind={source.kind} sourceId={source.id} />
-            <ReportButton itemType="guide_section" itemId={g.id} subjectId={source.subject_id} className="mt-2 -ml-3" />
+        {shown === "guide" && (
+          <>
+            {d.guide.map((g, i) => (
+              <article key={g.id} className="card p-5">
+                <p className="text-[0.8125rem] font-bold text-muted">Section {i + 1} of {d.guide.length}{g.minutes ? `, about ${g.minutes} minutes` : ""}</p>
+                <h3 className="mt-1 text-[1.25rem]">{g.title}</h3>
+                <Markdown text={g.body_md} className="text-ink-2" />
+                <PageChips pages={g.pages} kind={source.kind} sourceId={source.id} />
+                <ReportButton itemType="guide_section" itemId={g.id} subjectId={source.subject_id} className="mt-2 -ml-3" />
+              </article>
+            ))}
+            {onRegenerateGuide && <RegenerateGuide onRegenerate={onRegenerateGuide} busy={!!regenerating} />}
+          </>
+        )}
+
+        {shown === "summary" && d.summary && (
+          <article className="card p-5">
+            <Markdown text={d.summary.body_md} className="text-ink-2" />
+          </article>
+        )}
+
+        {shown === "terms" && d.terms.map((t) => (
+          <article key={t.id} className="card p-5">
+            <h3 className="font-display text-[1.125rem] font-bold">{t.term}</h3>
+            <p className="mt-1 text-ink-2">{t.definition}</p>
+            <PageChips pages={t.pages} kind={source.kind} sourceId={source.id} />
           </article>
         ))}
 

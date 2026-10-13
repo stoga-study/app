@@ -243,7 +243,7 @@ export default function Upload() {
           key={phase.name}
           mode="upload"
           chars={chars}
-          caps={caps.data ?? { cards: 60, quiz: 25, guide: 12 }}
+          caps={caps.data ?? { cards: 60, quiz: 25, guide: 12, terms: 20 }}
           initial={(subject!.study_defaults as { parts?: Record<string, boolean> } | null)?.parts}
           busy={phase.waiting}
           reading={phase.waiting && !extracted ? "We'll start as soon as the file is read." : null}

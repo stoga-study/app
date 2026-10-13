@@ -16,7 +16,7 @@ import { newNoteUrl, useNotes } from "@/lib/queries/notes";
 import { useFileUnder, useUnits } from "@/lib/queries/units";
 import { findUnit } from "@/lib/units";
 import { setRecent } from "@/lib/recent";
-import type { GenOptions } from "../../supabase/functions/_lib/options";
+import { NONE, type GenOptions } from "../../supabase/functions/_lib/options";
 
 /** The biggest thing a study set has, for the header: cards first, then questions, notes or guide. */
 function headline(d: { cards: unknown[]; questions: unknown[]; notes: unknown[]; guide: unknown[] }): [number, string] | null {
@@ -200,7 +200,17 @@ export default function SourcePage() {
       {ready && !more && (
         <Button variant="secondary" className="mt-4" onClick={() => setMore(true)}><Plus /> Make more from this file</Button>
       )}
-      {ready && <SetView source={s} pagesSlot={pagesList} />}
+      {ready && (
+        <SetView
+          source={s}
+          pagesSlot={pagesList}
+          regenerating={starting}
+          onRegenerateGuide={(focus) => {
+            const count = Math.min(caps.data?.guide ?? 12, set.data?.guide.length || 6);
+            void start({ parts: { ...NONE, guide: true }, amounts: { cards: 0, quiz: 0, terms: 0, guide: count }, focus });
+          }}
+        />
+      )}
 
       <section className="mt-8" aria-labelledby="my-notes">
         <div className="mb-3 flex flex-wrap items-center gap-3">

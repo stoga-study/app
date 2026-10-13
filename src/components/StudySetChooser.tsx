@@ -1,4 +1,4 @@
-import { BookOpen, Check, Layers, ListChecks, Minus, NotebookPen, Plus } from "lucide-react";
+import { BookMarked, BookOpen, Check, Layers, ListChecks, Minus, NotebookPen, Plus, Sparkles } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -9,6 +9,8 @@ const INFO: Record<Part, { label: string; desc: string; again: string; unit?: st
   cards: { label: "Flashcards", desc: "Reviewed with spaced repetition", again: "More flashcards", unit: "cards", icon: <Layers /> },
   quiz: { label: "Practice quiz", desc: "Multiple choice, with explanations", again: "Another practice quiz", unit: "questions", icon: <ListChecks /> },
   guide: { label: "Study guide", desc: "Short lessons in a sensible order", again: "Remake study guide", unit: "sections", icon: <BookOpen /> },
+  summary: { label: "Summary", desc: "A short overview of the whole file", again: "Remake summary", icon: <Sparkles /> },
+  terms: { label: "Key terms", desc: "A glossary of the words that matter", again: "More key terms", unit: "terms", icon: <BookMarked /> },
 };
 
 /**
@@ -45,11 +47,11 @@ export function StudySetChooser({
   const amount = (k: Counted) => chosen[k] ?? suggested?.[k] ?? null;
   const set = (k: Counted, n: number) => setChosen((c) => ({ ...c, [k]: Math.max(1, Math.min(caps[k], Math.round(n) || 1)) }));
   const any = PARTS.some((p) => parts[p]);
-  const ready = PARTS.every((p) => !parts[p] || p === "notes" || amount(p as Counted) != null);
+  const ready = PARTS.every((p) => !parts[p] || p === "notes" || p === "summary" || amount(p as Counted) != null);
 
   function make() {
     const a = (k: Counted) => (parts[k] ? (amount(k) ?? 1) : 0);
-    onMake({ parts, amounts: { cards: a("cards"), quiz: a("quiz"), guide: a("guide") } });
+    onMake({ parts, amounts: { cards: a("cards"), quiz: a("quiz"), guide: a("guide"), terms: a("terms") } });
   }
 
   return (
@@ -64,7 +66,7 @@ export function StudySetChooser({
         {PARTS.map((p) => {
           const on = parts[p];
           const info = INFO[p];
-          const counted = p === "notes" ? null : (p as Counted);
+          const counted = p === "notes" || p === "summary" ? null : (p as Counted);
           const n = counted ? amount(counted) : null;
           return (
             <li key={p} className={cn("card !shadow-none overflow-hidden", on && "!border-primary")}>
