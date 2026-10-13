@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "1.1.2",
+      "date": "2026-10-13",
+      "title": "Write your own notes",
+      "intro": "Your notes, in your words, right next to your files.",
+      "highlights": [
+        {
+          "icon": "notes",
+          "title": "Notes in every class",
+          "text": "Tap Write notes on a class or a file. Write as many as you like, and file each one under a unit."
+        },
+        {
+          "icon": "side",
+          "title": "Your file beside you",
+          "text": "Notes written from a file keep it open next to them on a laptop, or one tap away on your phone."
+        },
+        {
+          "icon": "checklist",
+          "title": "Headings, bold, lists and checklists",
+          "text": "Use the toolbar, or the math button for symbols like x̄, π and ≤. Tap Preview to see it tidy, and tick off checklist items."
+        },
+        {
+          "icon": "offline",
+          "title": "Saves as you type, even offline",
+          "text": "Everything is kept on your device first and syncs when you are back online."
+        }
+      ]
+    },
+    {
       "version": "1.1.1",
       "date": "2026-10-13",
       "title": "Your files, sorted by unit",
