@@ -41,6 +41,9 @@ export function ReportButton({ itemType, itemId, subjectId, className }: { itemT
         setBusy(true);
         try {
           await report(itemType, itemId, subjectId, reason.trim());
+          // A hidden card, question, note or guide section vanishes from this list the moment the
+          // query refetches, taking this message down with it; the toast is what the student actually sees.
+          toast(DONE[itemType]);
           setDone(true);
         } catch {
           toast("We could not send that report. Check your connection, then try again.");
