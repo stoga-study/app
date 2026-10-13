@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.2.3",
+      "date": "2026-10-13",
+      "title": "Worked examples and one more like it",
+      "intro": "Sometimes you need to see one done, or just one more rep.",
+      "highlights": [
+        {
+          "icon": "example",
+          "title": "Show a worked example",
+          "text": "Stuck on a problem in the tutor? Show a worked example solves a similar one step by step, with different numbers, so yours is still yours to finish."
+        },
+        {
+          "icon": "repeat",
+          "title": "Give me one like this",
+          "text": "After you check a short-answer card, ask for one more like it. A fresh variant drops in next, ready to type an answer to."
+        }
+      ]
+    },
+    {
       "version": "1.2.2",
       "date": "2026-10-13",
       "title": "Simpler, or go deeper",
