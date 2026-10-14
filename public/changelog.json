@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.3.4",
+      "date": "2026-10-13",
+      "title": "Slides, too",
+      "intro": "Upload your teacher's slide deck and study from it like any other file.",
+      "highlights": [
+        {
+          "icon": "slides",
+          "title": "PowerPoint and Google Slides",
+          "text": "Upload a .pptx (in Google Slides: File, then Download, then Microsoft PowerPoint). Each slide becomes its own page, and citations say which slide."
+        },
+        {
+          "icon": "notes",
+          "title": "Speaker notes included",
+          "text": "Whatever your teacher wrote in the speaker notes comes along with each slide, so it shows up in your notes, cards and the tutor."
+        }
+      ]
+    },
+    {
       "version": "1.3.3",
       "date": "2026-10-13",
       "title": "Several photos, one file",
