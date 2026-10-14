@@ -60,10 +60,10 @@ function tasksFor(s: ExamScope, day: string, today: string, done: Set<string>): 
       out.push({ ...base, key, kind: "review", title: finished ? `Reviewed ${s.reviewedToday} card${s.reviewedToday === 1 ? "" : "s"}` : `Review ${n} card${n === 1 ? "" : "s"}`, minutes: cardMinutes(finished ? s.reviewedToday : n), href: `${s.reviewHref}${n <= 10 ? "&size=10" : n <= 20 ? "&size=20" : ""}`, done: finished, auto: true });
     }
   } else {
-    // A preview: the new cards still to learn, shared over the days left from then.
-    const daysFromToday = daysBetween(today, day);
-    const freshLeft = Math.max(0, s.fresh - Math.ceil(s.fresh / Math.max(1, dd + daysFromToday)) * daysFromToday);
-    const n = Math.ceil(freshLeft / dd);
+    // A preview: the new cards left after today's share, spread evenly over the days after today.
+    const ddToday = daysBetween(today, s.due_on);
+    const todayLeft = Math.max(0, Math.ceil((s.fresh + s.reviewedToday) / ddToday) - s.reviewedToday);
+    const n = Math.ceil(Math.max(0, s.fresh - todayLeft) / Math.max(1, ddToday - 1));
     if (n > 0 || intense) out.push({ ...base, key: `review:${s.id}`, kind: "review", title: n > 0 ? `Review about ${n} cards` : "Review your due cards", minutes: cardMinutes(Math.max(n, 10)), href: s.reviewHref, done: false, auto: true });
   }
 

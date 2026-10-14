@@ -56,6 +56,13 @@ describe("buildPlan", () => {
     expect(today.find((t) => t.kind === "guide")?.done).toBe(true);
   });
 
+  it("previews later days from what is left once today's share is done", () => {
+    // 4 of 12 new cards learned today, 3 days to go: the other 8 over the next 2 days.
+    const plan = buildPlan({ today: T, exams: [exam({ due_on: "2026-10-17", dueNow: 8, fresh: 8, reviewedToday: 4 })], budget: 60, done: new Set() });
+    expect(plan[1].tasks[0].title).toBe("Review about 4 cards");
+    expect(plan[2].tasks[0].title).toBe("Review about 4 cards");
+  });
+
   it("puts the nearer test first and plans no further than two weeks out", () => {
     const plan = buildPlan({
       today: T,
