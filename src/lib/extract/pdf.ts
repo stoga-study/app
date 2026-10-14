@@ -1,6 +1,7 @@
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { ExtractError, MAX_PAGES } from "./index";
+import { reconstructPage, type TextItem } from "./layout";
 
 GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -22,12 +23,12 @@ export async function readPdf(data: ArrayBuffer, onProgress?: (done: number, tot
     for (let n = 1; n <= doc.numPages; n++) {
       const page = await doc.getPage(n);
       const content = await page.getTextContent();
-      let text = "";
+      const items: TextItem[] = [];
       for (const item of content.items) {
         if (!("str" in item)) continue;
-        text += item.str + (item.hasEOL ? "\n" : "");
+        items.push({ str: item.str, x: item.transform[4], y: item.transform[5], height: item.height || Math.abs(item.transform[3]) || 10, hasEOL: item.hasEOL });
       }
-      texts.push(text);
+      texts.push(reconstructPage(items, page.view[2] - page.view[0]));
       page.cleanup();
       onProgress?.(n, doc.numPages);
     }

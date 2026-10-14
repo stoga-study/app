@@ -152,20 +152,24 @@ export async function extractFile(file: File, onProgress?: (done: number, total:
   const bytes = await file.arrayBuffer();
   const { readPdf, scanPdfPages } = await import("./pdf");
   const texts = await readPdf(bytes.slice(0), (d, t) => onProgress?.(d, t, "text"));
-  try {
-    return assemblePdf(texts);
-  } catch (e) {
-    if (!(e instanceof ExtractError) || e.code !== "scanned" || !readPage) throw e;
-  }
-  // A scan: read the pages that have no text from their images.
+  // A page with no real text is a scan, whether the whole file is a scan or just a handful of pages
+  // inside an otherwise text PDF (a photographed diagram, a signed form). OCR those pages in place,
+  // rather than only kicking in when the document on the whole looks scanned (which used to leave a
+  // few scanned pages in an otherwise-text PDF silently dropped, with later page numbers shifted).
   const blank = texts.flatMap((t, i) => (tidy(t).length < MIN_PAGE_CHARS ? [i + 1] : []));
-  if (blank.length > MAX_SCAN_PAGES) throw new ExtractError("too_many_scanned");
-  onProgress?.(0, blank.length, "scan");
-  const read = await scanPdfPages(bytes.slice(0), blank, readPage, (d, t) => onProgress?.(d, t, "scan"));
+  let merged = texts;
+  let scannedPages: number | undefined;
+  if (blank.length && readPage) {
+    if (blank.length > MAX_SCAN_PAGES) throw new ExtractError("too_many_scanned");
+    onProgress?.(0, blank.length, "scan");
+    const read = await scanPdfPages(bytes.slice(0), blank, readPage, (d, t) => onProgress?.(d, t, "scan"));
+    merged = texts.map((t, i) => read.get(i + 1) ?? t);
+    scannedPages = blank.length;
+  }
   try {
-    return { ...assemblePdf(texts.map((t, i) => read.get(i + 1) ?? t)), scannedPages: blank.length };
+    return { ...assemblePdf(merged), scannedPages };
   } catch (e) {
-    throw e instanceof ExtractError && e.code === "scanned" ? new ExtractError("empty") : e;
+    throw e instanceof ExtractError && e.code === "scanned" && scannedPages ? new ExtractError("empty") : e;
   }
 }
 

@@ -212,7 +212,9 @@ export default function Upload() {
     const unit = unitPick ?? choiceFor(found, units.data ?? []);
     const chars = extracted ? extracted.pages.reduce((n, pg) => n + pg.text.length, 0) : null;
     const status = extracted
-      ? `${extracted.scannedPages ? "Read scanned" : "Read"} ${extracted.pages.length} ${pageWord(extracted.kind, extracted.pages.length)}`
+      ? `${extracted.scannedPages === extracted.pages.length ? "Read scanned" : "Read"} ${extracted.pages.length} ${pageWord(extracted.kind, extracted.pages.length)}${
+          extracted.scannedPages && extracted.scannedPages < extracted.pages.length ? ` (${extracted.scannedPages} from scans)` : ""
+        }`
       : phase.photo ? "Reading your photo…"
         : progress.stage === "scan" ? `Reading scanned pages${progress.total ? `, ${progress.done} of ${progress.total}` : "…"}`
           : progress.total ? `Reading pages, ${progress.done} of ${progress.total}` : "Opening…";
