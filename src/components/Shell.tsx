@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, Upload } from "lucide-react";
+import { BookOpen, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, TrendingUp, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
@@ -14,7 +14,7 @@ const MAIN: Item[] = [
   { to: "/upload", label: "Upload", icon: <Upload /> },
   { to: "/tutor", label: "Tutor", icon: <MessageCircle /> },
   { to: "/review", label: "Review", icon: <Layers /> },
-  { to: "/progress", label: "Progress", icon: <BarChart3 /> },
+  { to: "/progress", label: "Progress", icon: <TrendingUp /> },
 ];
 // Phones get five tabs; Subjects lives on Home there.
 const TABS = MAIN.filter((i) => i.to !== "/subjects");
