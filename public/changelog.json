@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.3.3",
+      "date": "2026-10-13",
+      "title": "Several photos, one file",
+      "intro": "Snap every page of your notes, then check we read them right.",
+      "highlights": [
+        {
+          "icon": "photos",
+          "title": "Add several photos at once",
+          "text": "Pick a few photos of your notes and they become one file, a page each, just like a PDF."
+        },
+        {
+          "icon": "check",
+          "title": "Check the reading",
+          "text": "Before anything is saved, see what we read from each photo. Rotate a sideways one, read it again, or remove it."
+        },
+        {
+          "icon": "paste",
+          "title": "Paste a screenshot",
+          "text": "On the Upload page, paste a screenshot and it goes straight into the same check."
+        }
+      ]
+    },
+    {
       "version": "1.3.2",
       "date": "2026-10-13",
       "title": "Better PDF reading",
