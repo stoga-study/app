@@ -42,6 +42,29 @@ export function itemsFrom(text: string, classes: { id: string; name: string }[],
     .map((e) => ({ ...e, kind: guessKind(e.title), subject_id: guessClass(e, classes) ?? fallbackClass, include: true }));
 }
 
+/**
+ * Ask the AI about items the rules couldn't place: a kind for "other" ones, a class for ones with
+ * none. Only those fields change. Returns the items unchanged if it fails, since the rules still stand.
+ */
+export async function refineWithAi(items: ImportItem[], classes: { id: string; name: string }[]): Promise<ImportItem[]> {
+  const unsure = items.filter((i) => i.kind === "other" || !i.subject_id).slice(0, 150);
+  if (!unsure.length || !navigator.onLine) return items;
+  const { data, error } = await supabase.functions.invoke<{ results: { kind: ImportItem["kind"] | null; class: number | null }[] }>("calendar-fetch", {
+    body: { classify: { items: unsure.map((i) => ({ title: i.title, notes: i.notes ?? "" })), classes: classes.map((c) => c.name) } },
+  });
+  if (error || !data?.results) return items;
+  const better = new Map(unsure.map((i, k) => [i.uid, data.results[k]]));
+  return items.map((i) => {
+    const r = better.get(i.uid);
+    if (!r) return i;
+    return {
+      ...i,
+      kind: i.kind === "other" && r.kind ? r.kind : i.kind,
+      subject_id: i.subject_id ?? (r.class != null ? classes[r.class]?.id ?? null : null),
+    };
+  });
+}
+
 const externalId = (feedId: string | null, uid: string) => (feedId ? `feed:${feedId}:${uid}` : `file:${uid}`).slice(0, 400);
 
 /**
@@ -49,7 +72,7 @@ const externalId = (feedId: string | null, uid: string) => (feedId ? `feed:${fee
  * and done state the student may have set. For a linked calendar, upcoming items it no longer has are
  * removed (ones ticked off stay). Returns how many were added and updated.
  */
-export async function importItems(items: ImportItem[], feedId: string | null) {
+export async function importItems(items: ImportItem[], feedId: string | null, refine?: (fresh: ImportItem[]) => Promise<ImportItem[]>) {
   const chosen = items.filter((i) => i.include);
   const ids = chosen.map((i) => externalId(feedId, i.uid));
   const existing = new Map<string, { id: string; title: string; due_on: string; due_time: string | null; notes: string | null }>();
@@ -58,7 +81,9 @@ export async function importItems(items: ImportItem[], feedId: string | null) {
     if (error) throw error;
     for (const e of data) existing.set(e.external_id!, e);
   }
-  const fresh = chosen.filter((i) => !existing.has(externalId(feedId, i.uid)));
+  let fresh = chosen.filter((i) => !existing.has(externalId(feedId, i.uid)));
+  // Only new items are sorted again: ones already in keep whatever the student set.
+  if (refine && fresh.length) fresh = await refine(fresh).catch(() => fresh);
   for (let k = 0; k < fresh.length; k += 100) {
     const { error } = await supabase.from("events").insert(fresh.slice(k, k + 100).map((i) => ({
       kind: i.kind, title: i.title, subject_id: i.subject_id, due_on: i.date, due_time: i.time, notes: i.notes, feed_id: feedId, external_id: externalId(feedId, i.uid),
@@ -105,7 +130,7 @@ export async function addFeed(o: { name: string; url: string; subject_id: string
 /** Bring a linked calendar up to date. */
 export async function syncFeed(feed: Feed, classes: { id: string; name: string }[]) {
   const { text } = await fetchFeed(feed.url);
-  const r = await importItems(itemsFrom(text, classes, feed.subject_id), feed.id);
+  const r = await importItems(itemsFrom(text, classes, feed.subject_id), feed.id, (fresh) => refineWithAi(fresh, classes));
   await supabase.from("calendar_feeds").update({ last_synced_at: new Date().toISOString() }).eq("id", feed.id);
   return r;
 }

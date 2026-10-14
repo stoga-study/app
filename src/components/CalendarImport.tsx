@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link2, RefreshCw, Trash2, Upload } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { shortDate, timeText } from "@/lib/calendar";
 import { calendarName } from "@/lib/ics";
-import { addFeed, FeedError, fetchFeed, importItems, itemsFrom, removeFeed, syncFeed, type Feed, type ImportItem } from "@/lib/queries/calendarImport";
+import { addFeed, FeedError, fetchFeed, importItems, itemsFrom, refineWithAi, removeFeed, syncFeed, type Feed, type ImportItem } from "@/lib/queries/calendarImport";
 import type { Subject } from "@/lib/queries/profile";
 import { KINDS } from "./EventForm";
 
@@ -25,12 +25,26 @@ export function CalendarImport({ subjects, onClose }: { subjects: Subject[]; onC
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<{ items: ImportItem[]; name: string; url: string | null } | null>(null);
   const [keepSynced, setKeepSynced] = useState(true);
+  const [sorting, setSorting] = useState(false);
+  // Items the student changed by hand: the AI's later guesses never overwrite those.
+  const touched = useRef(new Set<string>());
   const classes = subjects.map((s) => ({ id: s.id, name: s.name }));
 
   const show = (text: string, name: string, url: string | null) => {
     const items = itemsFrom(text, classes);
     if (!items.length) return toast("There's nothing coming up in that calendar to bring in (repeating items like class periods are left out).");
     setPreview({ items, name, url });
+    touched.current = new Set();
+    // Then let the AI place what the rules couldn't, as long as the student hasn't changed it already.
+    if (items.some((i) => i.kind === "other" || !i.subject_id)) {
+      setSorting(true);
+      void refineWithAi(items, classes)
+        .then((better) => {
+          const byUid = new Map(better.map((i) => [i.uid, i]));
+          setPreview((p) => p && { ...p, items: p.items.map((i) => (touched.current.has(i.uid) ? i : { ...i, kind: byUid.get(i.uid)?.kind ?? i.kind, subject_id: byUid.get(i.uid)?.subject_id ?? i.subject_id })) });
+        })
+        .finally(() => setSorting(false));
+    }
   };
 
   async function readFile(file: File) {
@@ -71,7 +85,10 @@ export function CalendarImport({ subjects, onClose }: { subjects: Subject[]; onC
     }
   }
 
-  const set = (uid: string, patch: Partial<ImportItem>) => setPreview((p) => p && { ...p, items: p.items.map((i) => (i.uid === uid ? { ...i, ...patch } : i)) });
+  const set = (uid: string, patch: Partial<ImportItem>) => {
+    touched.current.add(uid);
+    setPreview((p) => p && { ...p, items: p.items.map((i) => (i.uid === uid ? { ...i, ...patch } : i)) });
+  };
   const count = preview?.items.filter((i) => i.include).length ?? 0;
 
   if (preview) {
@@ -80,6 +97,7 @@ export function CalendarImport({ subjects, onClose }: { subjects: Subject[]; onC
         <div>
           <h2 id="import-title" className="text-[1.25rem]">{preview.name}</h2>
           <p className="text-[0.9375rem] text-muted">{preview.items.length} items from a month ago on. Check the kind and class we guessed, and untick anything you don't want.</p>
+          {sorting && <p className="mt-1 text-[0.875rem] font-bold text-brand" aria-live="polite">Sorting the rest with AI…</p>}
         </div>
         <div className="flex flex-col gap-1 text-[0.9375rem] sm:flex-row sm:items-center sm:gap-2">
           <label htmlFor="all-class" className="font-bold">Class for items with none</label>
@@ -113,7 +131,7 @@ export function CalendarImport({ subjects, onClose }: { subjects: Subject[]; onC
           </label>
         )}
         <div className="flex flex-wrap gap-2">
-          <Button disabled={busy || !count} onClick={() => void add()}>{busy ? "Adding…" : `Add ${count} ${count === 1 ? "item" : "items"}`}</Button>
+          <Button disabled={busy || sorting || !count} onClick={() => void add()}>{busy ? "Adding…" : `Add ${count} ${count === 1 ? "item" : "items"}`}</Button>
           <Button variant="secondary" onClick={() => setPreview(null)}>Back</Button>
         </div>
       </section>
