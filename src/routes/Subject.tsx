@@ -85,6 +85,7 @@ export default function Subject() {
               {mine.length ? mine.slice(0, 3).map((q) => (
                 <Link key={q.id} to={`/quiz/${q.id}`} className="text-[0.9375rem] font-bold">{q.title}{q.last ? <span className="font-normal text-muted tabular">, last {q.last.correct}/{q.last.total}</span> : null}</Link>
               )) : <span className="text-muted">Each study set adds one.</span>}
+              {mine.length > 0 && <Button asChild size="sm" variant="secondary" className="mt-auto self-start"><Link to={`/practice-test?subject=${subject.id}`}>Timed practice test</Link></Button>}
             </div>
             <div className="card flex flex-col gap-2 p-5">
               <span className="flex items-center gap-2 font-bold"><MessageCircle className="size-5 text-brand" /> AI tutor</span>

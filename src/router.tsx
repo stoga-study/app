@@ -21,6 +21,7 @@ import Settings from "./routes/Settings";
 import Search from "./routes/Search";
 import Calendar from "./routes/Calendar";
 import Coach from "./routes/Coach";
+import PracticeTest from "./routes/PracticeTest";
 import SourcePage from "./routes/Source";
 import Subject from "./routes/Subject";
 import Subjects from "./routes/Subjects";
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
           { path: "search", element: <Search /> },
           { path: "calendar", element: <Calendar /> },
           { path: "coach", element: <Coach /> },
+          { path: "practice-test", element: <PracticeTest /> },
           { path: "plans", element: <Plans /> },
           { path: "feedback", element: <Feedback /> },
           { path: "settings", element: <Settings /> },

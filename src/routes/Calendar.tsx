@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronLeft, ChevronRight, HeartHandshake, Plus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, HeartHandshake, Plus, Timer } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -132,6 +132,11 @@ export default function Calendar() {
             <span className="block text-[1.25rem] font-bold">{nextTest.title}</span>
             <span className="block text-[0.9375rem] text-[#F7EAEC]">{[className(nextTest.subject_id), unitNames(nextTest).join(", "), shortDate(nextTest.due_on)].filter(Boolean).join(" · ")}</span>
           </button>
+          {nextTest.subject_id && (
+            <Button asChild variant="inverse" size="sm" className="mt-4">
+              <Link to={`/practice-test?event=${nextTest.id}&subject=${nextTest.subject_id}${nextTest.unit_ids.length ? `&units=${nextTest.unit_ids.join(",")}` : ""}`}><Timer /> Take a practice test</Link>
+            </Button>
+          )}
           {(() => {
             const r = readinessOf(nextTest);
             if (!r?.overall) return null;
