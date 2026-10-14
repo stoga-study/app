@@ -1,4 +1,4 @@
-import { CalendarDays, ChevronLeft, ChevronRight, HeartHandshake, Plus, Timer } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Download, HeartHandshake, Plus, Timer } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -15,6 +15,8 @@ import { useAllUnits } from "@/lib/queries/units";
 import { PlanTaskRow } from "@/components/PlanTaskRow";
 import { usePlan, useReadiness } from "@/lib/queries/plan";
 import { ReadinessBadge } from "@/components/ReadinessBadge";
+import { CalendarImport, LinkedCalendars } from "@/components/CalendarImport";
+import { useAutoSync } from "@/lib/queries/calendarImport";
 import { PLAN_MINUTES, usePlanMinutes } from "@/lib/preferences";
 import { unitName } from "@/lib/units";
 
@@ -31,6 +33,7 @@ export default function Calendar() {
   const units = useAllUnits();
   const save = useSaveEvent();
   const readinessOf = useReadiness();
+  const feeds = useAutoSync(subjects.data);
   const del = useDeleteEvent();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
@@ -42,6 +45,7 @@ export default function Calendar() {
   // The form: a new item (from the button or a link) or one being changed.
   const editId = params.get("event");
   const adding = params.get("add") === "1";
+  const importing = params.get("import") === "1";
   const kindParam = params.get("kind") as EventKind | null;
   const closeForm = () => setParams({}, { replace: true });
   const openNew = (date?: string) => setParams({ add: "1", ...(date ? { date } : {}) });
@@ -94,15 +98,22 @@ export default function Calendar() {
     <>
       <PageHeader
         title="Calendar"
-        end={!adding && !editing && (
+        end={!adding && !editing && !importing && (
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => openNew(view === "month" ? picked : undefined)}><Plus /> Add</Button>
             <Button variant="secondary" asChild><Link to="/coach"><HeartHandshake /> Ask the coach</Link></Button>
+            <Button variant="ghost" onClick={() => setParams({ import: "1" })}><Download /> Import</Button>
           </div>
         )}
       >
         Tests, quizzes, homework and projects, all in one place.
       </PageHeader>
+
+      {importing && (
+        <div className="mb-6">
+          <CalendarImport subjects={subjects.data ?? []} onClose={closeForm} />
+        </div>
+      )}
 
       {(adding || editing) && (
         <div className="mb-6">
@@ -174,7 +185,10 @@ export default function Calendar() {
             <span className="tile soft"><CalendarDays /></span>
             <p className="font-bold">Nothing on your calendar yet</p>
             <p className="text-muted">Add your next test, quiz or homework. Seeing what's coming makes it easier to plan around it.</p>
-            <Button onClick={() => openNew()}><Plus /> Add your first one</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => openNew()}><Plus /> Add your first one</Button>
+              <Button variant="secondary" onClick={() => setParams({ import: "1" })}><Download /> Import a calendar</Button>
+            </div>
           </section>
         ) : (
           <div className="flex flex-col gap-4">
@@ -194,6 +208,7 @@ export default function Calendar() {
                 <ul className="divide-y divide-line">{es.map((e) => row(e))}</ul>
               </section>
             ))}
+            <LinkedCalendars feeds={feeds.data ?? []} subjects={subjects.data ?? []} />
             {past.length > 0 && (
               <details className="mt-2">
                 <summary className="inline-flex min-h-11 cursor-pointer items-center font-bold text-ink-2">Earlier · {past.length}</summary>
