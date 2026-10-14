@@ -6,7 +6,7 @@ import { CRISIS_LINE } from "./tutor.ts";
 export const KINDS = ["test", "quiz", "homework", "project", "other"] as const;
 export type Kind = (typeof KINDS)[number];
 
-export const READ_TOOLS = ["search", "files", "progress", "mistakes", "weak_cards"] as const;
+export const READ_TOOLS = ["search", "read_file", "files", "progress", "mistakes", "weak_cards"] as const;
 export const WRITE_TOOLS = ["add_event", "update_event", "complete_event", "uncomplete_event", "delete_event", "set_current_unit", "make_cards", "write_note", "link"] as const;
 export const TOOLS = [...READ_TOOLS, ...WRITE_TOOLS] as const;
 export type Tool = (typeof TOOLS)[number];
@@ -104,6 +104,7 @@ Refs: classes C1.., units U1.., files F1.., calendar items E1.. come from the co
 
 Look things up (results come back to you next round):
 - search {"query": "...", "class": "C1"?}: search their notes, files, cards and quiz questions. Use it before explaining or summarizing anything from their material, and before making cards or notes from it.
+- read_file {"file": "F1"}: the text of one file (its first pages). Use it for "my latest notes" (the newest file is F1, files are listed newest first), "this file", or making cards, a summary or a plan from a particular file.
 - files {"class": "C1"?, "unit": "U1"?}: their files, with what has been made from each.
 - progress {"class": "C1"?}: cards by stage, cards due, reviews this week, latest quiz and practice-test scores.
 - mistakes {"class": "C1"?}: open quiz mistakes, with the right answers.
@@ -138,12 +139,13 @@ How to answer:
 }
 
 /** What a step looks like while it runs ("Searching your notes for mitosis"). */
-export function stepLabel(c: Call, names: { cls: (ref: unknown) => string | null; unit: (ref: unknown) => string | null }) {
+export function stepLabel(c: Call, names: { cls: (ref: unknown) => string | null; unit: (ref: unknown) => string | null; file?: (ref: unknown) => string | null }) {
   const cls = names.cls(c.args.class);
   const where = cls ? ` in ${cls}` : "";
   const q = typeof c.args.query === "string" ? c.args.query.slice(0, 40) : "";
   switch (c.tool) {
     case "search": return q ? `Searching your notes${where} for “${q}”` : `Searching your notes${where}`;
+    case "read_file": return `Reading ${names.file?.(c.args.file) ?? "your file"}`;
     case "files": return `Looking at your files${where}`;
     case "progress": return `Checking how you're doing${where}`;
     case "mistakes": return `Going through your quiz mistakes${where}`;

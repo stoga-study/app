@@ -49,6 +49,7 @@ describe("coach lib", () => {
     const names = { cls: (r: unknown) => (r === "C1" ? "Biology" : null), unit: () => null };
     expect(stepLabel({ tool: "search", args: { query: "osmosis", class: "C1" } }, names)).toBe("Searching your notes in Biology for “osmosis”");
     expect(stepLabel({ tool: "make_cards", args: { class: "C1" } }, names)).toBe("Making flashcards in Biology");
+    expect(stepLabel({ tool: "read_file", args: { file: "F1" } }, { ...names, file: () => "Cells.pdf" })).toBe("Reading Cells.pdf");
   });
 
   it("cleans cards the model wrote", () => {

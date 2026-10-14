@@ -116,6 +116,18 @@ async function read(db: SupabaseClient, c: Call, l: Loaded): Promise<string> {
       }));
       return `Search "${query}":\n${lines.join("\n")}${full.join("")}`;
     }
+    if (c.tool === "read_file") {
+      const f = str(c.args.file) ? l.byRef.file.get(str(c.args.file)!) : undefined;
+      if (!f) return "No such file.";
+      const { data: pages, error } = await db.from("source_pages").select("page_no, text").eq("source_id", f.id).order("page_no").limit(12);
+      if (error) throw error;
+      let text = "";
+      for (const p of pages ?? []) {
+        if (text.length > 7000) break;
+        text += `\n[p.${p.page_no}] ${p.text.slice(0, 7000 - text.length)}`;
+      }
+      return text ? `${str(c.args.file)} "${f.filename}" (${cname(f.subject_id)}):${text}` : `"${f.filename}" has no readable text.`;
+    }
     if (c.tool === "files") {
       let q = db.from("sources").select("id, filename, subject_id, unit_id, page_count, status, created_at").eq("archived", false).neq("status", "uploaded").order("created_at", { ascending: false }).limit(30);
       if (classId) q = q.eq("subject_id", classId);
@@ -350,6 +362,7 @@ Deno.serve(async (req) => {
   const names = {
     cls: (r: unknown) => (typeof r === "string" && loaded.byRef.class.has(r) ? loaded.subjectName.get(loaded.byRef.class.get(r)!) ?? null : null),
     unit: (r: unknown) => (typeof r === "string" && loaded.byRef.unit.has(r) ? loaded.unitName.get(loaded.byRef.unit.get(r)!.id) ?? null : null),
+    file: (r: unknown) => (typeof r === "string" && loaded.byRef.file.has(r) ? loaded.byRef.file.get(r)!.filename : null),
   };
 
   return sse(async (send) => {
