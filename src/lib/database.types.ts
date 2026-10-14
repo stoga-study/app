@@ -158,6 +158,7 @@ export type Database = {
       }
       cards: {
         Row: {
+          archived: boolean
           back: string
           created_at: string
           difficulty: number
@@ -184,6 +185,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived?: boolean
           back: string
           created_at?: string
           difficulty?: number
@@ -210,6 +212,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          archived?: boolean
           back?: string
           created_at?: string
           difficulty?: number
@@ -929,6 +932,7 @@ export type Database = {
       }
       quizzes: {
         Row: {
+          archived: boolean
           created_at: string
           gen_run: number | null
           id: string
@@ -938,6 +942,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          archived?: boolean
           created_at?: string
           gen_run?: number | null
           id?: string
@@ -947,6 +952,7 @@ export type Database = {
           user_id?: string
         }
         Update: {
+          archived?: boolean
           created_at?: string
           gen_run?: number | null
           id?: string
@@ -1053,6 +1059,7 @@ export type Database = {
       }
       sources: {
         Row: {
+          archived: boolean
           bytes: number | null
           content_hash: string | null
           counted: boolean
@@ -1069,11 +1076,13 @@ export type Database = {
           steps: Json
           storage_path: string | null
           subject_id: string
+          tags: string[]
           unit_id: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          archived?: boolean
           bytes?: number | null
           content_hash?: string | null
           counted?: boolean
@@ -1090,11 +1099,13 @@ export type Database = {
           steps?: Json
           storage_path?: string | null
           subject_id: string
+          tags?: string[]
           unit_id?: string | null
           updated_at?: string
           user_id?: string
         }
         Update: {
+          archived?: boolean
           bytes?: number | null
           content_hash?: string | null
           counted?: boolean
@@ -1111,6 +1122,7 @@ export type Database = {
           steps?: Json
           storage_path?: string | null
           subject_id?: string
+          tags?: string[]
           unit_id?: string | null
           updated_at?: string
           user_id?: string
@@ -1418,6 +1430,14 @@ export type Database = {
           p_kind: Database["public"]["Enums"]["usage_kind"]
           p_user: string
         }
+        Returns: boolean
+      }
+      duplicate_source: {
+        Args: { p_source: string; p_subject: string }
+        Returns: string
+      }
+      is_archived: {
+        Args: { p_source: string; p_subject: string }
         Returns: boolean
       }
       merge_decks: {
