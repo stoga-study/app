@@ -122,13 +122,13 @@ export default function Progress() {
         </section>
       </div>
 
-      <section className="card card-dashed mt-4 flex items-start gap-4 p-5">
+      <Link to="/calendar?view=plan" className="card card-dashed mt-4 flex items-start gap-4 p-5 text-ink no-underline">
         <span className="tile soft"><CalendarClock /></span>
         <div>
-          <p className="font-bold">Exam prep and a study planner are coming in v1.1</p>
-          <p className="text-[0.9375rem] text-muted">Add an exam date and get a day-by-day plan built around it.</p>
+          <p className="font-bold">Study plan and exam prep</p>
+          <p className="text-[0.9375rem] text-muted">Add your tests to the calendar for a day-by-day plan, readiness and practice tests.</p>
         </div>
-      </section>
+      </Link>
     </>
   );
 }
