@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.4.12",
+      "date": "2026-10-14",
+      "title": "Dates your way",
+      "intro": "Dates and times now follow your language and region.",
+      "highlights": [
+        {
+          "icon": "calendar",
+          "title": "Your format",
+          "text": "Day and month names, 12 or 24-hour time, and whether weeks start on Sunday or Monday all match where you are, everywhere in the app."
+        },
+        {
+          "icon": "choose",
+          "title": "Pick a language",
+          "text": "In Settings, Display, choose from 16 languages. “Tomorrow” becomes “Mañana”, “Demain” or “明天”, and your coach replies in that language too."
+        }
+      ]
+    },
+    {
       "version": "1.4.11",
       "date": "2026-10-14",
       "title": "Faces, and a coach that's yours",
