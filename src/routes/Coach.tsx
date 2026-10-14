@@ -1,26 +1,93 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, Check, RotateCcw, Trash2, WifiOff, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { useSearchParams } from "react-router";
+import { ArrowRight, ArrowUp, CalendarPlus, Check, ChevronDown, Layers, ListChecks, RotateCcw, Sparkles, Square, Trash2, TrendingUp, WifiOff, X } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { Markdown } from "@/components/Markdown";
-import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
-import { askCoach, CoachError, loadCoach, saveCoach, undoCoach, type CoachMessage } from "@/lib/queries/coach";
+import { loadCoach, saveCoach, streamCoach, undoCoach, type CoachEvent, type CoachMessage } from "@/lib/queries/coach";
 import { usePlan } from "@/lib/queries/plan";
+import { useProfile } from "@/lib/queries/profile";
 import { useOnline } from "@/lib/useOnline";
 
-const STARTERS = ["What should I study tonight?", "I have a test on Friday", "I'm stressed about my tests", "Plan my week"];
+const STARTERS: { icon: ReactNode; text: string }[] = [
+  { icon: <Sparkles />, text: "What should I study tonight?" },
+  { icon: <TrendingUp />, text: "How am I doing in my classes?" },
+  { icon: <Layers />, text: "Make flashcards from my latest notes" },
+  { icon: <ListChecks />, text: "Quiz me on what I keep getting wrong" },
+  { icon: <CalendarPlus />, text: "I have a test on Friday" },
+  { icon: <ArrowRight />, text: "Plan my week" },
+];
+
+const ERRORS: Record<string, string> = {
+  limit: "You've used today's tutor and coach messages. They come back tomorrow.",
+  offline: "The coach needs a connection.",
+  busy: "The coach is busy right now. Try again in a minute.",
+};
+
+/** Reveals streamed text at a steady pace, catching up when it falls behind, so it flows instead of jumping. */
+function SmoothText({ text, live }: { text: string; live: boolean }) {
+  const [shown, setShown] = useState(live ? 0 : text.length);
+  const target = useRef(text);
+  useEffect(() => {
+    target.current = text;
+  }, [text]);
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      setShown((n) => {
+        const left = target.current.length - n;
+        return left <= 0 ? n : n + Math.max(1, Math.ceil(left / 10));
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  const visible = text.slice(0, Math.min(shown, text.length));
+  return (
+    <div>
+      <Markdown text={visible} />
+      {(live || shown < text.length) && <span className="coach-caret" aria-hidden="true" />}
+    </div>
+  );
+}
+
+function Steps({ m }: { m: CoachMessage }) {
+  const steps = m.steps ?? [];
+  const running = steps.some((s) => s.status === "running");
+  const [open, setOpen] = useState(false);
+  if (!steps.length) return null;
+  if (!running && !open) {
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="rise inline-flex items-center gap-1.5 self-start text-[0.875rem] font-bold text-muted hover:text-ink">
+        <Check className="size-4 text-brand" /> Looked at {steps.length} {steps.length === 1 ? "thing" : "things"} <ChevronDown className="size-4" />
+      </button>
+    );
+  }
+  return (
+    <ul className="flex flex-col gap-1.5" aria-label="What the coach is doing">
+      {steps.map((s) => (
+        <li key={s.id} className="rise flex items-center gap-2 text-[0.9375rem]">
+          {s.status === "running" ? <span className="coach-spin flex-none" aria-hidden="true" /> : s.status === "done" ? <Check className="check-in size-4 flex-none text-brand" aria-hidden="true" /> : <X className="check-in size-4 flex-none text-hot" aria-hidden="true" />}
+          <span className={s.status === "running" ? "shimmer-text font-bold" : "text-muted"}>{s.label}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 /**
- * The coach: a study-planning chat that can add, move, tick off and remove calendar items, and set a
- * class's current unit. Each change shows as a card with Undo. `?say=` starts with that message.
+ * The coach: an assistant over the student's own study material. It looks things up (notes, files,
+ * progress, mistakes, hardest cards), acts (calendar, flashcards, notes, buttons to start things) with
+ * Undo on every change, and streams its answer. `?say=` starts with that message.
  */
 export default function Coach() {
   const { session } = useAuth();
   const userId = session!.user.id;
+  const profile = useProfile();
   const [msgs, setMsgs] = useState<CoachMessage[]>(() => loadCoach(userId));
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -29,44 +96,80 @@ export default function Coach() {
   const online = useOnline();
   const qc = useQueryClient();
   const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abort = useRef<AbortController | null>(null);
 
   useEffect(() => {
     saveCoach(userId, msgs);
   }, [userId, msgs]);
-  // A block body on purpose: scrollIntoView returns a promise in newer browsers, and an effect must not.
+  // Follow the answer as it grows, unless the student scrolled up to read.
+  const last = msgs.at(-1);
+  const growth = `${msgs.length}:${last?.content.length ?? 0}:${last?.steps?.length ?? 0}:${last?.actions?.length ?? 0}`;
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [msgs.length, busy]);
+    const nearBottom = window.innerHeight + window.scrollY > document.body.scrollHeight - 240;
+    if (nearBottom) endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [growth]);
+  // The box grows with what's typed.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 160)}px`;
+  }, [draft]);
 
-  const refresh = () => {
-    qc.invalidateQueries({ queryKey: ["events"] });
-    qc.invalidateQueries({ queryKey: ["subjects"] });
-  };
+  const refresh = () => ["events", "subjects", "due-cards", "class-cards", "notes", "plan-cards", "mastery-cards"].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
 
   async function send(text: string) {
     const message = text.trim();
     if (!message || busy) return;
     const before = msgs;
-    setMsgs([...before, { role: "user", content: message }]);
+    setMsgs([...before, { role: "user", content: message }, { role: "assistant", content: "", steps: [], actions: [], links: [], live: true }]);
     setDraft("");
     setBusy(true);
-    try {
-      const planToday = plan.ready ? (plan.days[0]?.tasks ?? []).map((t) => `${t.title}${t.done ? " (done)" : ""}`) : [];
-      const r = await askCoach(message, before, planToday);
-      setMsgs((m) => [...m, { role: "assistant", content: r.reply, actions: r.actions, crisis: r.crisis }]);
-      if (r.actions.some((a) => a.ok)) refresh();
-    } catch (e) {
-      const code = e instanceof CoachError ? e.code : "unavailable";
-      setMsgs(before);
-      setDraft(message);
-      toast(
-        code === "limit" ? "You've used today's tutor and coach messages. They come back tomorrow."
-          : code === "offline" ? "The coach needs a connection."
-            : code === "busy" ? "The coach is busy right now. Try again in a minute."
-              : "The coach couldn't answer just now. Try again in a moment.",
-      );
-    } finally {
-      setBusy(false);
+    const ctl = new AbortController();
+    abort.current = ctl;
+    const patch = (fn: (m: CoachMessage) => CoachMessage) => setMsgs((ms) => ms.map((m, i) => (i === ms.length - 1 ? fn(m) : m)));
+    let changed = false;
+    let failed: string | null = null;
+    const planToday = plan.ready ? (plan.days[0]?.tasks ?? []).map((t) => `${t.title}${t.done ? " (done)" : ""}`) : [];
+    await streamCoach(message, before, planToday, (e: CoachEvent) => {
+      if (e.type === "step") {
+        patch((m) => {
+          const steps = m.steps ?? [];
+          return steps.some((s) => s.id === e.id)
+            ? { ...m, steps: steps.map((s) => (s.id === e.id ? { ...s, status: e.status } : s)) }
+            : { ...m, steps: [...steps, { id: e.id, label: e.label ?? "Working", status: e.status }] };
+        });
+      } else if (e.type === "action") {
+        if (e.ok) changed = true;
+        patch((m) => ({ ...m, actions: [...(m.actions ?? []), { type: e.action, summary: e.summary, ok: e.ok, undo: e.undo }] }));
+      } else if (e.type === "link") {
+        patch((m) => ({ ...m, links: [...(m.links ?? []), { label: e.label, href: e.href }] }));
+      } else if (e.type === "delta") {
+        patch((m) => ({ ...m, content: m.content + e.text }));
+      } else if (e.type === "done") {
+        patch((m) => ({ ...m, content: e.reply, crisis: e.crisis, live: false }));
+      } else if (e.type === "error") {
+        failed = e.error;
+      }
+    }, ctl.signal);
+    abort.current = null;
+    setBusy(false);
+    if (changed) refresh();
+    if (failed === "stopped") {
+      patch((m) => ({ ...m, live: false, content: m.content || "Stopped." }));
+    } else if (failed) {
+      const code: string = failed;
+      // Nothing came back: put the message back to try again. A half-written answer stays as it is.
+      setMsgs((ms) => {
+        const lastMsg = ms.at(-1);
+        if (lastMsg && !lastMsg.content && !lastMsg.actions?.length) return before;
+        return ms.map((m, i) => (i === ms.length - 1 ? { ...m, live: false } : m));
+      });
+      setDraft((d) => d || message);
+      toast(ERRORS[code] ?? "The coach couldn't answer just now. Try again in a moment.");
+    } else {
+      patch((m) => ({ ...m, live: false }));
     }
   }
 
@@ -76,7 +179,6 @@ export default function Coach() {
   useEffect(() => {
     if (!say || said.current === say) return;
     said.current = say;
-    // After this render, so the message goes through send() like any other.
     void Promise.resolve().then(() => {
       setParams({}, { replace: true });
       return send(say);
@@ -96,62 +198,111 @@ export default function Coach() {
     }
   }
 
+  const name = profile.data?.first_name;
   return (
-    <section className="mx-auto flex max-w-2xl flex-col" aria-label="Coach">
-      <PageHeader
-        title="Coach"
-        end={msgs.length > 0 && <Button variant="ghost" size="sm" onClick={() => setMsgs([])}><Trash2 /> Clear chat</Button>}
-      >
-        Plan your week, sort out what's due, or just talk through a stressful test. It can add things to your calendar too.
-      </PageHeader>
-
-      <div className="flex flex-col gap-3" aria-live="polite">
-        {msgs.length === 0 && (
-          <div className="flex flex-wrap gap-2">
-            {STARTERS.map((s) => <button key={s} type="button" className="pill-option" disabled={!online} onClick={() => void send(s)}>{s}</button>)}
+    <section className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-2xl flex-col" aria-label="Coach">
+      {msgs.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 py-8 text-center">
+          <span className="coach-orb size-20 rounded-full" aria-hidden="true" />
+          <div className="rise">
+            <h1 className="text-[2.25rem] leading-tight md:text-[2.75rem]">{name ? `Hey ${name}.` : "Hey there."}</h1>
+            <p className="mt-2 text-[1.0625rem] text-muted">I can see your classes, notes, cards and calendar. What do you need?</p>
           </div>
-        )}
-        {msgs.map((m, mi) =>
-          m.role === "user" ? (
-            <div key={mi} className="max-w-[88%] self-end whitespace-pre-line rounded-[1.25rem] rounded-br-md border-2 border-line bg-card p-3">{m.content}</div>
-          ) : (
-            <div key={mi} className="flex max-w-[94%] flex-col gap-2">
-              <div className={cn("rounded-[1.25rem] rounded-bl-md p-4", m.crisis ? "border-2 border-hot bg-card" : "bg-tint")}>
-                <Markdown text={m.content} />
-              </div>
-              {m.actions?.map((a, ai) => (
-                <div key={ai} className={cn("card flex items-center gap-3 !rounded-[1rem] px-4 py-2.5 !shadow-none", !a.ok && "card-dashed")}>
-                  {a.ok && !a.undone ? <Check className="size-5 flex-none text-brand" aria-hidden="true" /> : <X className="size-5 flex-none text-muted" aria-hidden="true" />}
-                  <span className={cn("min-w-0 flex-1 text-[0.9375rem]", (a.undone || !a.ok) && "text-muted", a.undone && "line-through")}>{a.summary}</span>
-                  {a.ok && a.undo && (a.undone ? <span className="text-[0.875rem] font-bold text-muted">Undone</span> : (
-                    <Button variant="ghost" size="sm" onClick={() => void undo(mi, ai)}><RotateCcw /> Undo</Button>
-                  ))}
+          <div className="grid w-full gap-2 sm:grid-cols-2">
+            {STARTERS.map((s, i) => (
+              <button
+                key={s.text}
+                type="button"
+                disabled={!online}
+                onClick={() => void send(s.text)}
+                className="rise card flex items-center gap-3 !rounded-[1rem] px-4 py-3 text-left font-bold !shadow-none transition-transform hover:-translate-y-0.5 hover:!border-primary [&_svg]:size-5 [&_svg]:flex-none [&_svg]:text-brand"
+                style={{ animationDelay: `${120 + i * 50}ms` }}
+              >
+                {s.icon}
+                <span>{s.text}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="mb-4 flex items-center justify-between">
+            <h1 className="flex items-center gap-2 text-[1.5rem]"><span className="coach-orb size-6 rounded-full" aria-hidden="true" /> Coach</h1>
+            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setMsgs([])}><Trash2 /> New chat</Button>
+          </div>
+          <div className="flex flex-1 flex-col gap-5" aria-live="polite">
+            {msgs.map((m, mi) =>
+              m.role === "user" ? (
+                <div key={mi} className="rise max-w-[85%] self-end whitespace-pre-line rounded-[1.25rem] rounded-br-md bg-tint px-4 py-3">{m.content}</div>
+              ) : (
+                <div key={mi} className="flex gap-3">
+                  <span className={cn("coach-orb mt-1 size-6 flex-none rounded-full", !m.live && "[animation-play-state:paused]")} aria-hidden="true" />
+                  <div className="flex min-w-0 flex-1 flex-col gap-3">
+                    {m.live && !m.content && !m.steps?.length && <p className="shimmer-text font-bold">Thinking…</p>}
+                    <Steps m={m} />
+                    {(m.actions?.length ?? 0) > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {m.actions!.map((a, ai) => (
+                          <div key={ai} className={cn("rise card flex items-center gap-3 !rounded-[1rem] px-4 py-2.5 !shadow-none", !a.ok && "card-dashed")} style={{ animationDelay: `${ai * 70}ms` }}>
+                            {a.ok && !a.undone ? <Check className="check-in size-5 flex-none text-brand" aria-hidden="true" /> : <X className="size-5 flex-none text-muted" aria-hidden="true" />}
+                            <span className={cn("min-w-0 flex-1 text-[0.9375rem]", (a.undone || !a.ok) && "text-muted", a.undone && "line-through")}>{a.summary}</span>
+                            {a.ok && a.undo && (a.undone ? <span className="text-[0.875rem] font-bold text-muted">Undone</span> : (
+                              <Button variant="ghost" size="sm" onClick={() => void undo(mi, ai)}><RotateCcw /> Undo</Button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(m.content || (m.live && (m.steps?.length ?? 0) > 0 && !m.steps!.some((s) => s.status === "running"))) && (
+                      <div className={cn(m.crisis && "rounded-[1rem] border-2 border-hot p-4")}>
+                        {m.content ? <SmoothText text={m.content} live={!!m.live} /> : <p className="shimmer-text font-bold">Writing…</p>}
+                      </div>
+                    )}
+                    {(m.links?.length ?? 0) > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {m.links!.map((l, li) => (
+                          <Button key={li} asChild size="sm" variant={li === 0 ? "primary" : "secondary"} className="rise" style={{ animationDelay: `${li * 70}ms` }}>
+                            <Link to={l.href}>{l.label} <ArrowRight /></Link>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
-          ),
-        )}
-        {busy && <div className="skeleton h-16 w-2/3 rounded-[1.25rem]" aria-label="The coach is writing" />}
-        <div ref={endRef} />
-      </div>
+              ),
+            )}
+            <div ref={endRef} />
+          </div>
+        </>
+      )}
 
-      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] mt-4 border-t border-line bg-bg pt-3 lg:bottom-0 lg:pb-4">
+      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] mt-4 bg-bg pb-1 pt-3 lg:bottom-0 lg:pb-4">
         {!online && <p className="mb-2 text-center text-[0.8125rem] text-muted"><span className="inline-flex items-center gap-1"><WifiOff className="size-4" /> The coach needs a connection.</span></p>}
-        <form onSubmit={(e) => { e.preventDefault(); void send(draft); }} className="flex items-end gap-2 rounded-[1.5rem] border-2 border-line bg-card p-2 focus-within:border-hot">
+        <form
+          onSubmit={(e) => { e.preventDefault(); void send(draft); }}
+          className="flex items-end gap-2 rounded-[1.5rem] border-2 border-line bg-card p-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.25)] transition-colors focus-within:border-hot"
+        >
           <label htmlFor="coach-say" className="sr-only">Message the coach</label>
           <textarea
             id="coach-say"
+            ref={inputRef}
             rows={1}
             value={draft}
-            maxLength={1000}
+            maxLength={1500}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(draft); } }}
-            placeholder="Like “bio test friday on unit 4”"
-            className="max-h-40 min-h-11 flex-1 resize-none border-0 bg-transparent px-3 py-2.5 outline-none"
+            placeholder="Ask anything about your classes, or tell me what's coming up"
+            className="min-h-11 flex-1 resize-none border-0 bg-transparent px-3 py-2.5 outline-none"
           />
-          <button type="submit" disabled={!draft.trim() || busy || !online} aria-label="Send" className="grid size-11 flex-none place-items-center rounded-full bg-primary text-white disabled:bg-line disabled:text-muted">
-            <ArrowUp className="size-5" />
-          </button>
+          {busy ? (
+            <button type="button" onClick={() => abort.current?.abort()} aria-label="Stop" className="grid size-11 flex-none place-items-center rounded-full bg-ink text-bg transition-transform active:scale-90">
+              <Square className="size-4 fill-current" />
+            </button>
+          ) : (
+            <button type="submit" disabled={!draft.trim() || !online} aria-label="Send" className="grid size-11 flex-none place-items-center rounded-full bg-primary text-white transition-transform active:scale-90 disabled:bg-line disabled:text-muted">
+              <ArrowUp className="size-5" />
+            </button>
+          )}
         </form>
       </div>
     </section>
