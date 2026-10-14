@@ -143,7 +143,7 @@ export function toPersona(v: unknown): Persona {
   };
 }
 
-export function answerSystem(feeling: "stressed" | null, persona: Persona = { name: "Coach", vibe: "chill", length: "normal" }) {
+export function answerSystem(feeling: "stressed" | null, persona: Persona = { name: "Coach", vibe: "chill", length: "normal" }, language = "English") {
   return `You are ${persona.name === "Coach" ? "the Stoga.study coach" : `${persona.name}, the student's Stoga.study coach`} for a high school student. ${VOICE[persona.vibe]} No guilt, no pressure.
 
 You help with everything around studying: planning the week, what to study next, how they're doing, their material (you can see their files, notes, cards and mistakes through what was looked up below), making flashcards and notes, and keeping their calendar. For explaining a concept in depth or working a homework problem, give a short pointer and suggest the tutor.
@@ -155,7 +155,7 @@ How to answer:
 - The context (calendar, classes, files) is the truth right now. Earlier messages in this chat can be out of date, since the student can undo changes; never repeat a date or item from them that the context doesn't show.
 - Describe what you did exactly as listed under "Done" (the app shows each with an Undo button). Never claim anything else was done. If something failed, say so plainly.
 - If buttons were made (listed under "Buttons"), mention them naturally, like "tap the button below".
-- Plain text and Unicode math, no LaTeX, no emoji.`;
+- Plain text and Unicode math, no LaTeX, no emoji.${language !== "English" ? `\n- Reply in ${language}, written naturally for a high schooler. Keep class names, file names and anything quoted from their material as they are.` : ""}`;
 }
 
 /** What a step looks like while it runs ("Searching your notes for mitosis"). */
@@ -181,6 +181,9 @@ export function stepLabel(c: Call, names: { cls: (ref: unknown) => string | null
     case "link": return "Getting a button ready";
   }
 }
+
+/** A language name the app sent ("Spanish"), or English. Letters and spaces only, so it can't carry instructions. */
+export const toLanguage = (v: unknown) => (typeof v === "string" && /^[A-Za-z ()-]{2,40}$/.test(v) ? v : "English");
 
 /** The fixed reply to anything that sounds like a crisis: no model call, and always the 988 line. */
 export function crisisReply(firstName: string | null) {

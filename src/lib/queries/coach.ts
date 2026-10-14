@@ -1,6 +1,7 @@
 import type { Database } from "../database.types";
 import { supabase } from "../supabase";
 import { today } from "../calendar";
+import { appLocale, languageName } from "../locale";
 
 export type Undo =
   | { op: "delete"; id: string }
@@ -45,7 +46,7 @@ export async function streamCoach(message: string, history: CoachMessage[], plan
     res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/coach`, {
       method: "POST",
       headers: { Authorization: `Bearer ${data.session?.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ message, today: today(), plan_today: planToday, history: history.filter((m) => m.content).slice(-10).map(historyTurn) }),
+      body: JSON.stringify({ message, today: today(), language: languageName(appLocale()), plan_today: planToday, history: history.filter((m) => m.content).slice(-10).map(historyTurn) }),
       signal,
     });
   } catch {

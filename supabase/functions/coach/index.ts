@@ -18,7 +18,7 @@ import { cleanText } from "../_lib/study.ts";
 import { wellbeing } from "../_lib/tutor.ts";
 import {
   addDays, answerSystem, cleanCards, cleanTitle, contextText, crisisReply, isIsoDate, isTime, MAX_ROUNDS, parseCalls, READ_TOOLS, STEP_SCHEMA, stepLabel,
-  stepSystem, toPersona, validKind, type Call, type Ctx,
+  stepSystem, toLanguage, toPersona, validKind, type Call, type Ctx,
 } from "../_lib/coach.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -309,6 +309,7 @@ Deno.serve(async (req) => {
   const message = cleanText(body.message, MAX_MESSAGE);
   if (!message) return json(req, { error: "message_required" }, 400);
   const today = isIsoDate(body.today) ? body.today : new Date().toISOString().slice(0, 10);
+  const language = toLanguage(body.language);
   const planToday = (Array.isArray(body.plan_today) ? body.plan_today : []).filter((x: unknown) => typeof x === "string").slice(0, 8).map((x: string) => x.slice(0, 120));
   const history = (Array.isArray(body.history) ? body.history : [])
     .filter((t: { role?: unknown; content?: unknown }) => (t.role === "user" || t.role === "assistant") && typeof t.content === "string")
@@ -425,7 +426,7 @@ Deno.serve(async (req) => {
       const { res, model } = await llmStream({
         own, effort: "light", maxTokens: 900,
         messages: [
-          { role: "system", content: answerSystem(feeling, loaded.persona) },
+          { role: "system", content: answerSystem(feeling, loaded.persona, language) },
           { role: "system", content: context },
           ...history,
           { role: "user", content: message },
