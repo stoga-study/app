@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.3.2",
+      "date": "2026-10-13",
+      "title": "Better PDF reading",
+      "intro": "Two fixes to how we read a PDF, so what we read matches what you see.",
+      "highlights": [
+        {
+          "icon": "columns",
+          "title": "Two-column pages read in order",
+          "text": "A worksheet or article printed in two columns now reads left column, then right, instead of jumbling both together line by line."
+        },
+        {
+          "icon": "scan",
+          "title": "A scanned page inside a text PDF",
+          "text": "If just a page or two of an otherwise normal PDF is a photo (a signed form, a diagram), those pages are now read too, instead of being skipped."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "date": "2026-10-13",
       "title": "See the real page",
