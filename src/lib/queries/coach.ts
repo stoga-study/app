@@ -30,6 +30,12 @@ export type CoachEvent =
   | { type: "done"; reply: string; crisis?: boolean }
   | { type: "error"; error: string; resets_at?: string };
 
+/** A past message as the coach sees it, saying which of its changes were undone since. */
+export function historyTurn(m: CoachMessage) {
+  const undone = (m.actions ?? []).filter((a) => a.undone).map((a) => a.summary);
+  return { role: m.role, content: undone.length ? `${m.content}\n\n(The student undid this since: ${undone.join("; ")}.)` : m.content };
+}
+
 /** Ask the coach; events arrive as it looks things up, acts, and writes its answer. */
 export async function streamCoach(message: string, history: CoachMessage[], planToday: string[], onEvent: (e: CoachEvent) => void, signal?: AbortSignal) {
   if (!navigator.onLine) return onEvent({ type: "error", error: "offline" });
@@ -39,7 +45,7 @@ export async function streamCoach(message: string, history: CoachMessage[], plan
     res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/coach`, {
       method: "POST",
       headers: { Authorization: `Bearer ${data.session?.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, "Content-Type": "application/json" },
-      body: JSON.stringify({ message, today: today(), plan_today: planToday, history: history.filter((m) => m.content).slice(-10).map(({ role, content }) => ({ role, content })) }),
+      body: JSON.stringify({ message, today: today(), plan_today: planToday, history: history.filter((m) => m.content).slice(-10).map(historyTurn) }),
       signal,
     });
   } catch {
