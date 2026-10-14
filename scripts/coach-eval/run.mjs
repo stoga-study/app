@@ -2,7 +2,7 @@
 //
 //   SUPABASE_SECRET_KEY=sb_secret_… node scripts/coach-eval/run.mjs [report.md]
 //
-// Reads VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY from .env.local. About 9 coach calls on the
+// Reads VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY from .env.local. About 12 coach calls on the
 // platform AI key. Checks the replies and the real calendar changes, and that each Undo really
 // reverses its change. The test student is always deleted at the end.
 import { createClient } from "@supabase/supabase-js";
@@ -36,6 +36,9 @@ try {
   const u4 = (await admin.from("units").insert({ user_id: uid, subject_id: bio.id, number: "4", word: "Unit", title: "Cells" }).select("id").single()).data;
   await admin.from("units").insert({ user_id: uid, subject_id: bio.id, number: "5", word: "Unit", title: "Genetics" });
   const u2 = (await admin.from("units").insert({ user_id: uid, subject_id: chem.id, number: "2", word: "Unit", title: "Atoms" }).select("id").single()).data;
+  const src = (await admin.from("sources").insert({ user_id: uid, subject_id: bio.id, unit_id: u4.id, filename: "Cell structure notes", kind: "text", bytes: 1, page_count: 1, status: "ready" }).select("id").single()).data;
+  await admin.from("source_pages").insert({ user_id: uid, source_id: src.id, page_no: 1, text: "Cell structure. The mitochondria is where cellular respiration happens and most ATP is made. The nucleus holds the cell's DNA. Ribosomes build proteins. The cell membrane is selectively permeable: it controls what enters and leaves the cell. Chloroplasts, found in plant cells, carry out photosynthesis. The cell wall gives plant cells their shape and support." });
+  await admin.from("cards").insert(Array.from({ length: 6 }, (_, i) => ({ user_id: uid, subject_id: bio.id, source_id: src.id, front: `Old card ${i}`, back: "x", state: 2, stability: 5, lapses: i, due: new Date(Date.now() + 86400_000).toISOString() })));
   const hw = (await admin.from("events").insert({ user_id: uid, subject_id: bio.id, kind: "homework", title: "Worksheet 3", due_on: today }).select("id").single()).data;
   const chemTest = (await admin.from("events").insert({ user_id: uid, subject_id: chem.id, kind: "test", title: "Unit 2 test", due_on: inDays(6) }).select("*").single()).data;
 
@@ -47,8 +50,15 @@ try {
   const db = createClient(URL_, PUB, { auth: { persistSession: false }, global: { headers: { Authorization: `Bearer ${token}` } } });
 
   // The same Undo the app runs (src/lib/queries/coach.ts), as the student.
-  async function undo(u) {
+  // Like the app: the last reply's history says what was undone since (src/lib/queries/coach.ts historyTurn).
+  async function undo(u, summary) {
+    if (summary) {
+      const i = history.map((h) => h.role).lastIndexOf("assistant");
+      if (i >= 0) history[i] = { ...history[i], content: `${history[i].content}\n\n(The student undid this since: ${summary}.)` };
+    }
     if (u.op === "delete") return db.from("events").delete().eq("id", u.id);
+    if (u.op === "delete_cards") return db.from("cards").delete().in("id", u.ids);
+    if (u.op === "delete_note") return db.from("student_notes").delete().eq("id", u.id);
     if (u.op === "set_unit") return db.from("subjects").update({ current_unit_id: u.unit_id, current_unit_pinned: u.pinned }).eq("id", u.subject_id);
     const { id, ...rest } = u.row;
     const { data } = await db.from("events").select("id").eq("id", id).maybeSingle();
@@ -62,10 +72,26 @@ try {
   async function say(text) {
     for (let attempt = 0; attempt < 6; attempt++) {
       const res = await fetch(`${URL_}/functions/v1/coach`, { method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: PUB, "Content-Type": "application/json" }, body: JSON.stringify({ message: text, history, today }) });
-      const j = await res.json().catch(() => ({}));
-      if (j.error === "busy") { await sleep(20000); continue; }
-      if (!j.error) history = [...history, { role: "user", content: text }, { role: "assistant", content: j.reply }].slice(-10);
-      return j;
+      if (!res.headers.get("content-type")?.includes("event-stream")) {
+        const j = await res.json().catch(() => ({}));
+        if (j.error === "busy") { await sleep(20000); continue; }
+        return { error: j.error ?? `http ${res.status}` };
+      }
+      const out = { reply: "", actions: [], links: [], steps: [], crisis: false, error: null };
+      for (const block of (await res.text()).split("\n\n")) {
+        const ev = /^event: (\w+)$/m.exec(block)?.[1];
+        const raw = /^data: (.*)$/m.exec(block)?.[1];
+        if (!ev || !raw) continue;
+        const d = JSON.parse(raw);
+        if (ev === "action") out.actions.push(d);
+        if (ev === "link") out.links.push(d);
+        if (ev === "step" && d.label) out.steps.push(d.label);
+        if (ev === "done") { out.reply = d.reply; out.crisis = !!d.crisis; }
+        if (ev === "error") out.error = d.error;
+      }
+      if (out.error) return out;
+      history = [...history, { role: "user", content: text }, { role: "assistant", content: out.reply }].slice(-10);
+      return out;
     }
     return { error: "gave up" };
   }
@@ -96,7 +122,7 @@ try {
         ];
         // Undo really reverses it.
         if (add?.undo) {
-          await undo(add.undo);
+          await undo(add.undo, add.summary);
           const { data: after } = await admin.from("events").select("id").eq("user_id", uid).eq("subject_id", bio.id).eq("kind", "test");
           if (after?.length) fails.push("Undo did not remove it");
         } else fails.push("no undo");
@@ -112,7 +138,7 @@ try {
         const { data: ev } = await admin.from("events").select("due_on").eq("id", chemTest.id).single();
         const fails = [!upd && "no update_event", ev.due_on !== mon && `date ${ev.due_on}, wanted ${mon}`];
         if (upd?.undo) {
-          await undo(upd.undo);
+          await undo(upd.undo, upd.summary);
           const { data: back } = await admin.from("events").select("due_on").eq("id", chemTest.id).single();
           if (back.due_on !== chemTest.due_on) fails.push(`Undo left it on ${back.due_on}`);
         } else fails.push("no undo");
@@ -135,7 +161,7 @@ try {
         const { data } = await admin.from("subjects").select("current_unit_id").eq("id", chem.id).single();
         const fails = [!act && "no set_current_unit", data.current_unit_id !== u2.id && "current unit not set"];
         if (act?.undo) {
-          await undo(act.undo);
+          await undo(act.undo, act.summary);
           const { data: back } = await admin.from("subjects").select("current_unit_id").eq("id", chem.id).single();
           if (back.current_unit_id !== null) fails.push("Undo did not reset it");
         }
@@ -147,13 +173,62 @@ try {
       say: "when is my english essay due again?",
       check: async (r) => [
         r.actions.length > 0 && "made a change",
-        /\b(due|is) (on )?(mon|tues|wednes|thurs|fri|satur|sun)day\b|\b(oct|nov|dec)[a-z]* \d/i.test(r.reply) && "gave a date",
+        /essay[^.]*\b((mon|tues|wednes|thurs|fri|satur|sun)day|(oct|nov|dec)[a-z]* \d)/i.test(r.reply) && "gave the essay a date",
+        /biology test/i.test(r.reply) && "repeated an undone test from earlier in the chat",
       ],
     },
     {
-      name: "Subject question goes to the tutor",
+      name: "A quick content question is answered from their own notes",
       say: "what does the mitochondria do",
-      check: async (r) => [r.actions.length > 0 && "made a change", !/tutor/i.test(r.reply) && "does not point to the tutor"],
+      check: async (r) => [r.actions.length > 0 && "made a change", !/respiration|ATP|energy/i.test(r.reply) && "no answer from the notes", /couldn.t find/i.test(r.reply) && "says it couldn't find it"],
+    },
+    {
+      name: "How am I doing: looks at progress, and uses real numbers",
+      say: "how am i doing in bio so far?",
+      check: async (r) => [
+        !r.steps.some((s) => /how you're doing/i.test(s)) && "did not check progress",
+        !/\b6\b|six/i.test(r.reply) && "doesn't mention the 6 cards",
+      ],
+    },
+    {
+      name: "Makes flashcards from the student's own notes, and Undo removes them",
+      say: "make me 5 flashcards about cell organelles from my bio notes",
+      check: async (r) => {
+        const made = r.actions.find((a) => a.type === "make_cards" && a.ok);
+        const { data: cards } = await admin.from("cards").select("id, front, back").eq("user_id", uid).contains("tags", ["coach"]);
+        const fails = [
+          !r.steps.some((s) => /Searching your notes/i.test(s)) && "did not search the notes first",
+          !made && "no make_cards",
+          (cards?.length ?? 0) < 3 && `${cards?.length ?? 0} cards made`,
+          cards && !cards.some((c) => /mitochondria|ATP|ribosome|nucleus|membrane/i.test(c.front + c.back)) && "cards not from the notes",
+        ];
+        if (made?.undo) {
+          await undo(made.undo, made.summary);
+          const { data: after } = await admin.from("cards").select("id").eq("user_id", uid).contains("tags", ["coach"]);
+          if (after?.length) fails.push("Undo left cards behind");
+        }
+        return fails;
+      },
+    },
+    {
+      name: "Writes a note to their notes, and Undo removes it",
+      say: "can you write my study plan for the chem test down as a note",
+      check: async (r) => {
+        const w = r.actions.find((a) => a.type === "write_note" && a.ok);
+        const { data: notes } = await admin.from("student_notes").select("id, subject_id, body").eq("user_id", uid);
+        const fails = [!w && "no write_note", !notes?.length && "no note saved", notes?.[0] && notes[0].subject_id !== chem.id && "note not in Chemistry", !r.links.some((l) => l.href.startsWith("/notes/")) && "no button to open it"];
+        if (w?.undo) {
+          await undo(w.undo, w.summary);
+          const { data: after } = await admin.from("student_notes").select("id").eq("user_id", uid);
+          if (after?.length) fails.push("Undo left the note");
+        }
+        return fails;
+      },
+    },
+    {
+      name: "Gives a button to start reviewing",
+      say: "ok let me review my bio cards now",
+      check: async (r) => [!r.links.some((l) => l.href.startsWith(`/review/session?subject=${bio.id}`)) && "no review button for Biology"],
     },
     {
       name: "Crisis always gets 988, from the server",
