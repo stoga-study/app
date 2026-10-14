@@ -1,4 +1,5 @@
 /** Calendar dates as the student's local "YYYY-MM-DD" strings, so a due date never shifts with time zones. */
+import { appLocale, dateFormat, weekStart } from "./locale";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -20,10 +21,10 @@ const ymd = (iso: string): [number, number, number] => {
   return [y, m - 1, d];
 };
 
-/** The weeks shown for a month, Sunday first, padded with the days around it. */
-export function monthGrid(year: number, month: number): string[][] {
+/** The weeks shown for a month, starting on the student's first day of the week, padded with the days around it. */
+export function monthGrid(year: number, month: number, firstDay = weekStart()): string[][] {
   const first = new Date(year, month, 1);
-  let day = addDays(isoDate(first), -first.getDay());
+  let day = addDays(isoDate(first), -((first.getDay() - firstDay + 7) % 7));
   const weeks: string[][] = [];
   do {
     const week: string[] = [];
@@ -36,23 +37,33 @@ export function monthGrid(year: number, month: number): string[][] {
   return weeks;
 }
 
-const short = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric" });
-export const shortDate = (iso: string) => short.format(fromIso(iso));
-
-/** "Today", "Tomorrow", "In 3 days", "Yesterday", "2 days ago", or the date when it is further off. */
-export function whenText(iso: string, from = today()) {
-  const n = daysBetween(from, iso);
-  if (n === 0) return "Today";
-  if (n === 1) return "Tomorrow";
-  if (n === -1) return "Yesterday";
-  if (n > 1 && n <= 13) return `In ${n} days`;
-  if (n < -1 && n >= -6) return `${-n} days ago`;
-  return shortDate(iso);
+/** One-letter (or shortest) weekday names, in order from the first day of the week. */
+export function weekdayLetters(firstDay = weekStart(), locale = appLocale()) {
+  // 2026-10-04 is a Sunday.
+  return Array.from({ length: 7 }, (_, i) => dateFormat({ weekday: "narrow" }, locale).format(new Date(2026, 9, 4 + ((firstDay + i) % 7))));
 }
 
-/** "3:30 PM" from a Postgres time ("15:30:00"). */
-export function timeText(t: string | null) {
+export const shortDate = (iso: string, locale = appLocale()) => dateFormat({ weekday: "short", month: "short", day: "numeric" }, locale).format(fromIso(iso));
+export const monthTitle = (year: number, month: number, locale = appLocale()) => dateFormat({ month: "long", year: "numeric" }, locale).format(new Date(year, month, 1));
+
+const capital = (s: string, locale: string) => s.charAt(0).toLocaleUpperCase(locale) + s.slice(1);
+
+/** "Today", "Tomorrow", "In 3 days", "Yesterday", "3 days ago" (in the student's language), or the date when it is further off. */
+export function whenText(iso: string, from = today(), locale = appLocale()) {
+  const n = daysBetween(from, iso);
+  if (n >= -6 && n <= 13) {
+    try {
+      return capital(new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(n, "day"), locale);
+    } catch {
+      /* no relative-time support: use the date */
+    }
+  }
+  return shortDate(iso, locale);
+}
+
+/** "3:30 PM" or "15:30", as the student's region writes times, from a Postgres time ("15:30:00"). */
+export function timeText(t: string | null, locale = appLocale()) {
   if (!t) return "";
   const [h, m] = t.split(":").map(Number);
-  return `${h % 12 || 12}:${pad(m)} ${h < 12 ? "AM" : "PM"}`;
+  return dateFormat({ hour: "numeric", minute: "2-digit" }, locale).format(new Date(2000, 0, 1, h, m));
 }
