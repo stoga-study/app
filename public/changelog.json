@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "1.3.5",
+      "date": "2026-10-13",
+      "title": "Bring your cards with you",
+      "intro": "Already made flashcards somewhere else? Bring them in all at once.",
+      "highlights": [
+        {
+          "icon": "import",
+          "title": "Import cards",
+          "text": "On a class's Flashcards page, tap Import. Paste one card per line (term - definition), or choose a CSV, a Quizlet export or an Anki export. You see what will come in before anything is added."
+        }
+      ]
+    },
+    {
       "version": "1.3.4",
       "date": "2026-10-13",
       "title": "Slides, too",
