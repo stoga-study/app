@@ -474,6 +474,89 @@ export type Database = {
         }
         Relationships: []
       }
+      event_units: {
+        Row: {
+          event_id: string
+          unit_id: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          unit_id: string
+          user_id?: string
+        }
+        Update: {
+          event_id?: string
+          unit_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_units_event_id_user_id_fkey"
+            columns: ["event_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "event_units_unit_id_user_id_fkey"
+            columns: ["unit_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          done_at: string | null
+          due_on: string
+          due_time: string | null
+          id: string
+          kind: string
+          notes: string | null
+          subject_id: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          done_at?: string | null
+          due_on: string
+          due_time?: string | null
+          id?: string
+          kind: string
+          notes?: string | null
+          subject_id?: string | null
+          title: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          done_at?: string | null
+          due_on?: string
+          due_time?: string | null
+          id?: string
+          kind?: string
+          notes?: string | null
+          subject_id?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_subject_id_user_id_fkey"
+            columns: ["subject_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       feedback: {
         Row: {
           body: string
