@@ -1,6 +1,6 @@
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, HeartHandshake, Plus } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { EventForm, kindMeta } from "@/components/EventForm";
 import { EventRow } from "@/components/EventRow";
@@ -90,7 +90,15 @@ export default function Calendar() {
 
   return (
     <>
-      <PageHeader title="Calendar" end={!adding && !editing && <Button onClick={() => openNew(view === "month" ? picked : undefined)}><Plus /> Add</Button>}>
+      <PageHeader
+        title="Calendar"
+        end={!adding && !editing && (
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => openNew(view === "month" ? picked : undefined)}><Plus /> Add</Button>
+            <Button variant="secondary" asChild><Link to="/coach"><HeartHandshake /> Ask the coach</Link></Button>
+          </div>
+        )}
+      >
         Tests, quizzes, homework and projects, all in one place.
       </PageHeader>
 
