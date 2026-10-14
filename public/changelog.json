@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.4.6",
+      "date": "2026-10-14",
+      "title": "Everything for one test, in one place",
+      "intro": "Tap a test on your calendar to open its own prep page.",
+      "highlights": [
+        {
+          "icon": "unit",
+          "title": "Exam prep page",
+          "text": "The countdown, how ready you are for each unit, your plan for it, practice tests and their scores, all on one page."
+        },
+        {
+          "icon": "summary",
+          "title": "Review pack",
+          "text": "A one-page cram sheet: the key terms, the quiz questions you missed with their answers, and the 20 cards that have been hardest for you. Print it or save it as a PDF."
+        }
+      ]
+    },
+    {
       "version": "1.4.5",
       "date": "2026-10-14",
       "title": "Practice tests, timed",
