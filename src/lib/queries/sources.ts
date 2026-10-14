@@ -183,6 +183,35 @@ export function useDeleteSource() {
   });
 }
 
+/** Archive or restore a file, or change its tags. Archiving moves its cards and quizzes out of
+ * review, so every cached list is refreshed. */
+export function useUpdateSource() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: { archived?: boolean; tags?: string[] } }) => {
+      const { error } = await supabase.from("sources").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, v) => (v.patch.archived === undefined ? qc.invalidateQueries({ queryKey: ["sources"] }).then(() => qc.invalidateQueries({ queryKey: ["source", v.id] })) : qc.invalidateQueries()),
+  });
+}
+
+/** Tidy a typed tag: lowercase words joined by dashes, no leading #, at most 30 characters. */
+export const cleanTag = (t: string) => t.toLowerCase().replace(/^#+/, "").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-+|-+$/g, "").slice(0, 30);
+
+/** Copy a file and its study set (fresh cards, no reported items) into a class; returns the copy's id. */
+export async function duplicateSource(source: Source, subjectId: string, userId: string): Promise<string> {
+  const { data: id, error } = await supabase.rpc("duplicate_source", { p_source: source.id, p_subject: subjectId });
+  if (error) throw error;
+  if (source.storage_path) {
+    // The original file is copied too, so deleting either one later leaves the other whole.
+    const path = `${userId}/${id}/${source.storage_path.split("/").pop()}`;
+    const { error: cpErr } = await supabase.storage.from("sources").copy(source.storage_path, path);
+    if (!cpErr) await supabase.from("sources").update({ storage_path: path }).eq("id", id);
+  }
+  return id;
+}
+
 export async function openOriginal(source: Source) {
   if (!source.storage_path) return;
   const { data, error } = await supabase.storage.from("sources").createSignedUrl(source.storage_path, 120);

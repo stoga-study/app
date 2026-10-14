@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Check, ExternalLink, FileText, MessageCircle, NotebookPen, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, Check, Copy, ExternalLink, FileText, MessageCircle, NotebookPen, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { NoteList } from "@/components/NoteList";
 import { UnitPicker } from "@/components/UnitPicker";
 import { useSubjects } from "@/lib/queries/profile";
-import { isPaged, openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages } from "@/lib/queries/sources";
+import { cleanTag, duplicateSource, isPaged, openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages, useUpdateSource } from "@/lib/queries/sources";
+import { useAuth } from "@/lib/auth/session";
 import { startErrorText, startGeneration, useCaps, useLiveSource, useStudySet } from "@/lib/queries/studyset";
 import { newNoteUrl, useNotes } from "@/lib/queries/notes";
 import { useFileUnder, useUnits } from "@/lib/queries/units";
@@ -37,6 +38,11 @@ export default function SourcePage() {
   const del = useDeleteSource();
   const [confirming, setConfirming] = useState(false);
   const rename = useRenameSource();
+  const update = useUpdateSource();
+  const { session } = useAuth();
+  const [tagDraft, setTagDraft] = useState("");
+  const [copying, setCopying] = useState<string | null>(null);
+  const [copyBusy, setCopyBusy] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const qc = useQueryClient();
@@ -109,6 +115,30 @@ export default function SourcePage() {
   // Amounts in the chooser are suggested from how much text the file has.
   const chars = pages.data ? pages.data.reduce((n, p) => n + p.text.length, 0) : null;
   const word = pageWord(s.kind, s.page_count);
+  const setArchived = (archived: boolean) =>
+    update.mutate(
+      { id: s.id, patch: { archived } },
+      {
+        onSuccess: () => toast(archived ? `${s.filename} was archived. Its cards and quizzes are out of review until you restore it.` : `${s.filename} is back in review.`),
+        onError: () => toast("We could not change that. Check your connection, then try again."),
+      },
+    );
+  const saveTags = (tags: string[]) =>
+    update.mutate({ id: s.id, patch: { tags } }, { onError: () => toast("We could not save the tags. Check your connection, then try again.") });
+  async function makeCopy(subjectId: string) {
+    setCopyBusy(true);
+    try {
+      const newId = await duplicateSource(s, subjectId, session!.user.id);
+      await qc.invalidateQueries();
+      setCopying(null);
+      toast("Copied. Its cards start fresh.");
+      navigate(`/sources/${newId}`);
+    } catch {
+      toast("We could not copy it. Check your connection, then try again.");
+    } finally {
+      setCopyBusy(false);
+    }
+  }
 
   return (
     <>
@@ -116,6 +146,13 @@ export default function SourcePage() {
         <ArrowLeft className="size-5" /> {subject?.name ?? "Subjects"}
       </Link>
 
+      {s.archived && (
+        <div role="status" className="card card-dashed mb-4 flex flex-wrap items-center gap-3 p-4">
+          <Archive className="size-5 text-brand" aria-hidden="true" />
+          <p className="flex-1">Archived. Its cards and quizzes are out of review, search and the tutor.</p>
+          <Button size="sm" variant="secondary" disabled={update.isPending} onClick={() => setArchived(false)}><ArchiveRestore /> Restore</Button>
+        </div>
+      )}
       <section className={`ink-panel p-6 ${justUploaded ? "pop" : ""}`} aria-labelledby="source-title">
         <span className="circle circle-big right-[-5rem] top-[-6rem] size-60" aria-hidden="true" />
         <span className="circle circle-hot right-8 top-8 size-9" aria-hidden="true" />
@@ -173,6 +210,28 @@ export default function SourcePage() {
           />
         </div>
       )}
+      <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Tags">
+        {s.tags.map((t) => (
+          <span key={t} className="inline-flex min-h-9 items-center gap-1 rounded-full bg-soft pl-3 pr-1 text-[0.875rem] font-bold text-ink-2">
+            #{t}
+            <button type="button" aria-label={`Remove tag ${t}`} className="grid size-7 place-items-center rounded-full hover:bg-white/60" onClick={() => saveTags(s.tags.filter((x) => x !== t))}><X className="size-4" /></button>
+          </span>
+        ))}
+        {s.tags.length < 20 && (
+          <form
+            className="flex"
+            onSubmit={(e) => {
+              e.preventDefault();
+              const t = cleanTag(tagDraft);
+              if (t && !s.tags.includes(t)) saveTags([...s.tags, t]);
+              setTagDraft("");
+            }}
+          >
+            <label htmlFor="add-tag" className="sr-only">Add a tag</label>
+            <input id="add-tag" className="input !min-h-9 w-36 !rounded-full !py-1 text-[0.875rem]" placeholder="+ Add a tag" value={tagDraft} maxLength={40} onChange={(e) => setTagDraft(e.target.value)} />
+          </form>
+        )}
+      </div>
       {s.status === "generating" && <Processing source={s} />}
       {s.status === "failed" && <Failed source={s} onRetry={() => start()} retrying={starting} />}
       {s.status === "ready_text" && caps.data && (
@@ -236,6 +295,22 @@ export default function SourcePage() {
           <Button variant="secondary" onClick={() => openOriginal(s).catch(() => toast("We could not open the original. Check your connection, then try again."))}>
             <ExternalLink /> Open original
           </Button>
+        )}
+        {(s.status === "ready_text" || ready) && (subjects.data?.length ?? 0) > 0 && copying === null && (
+          <Button variant="ghost" onClick={() => setCopying(s.subject_id)}><Copy /> Duplicate</Button>
+        )}
+        <Button variant="ghost" disabled={update.isPending} onClick={() => setArchived(!s.archived)}>
+          {s.archived ? <><ArchiveRestore /> Restore</> : <><Archive /> Archive</>}
+        </Button>
+        {copying !== null && (
+          <div className="card flex w-full flex-wrap items-center gap-3 p-4">
+            <label htmlFor="copy-to" className="font-bold">Copy to</label>
+            <select id="copy-to" className="input !min-h-11 min-w-0 flex-1" value={copying} onChange={(e) => setCopying(e.target.value)}>
+              {subjects.data?.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+            </select>
+            <Button variant="secondary" size="sm" onClick={() => setCopying(null)}>Cancel</Button>
+            <Button size="sm" disabled={copyBusy} onClick={() => void makeCopy(copying)}>{copyBusy ? "Copying…" : "Make a copy"}</Button>
+          </div>
         )}
         {!confirming ? (
           <Button variant="ghost" onClick={() => setConfirming(true)}><Trash2 /> Delete</Button>

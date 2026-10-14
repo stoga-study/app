@@ -1,4 +1,4 @@
-import { ArrowLeft, Check, NotebookPen, ChevronRight, FileText, Layers, ListChecks, MessageCircle, Pencil, Pin, PinOff, Upload } from "lucide-react";
+import { Archive, ArrowLeft, Check, NotebookPen, ChevronRight, FileText, Layers, ListChecks, MessageCircle, Pencil, Pin, PinOff, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
@@ -31,11 +31,18 @@ export default function Subject() {
   const masteryAll = useMastery();
   const notes = useNotes(id);
   const navigate = useNavigate();
+  const [tag, setTag] = useState<string | null>(null);
   if (subjects.isPending) return <PageSkeleton />;
   const subject = subjects.data?.find((s) => s.id === id);
   if (!subject) return <ErrorState title="We could not find that class">It may have been removed. <Link to="/subjects">See your subjects</Link>.</ErrorState>;
-  const mine = (sources.data ?? []).filter((s) => s.subject_id === subject.id && s.status !== "uploaded");
-  const myNotes = notes.data ?? [];
+  const all = (sources.data ?? []).filter((s) => s.subject_id === subject.id && s.status !== "uploaded");
+  const archivedFiles = all.filter((s) => s.archived);
+  const live = all.filter((s) => !s.archived);
+  // Tags across this class's files, most used first; picking one shows just those files.
+  const tagCounts = [...live.reduce((m, s) => { for (const t of s.tags) m.set(t, (m.get(t) ?? 0) + 1); return m; }, new Map<string, number>())].sort((a, b) => b[1] - a[1]);
+  const activeTag = tag && tagCounts.some(([t]) => t === tag) ? tag : null;
+  const mine = activeTag ? live.filter((s) => s.tags.includes(activeTag)) : live;
+  const myNotes = activeTag ? [] : notes.data ?? [];
   const classMastery = masteryAll.forClass(subject.id);
 
   return (
@@ -83,14 +90,30 @@ export default function Subject() {
       })()}
       {!!units.data?.length && <NowStudying subjectId={subject.id} units={units.data} currentId={subject.current_unit_id} pinned={subject.current_unit_pinned} />}
       <h2 className="mb-3 text-[1.375rem]">Files and notes</h2>
+      {tagCounts.length > 0 && (
+        <div className="-mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0" role="radiogroup" aria-label="Filter files by tag">
+          {tagCounts.map(([t, n]) => (
+            <button key={t} type="button" role="radio" aria-checked={activeTag === t} className="pill-option flex-none !min-h-9" onClick={() => setTag((x) => (x === t ? null : t))}>
+              {activeTag === t && <Check />}#{t} <span className="font-normal text-muted">{n}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {sources.isPending ? (
         <div className="skeleton h-24 rounded-[1.5rem]" />
-      ) : mine.length === 0 && !myNotes.length ? (
+      ) : live.length === 0 && !myNotes.length ? (
         <EmptyState icon={<Upload />} title={`${subject.name} has no material yet`} action={<Button asChild><Link to={`/upload?subject=${subject.id}`}>Add a PDF or notes</Link></Button>}>
           Add class notes, slides or a reading. Your study set is built from them.
         </EmptyState>
       ) : (
         <ByUnit files={mine} notes={myNotes} units={units.data ?? []} currentId={subject.current_unit_id} subjectId={subject.id} />
+      )}
+      {archivedFiles.length > 0 && (
+        <details className="mt-8">
+          <summary className="inline-flex min-h-11 cursor-pointer items-center gap-2 font-bold text-ink-2"><Archive className="size-5" /> Archived files · {archivedFiles.length}</summary>
+          <p className="mb-3 mt-1 text-[0.9375rem] text-muted">Kept, but out of review, quizzes, search and the tutor. Open one to restore it.</p>
+          <FileList files={archivedFiles} />
+        </details>
       )}
     </>
   );
@@ -218,6 +241,9 @@ function FileList({ files }: { files: Source[] }) {
                 {s.lesson && <span className="mr-1.5 rounded-full bg-soft px-2 py-0.5 font-bold text-ink-2">Lesson {s.lesson}</span>}
                 {s.page_count} {pageWord(s.kind, s.page_count)} · added {fmt(s.created_at)}
               </span>
+              {s.tags.length > 0 && (
+                <span className="mt-1 flex flex-wrap gap-1.5 text-[0.8125rem]">{s.tags.map((t) => <span key={t} className="rounded-full bg-soft px-2 py-0.5 font-bold text-ink-2">#{t}</span>)}</span>
+              )}
             </span>
             <ChevronRight className="size-5 text-muted" />
           </Link>
