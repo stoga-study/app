@@ -353,7 +353,7 @@ function Results({ subjectId, eventId, unitIds, results, seconds, q, c, onAgain 
         <p className="text-[#F7EAEC]">{score.points % 1 ? score.points.toFixed(1) : score.points} of {score.total} · {clock(seconds)} taken</p>
         {(missedMc > 0 || missedSa > 0) && (
           <p className="mt-3 text-[0.9375rem] text-[#F7EAEC]">
-            {[missedMc ? `${missedMc} choice question${missedMc === 1 ? "" : "s"} went to mistake review` : null, missedSa ? `${missedSa} card${missedSa === 1 ? "" : "s"} come back in your next review` : null].filter(Boolean).join(", and ")}.
+            {[missedMc ? `${missedMc} choice question${missedMc === 1 ? "" : "s"} went to mistake review` : null, missedSa ? `${missedSa} ${missedSa === 1 ? "card comes" : "cards come"} back in your next review` : null].filter(Boolean).join(", and ")}.
           </p>
         )}
       </div>
