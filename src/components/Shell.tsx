@@ -1,4 +1,4 @@
-import { BookOpen, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, TrendingUp, Upload } from "lucide-react";
+import { BookOpen, CalendarDays, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, TrendingUp, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
@@ -11,13 +11,14 @@ type Item = { to: string; label: string; icon: ReactNode; end?: boolean };
 const MAIN: Item[] = [
   { to: "/", label: "Home", icon: <Home />, end: true },
   { to: "/subjects", label: "Subjects", icon: <BookOpen /> },
+  { to: "/calendar", label: "Calendar", icon: <CalendarDays /> },
   { to: "/upload", label: "Upload", icon: <Upload /> },
   { to: "/tutor", label: "Tutor", icon: <MessageCircle /> },
   { to: "/review", label: "Review", icon: <Layers /> },
   { to: "/progress", label: "Progress", icon: <TrendingUp /> },
 ];
-// Phones get five tabs; Subjects lives on Home there.
-const TABS = MAIN.filter((i) => i.to !== "/subjects");
+// Phones get five tabs: Subjects lives on Home there, and Progress is a button in the top bar.
+const TABS = MAIN.filter((i) => i.to !== "/subjects" && i.to !== "/progress");
 
 const SECONDARY: Item[] = [
   { to: "/search", label: "Search", icon: <Search /> },
@@ -71,6 +72,13 @@ export function Shell({ aside }: { aside?: ReactNode }) {
             <Brand descriptor={false} />
           </NavLink>
           <div className="flex items-center gap-2">
+            <NavLink
+              to="/progress"
+              aria-label="Progress"
+              className="grid size-11 place-items-center rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
+            >
+              <TrendingUp />
+            </NavLink>
             <NavLink
               to="/search"
               aria-label="Search"
