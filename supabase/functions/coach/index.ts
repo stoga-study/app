@@ -37,6 +37,7 @@ type Done = { text: string; action?: { type: string; summary: string; ok: boolea
 const unitLabel = (u: { number: string | null; title: string | null; word: string | null }) =>
   u.number ? `${u.word ?? "Unit"} ${u.number}${u.title ? `: ${u.title}` : ""}` : u.title ?? "Unit";
 const shortDate = (iso: string) => new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
+const STOP = new Set(["the", "and", "for", "from", "with", "about", "what", "how", "why", "are", "was", "this", "that", "my", "notes", "note", "class", "unit"]);
 const strip = (s: string) => s.replace(/<\/?b>/g, "").replace(/\s+/g, " ").trim();
 
 async function loadContext(db: SupabaseClient, today: string, planToday: string[]) {
@@ -99,7 +100,10 @@ async function read(db: SupabaseClient, c: Call, l: Loaded): Promise<string> {
     if (c.tool === "search") {
       const query = str(c.args.query)?.slice(0, 120) ?? "";
       if (!query) return "search needs a query.";
-      const { data, error } = await db.rpc("search_everything", { p_query: query, p_subject: classId ?? undefined, p_limit: 8 });
+      // Any of the words, not all of them (the same reason the tutor's search does this): "cell
+      // organelles" should still find a page about the nucleus and ribosomes.
+      const words = query.toLowerCase().match(/[\p{L}\p{N}]+/gu)?.filter((w) => w.length > 2 && !STOP.has(w)).slice(0, 8) ?? [];
+      const { data, error } = await db.rpc("search_everything", { p_query: words.length ? words.join(" or ") : query, p_subject: classId ?? undefined, p_limit: 8 });
       if (error) throw error;
       if (!data?.length) return `Nothing in their material matches "${query}".`;
       const lines = data.map((r: { kind: string; title: string; snippet: string; source_id: string | null; page_no: number | null; subject_id: string }) =>
@@ -217,7 +221,8 @@ async function write(db: SupabaseClient, c: Call, l: Loaded): Promise<Done> {
         const title = cleanTitle(a.title);
         const body = typeof a.body === "string" ? a.body.trim().slice(0, 20000) : "";
         if (!classId || !title || !body) return fail("Couldn't save that note.");
-        const { data, error } = await db.from("student_notes").insert({ subject_id: classId, unit_id: unit && unit.subject_id === classId ? unit.id : null, title, body }).select("id").single();
+        // Notes get their id on the device (so they can start offline), so one is made here too.
+        const { data, error } = await db.from("student_notes").insert({ id: crypto.randomUUID(), subject_id: classId, unit_id: unit && unit.subject_id === classId ? unit.id : null, title, body }).select("id").single();
         if (error) throw error;
         return { ...ok(`Saved a note: ${title}`, { op: "delete_note", id: data.id }), link: { label: `Open “${title.slice(0, 40)}”`, href: `/notes/${data.id}` } };
       }
