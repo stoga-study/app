@@ -173,6 +173,34 @@ export async function extractFile(file: File, onProgress?: (done: number, total:
   }
 }
 
+export type PhotoResult = { jpeg: Blob; text: string } | { error: true };
+
+/**
+ * Reads several photos at once (several shots of the same notes, or a screenshot), each its own page
+ * later. Up to three read together, same as a scanned PDF's pages. `onItem` fires as each one finishes,
+ * in whatever order they complete, not necessarily the order given.
+ */
+export async function readPhotos(files: File[], readPage: PageReader, onItem: (index: number, result: PhotoResult) => void): Promise<void> {
+  const { photoToJpeg, blobToDataUrl } = await import("./image");
+  const inFlight = new Set<Promise<void>>();
+  for (let index = 0; index < files.length; index++) {
+    const file = files[index];
+    const job: Promise<void> = (async () => {
+      try {
+        const jpeg = await photoToJpeg(file);
+        const text = tidy(await readPage(await blobToDataUrl(jpeg))).slice(0, MAX_PAGE_CHARS);
+        onItem(index, { jpeg, text });
+      } catch {
+        onItem(index, { error: true });
+      }
+    })();
+    inFlight.add(job);
+    void job.finally(() => inFlight.delete(job));
+    if (inFlight.size >= 3) await Promise.race(inFlight);
+  }
+  await Promise.all(inFlight);
+}
+
 export function extractPasted(text: string): Extracted {
   return asParts("text", text);
 }

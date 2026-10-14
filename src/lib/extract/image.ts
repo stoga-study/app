@@ -50,6 +50,33 @@ export async function photoToJpeg(file: File): Promise<Blob> {
   return toJpeg(canvas);
 }
 
+/** A photo turned 90, 180 or 270 degrees clockwise, for a shot that came out sideways. */
+export async function rotateJpeg(blob: Blob, degrees: 90 | 180 | 270): Promise<Blob> {
+  const url = URL.createObjectURL(blob);
+  let img: HTMLImageElement;
+  try {
+    img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("cannot decode"));
+      el.src = url;
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+  const swapped = degrees === 90 || degrees === 270;
+  const canvas = document.createElement("canvas");
+  canvas.width = swapped ? img.height : img.width;
+  canvas.height = swapped ? img.width : img.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.translate(canvas.width / 2, canvas.height / 2);
+  ctx.rotate((degrees * Math.PI) / 180);
+  ctx.drawImage(img, -img.width / 2, -img.height / 2);
+  return toJpeg(canvas);
+}
+
 /** Draw a rendered PDF page (from pdf.js) at a readable size, as JPEG. */
 export async function pdfPageToJpeg(page: { getViewport: (o: { scale: number }) => { width: number; height: number }; render: (o: { canvasContext: CanvasRenderingContext2D; viewport: unknown; canvas?: HTMLCanvasElement }) => { promise: Promise<void> } }): Promise<Blob> {
   const base = page.getViewport({ scale: 1 });

@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, Camera, Check, ClipboardPaste, FileText, Upload as UploadIcon } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { AlertCircle, Camera, Check, ClipboardPaste, FileText, Images, RotateCw, Trash2, Upload as UploadIcon } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { StudySetChooser } from "@/components/StudySetChooser";
 import { UnitPicker } from "@/components/UnitPicker";
 import type { GenOptions } from "../../supabase/functions/_lib/options";
@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { EmptyState } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
-import { ExtractError, extractFile, extractPasted, MAX_BYTES, MAX_SCAN_PAGES, type ExtractErrorCode, type Extracted, type ExtractStage } from "@/lib/extract";
+import { ExtractError, extractFile, extractPasted, MAX_BYTES, MAX_PAGE_CHARS, MAX_SCAN_PAGES, readPhotos, tidy, type ExtractErrorCode, type Extracted, type ExtractStage } from "@/lib/extract";
 import { readPageImage } from "@/lib/readPage";
 import { useSubjects } from "@/lib/queries/profile";
 import { prettyFilename } from "@/lib/extract/filename";
@@ -21,8 +21,11 @@ import { findUnit } from "@/lib/units";
 import { useOnline } from "@/lib/useOnline";
 
 type Progress = { done: number; total: number; stage: ExtractStage };
+type PhotoItem = { file: File; url: string; jpeg: Blob | null; text: string; status: "reading" | "ready" | "error" };
 type Phase =
   | { step: "choose" }
+  /** Several photos (or a pasted screenshot), read and shown for a check before they become one file. */
+  | { step: "photos"; items: PhotoItem[] }
   /** The file is being read while the student picks what to make. */
   | { step: "options"; name: string; title: string; size?: number; file?: File; photo?: boolean; progress: Progress; extracted?: Extracted; waiting?: boolean }
   | { step: "reading"; name: string; size?: number; done: number; total: number; stage: ExtractStage; photo?: boolean }
@@ -100,6 +103,7 @@ export default function Upload() {
   const current = useRef(0);
   const queuedChoice = () => queued.current;
   const cameraRef = useRef<HTMLInputElement>(null);
+  const photosRef = useRef<HTMLInputElement>(null);
   const online = useOnline();
 
   const list = subjects.data ?? [];
@@ -107,6 +111,24 @@ export default function Upload() {
   const uploads = allowance.data?.upload;
   const atLimit = uploads?.limit != null && uploads.used >= uploads.limit;
   const units = useUnits(subject?.id);
+
+  // A pasted screenshot goes straight into the same "check the reading" flow as several photos.
+  useEffect(() => {
+    if (phase.step !== "choose" || pasting) return;
+    function onWindowPaste(e: ClipboardEvent) {
+      const files = [...(e.clipboardData?.items ?? [])]
+        .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
+        .map((it) => it.getAsFile())
+        .filter((f): f is File => !!f);
+      if (files.length) {
+        e.preventDefault();
+        void onPhotos(files);
+      }
+    }
+    window.addEventListener("paste", onWindowPaste);
+    return () => window.removeEventListener("paste", onWindowPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase.step, pasting]);
 
   if (subjects.isPending) return <div className="skeleton h-64 rounded-[1.5rem]" />;
   if (list.length === 0)
@@ -181,6 +203,98 @@ export default function Upload() {
     }
   }
 
+  /** Several photos (or a pasted screenshot): read each (up to 3 at once), then show them for a check. */
+  async function onPhotos(files: File[]) {
+    if (!files.length) return;
+    // "Add more photos" keeps the ones already being checked; anything else starts fresh.
+    const keep = phase.step === "photos" ? phase.items : [];
+    const run = phase.step === "photos" ? current.current : ++current.current;
+    const fresh: PhotoItem[] = files.map((file) => ({ file, url: URL.createObjectURL(file), jpeg: null, text: "", status: "reading" }));
+    setPhase({ step: "photos", items: [...keep, ...fresh] });
+    await readPhotos(files, readPageImage, (index, result) => {
+      if (current.current !== run) return;
+      const url = fresh[index].url;
+      setPhase((p) => {
+        if (p.step !== "photos") return p;
+        // Matched by url, since removing a photo meanwhile shifts the positions.
+        return {
+          ...p,
+          items: p.items.map((it) => (it.url !== url ? it : "error" in result ? { ...it, status: "error" } : { ...it, jpeg: result.jpeg, text: result.text, status: "ready" })),
+        };
+      });
+    });
+  }
+
+  const photosInput = (
+    <input
+      ref={photosRef}
+      type="file"
+      multiple
+      aria-label="Add several photos"
+      className="sr-only"
+      tabIndex={-1}
+      accept="image/*"
+      onChange={(e) => { const fs = [...(e.target.files ?? [])]; e.target.value = ""; void onPhotos(fs); }}
+    />
+  );
+
+  /** Photos are keyed by their preview url: positions shift when one is removed mid-read. */
+  function setPhotoItem(url: string, patch: Partial<PhotoItem>) {
+    setPhase((p) => (p.step === "photos" ? { ...p, items: p.items.map((it) => (it.url === url ? { ...it, ...patch } : it)) } : p));
+  }
+
+  async function rereadPhoto(url: string, jpeg: Blob) {
+    setPhotoItem(url, { status: "reading" });
+    try {
+      const { blobToDataUrl } = await import("@/lib/extract/image");
+      const text = tidy(await readPageImage(await blobToDataUrl(jpeg))).slice(0, MAX_PAGE_CHARS);
+      setPhotoItem(url, { text, status: "ready" });
+    } catch {
+      setPhotoItem(url, { status: "error" });
+    }
+  }
+
+  async function rotatePhoto(item: PhotoItem) {
+    if (!item.jpeg) return;
+    const { rotateJpeg } = await import("@/lib/extract/image");
+    const rotated = await rotateJpeg(item.jpeg, 90);
+    const url = URL.createObjectURL(rotated);
+    setPhotoItem(item.url, { jpeg: rotated, url, status: "reading" });
+    URL.revokeObjectURL(item.url);
+    await rereadPhoto(url, rotated);
+  }
+
+  function removePhoto(item: PhotoItem) {
+    URL.revokeObjectURL(item.url);
+    setPhase((p) => (p.step === "photos" ? { ...p, items: p.items.filter((it) => it.url !== item.url) } : p));
+  }
+
+  /** Combine the checked photos into one PDF (one page each) and hand off to the usual choices step. */
+  async function finishPhotos(items: PhotoItem[]) {
+    const ready = items.filter((it): it is PhotoItem & { jpeg: Blob } => it.status === "ready" && !!it.jpeg);
+    if (!ready.length) return;
+    current.current++;
+    queued.current = null;
+    setUnitPick(null);
+    const title = `Photos, ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date())}`;
+    setPhase({ step: "options", name: title, title, photo: true, progress: { done: ready.length, total: ready.length, stage: "scan" } });
+    try {
+      const { photosToPdf } = await import("@/lib/extract/combine");
+      const pdfBlob = await photosToPdf(ready.map((r) => r.jpeg));
+      const pdfFile = new File([pdfBlob], `${title}.pdf`, { type: "application/pdf" });
+      const extracted: Extracted = {
+        kind: "pdf", pages: ready.map((r, i) => ({ page: i + 1, text: r.text })), totalPages: ready.length, skippedPages: 0, scannedPages: ready.length,
+      };
+      setPhase((p) => (p.step === "options" ? { ...p, extracted, file: pdfFile, size: pdfFile.size } : p));
+      const choice = queuedChoice();
+      if (choice) await save(title, extracted, choice.make, choice.unit, pdfFile, pdfFile.size);
+    } catch {
+      setPhase({ step: "error", name: title, code: "damaged" });
+    } finally {
+      items.forEach((it) => URL.revokeObjectURL(it.url));
+    }
+  }
+
   /** "Make it" (with choices) or "Just save it" (null). Waits for the file if it is still being read. */
   function decide(make: GenOptions | null, unit: UnitChoice | null) {
     if (phase.step !== "options" || !unit) return;
@@ -202,6 +316,55 @@ export default function Upload() {
     } catch (e) {
       setPhase({ step: "error", name, code: e instanceof ExtractError ? e.code : "save" });
     }
+  }
+
+  if (phase.step === "photos") {
+    const { items } = phase;
+    const allReady = items.length > 0 && items.every((it) => it.status === "ready");
+    const anyBusy = items.some((it) => it.status === "reading");
+    return (
+      <div className="mx-auto flex max-w-xl flex-col gap-4">
+        <h1 className="text-[1.75rem]">Check the reading</h1>
+        <p className="text-muted">Make sure each photo was read right. Rotate a sideways one, or read it again.</p>
+        {items.length === 0 ? (
+          <p className="callout neutral">Every photo was removed. Add more, or cancel.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {items.map((it, i) => (
+              <li key={it.url} className="card flex gap-3 p-4">
+                <img src={it.url} alt={`Photo ${i + 1}`} className="h-24 w-24 flex-none rounded-lg border border-line object-cover" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[0.8125rem] font-bold text-muted">Photo {i + 1}</p>
+                  {it.status === "reading" ? (
+                    <p className="text-muted" aria-live="polite">Reading…</p>
+                  ) : it.status === "error" ? (
+                    <p className="text-brand">We could not read this one.</p>
+                  ) : (
+                    <p className="line-clamp-3 text-[0.9375rem] text-ink-2">{it.text || "No text found."}</p>
+                  )}
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Button size="sm" variant="ghost" disabled={it.status === "reading" || !it.jpeg} onClick={() => rotatePhoto(it)}><RotateCw /> Rotate</Button>
+                    {it.jpeg && <Button size="sm" variant="ghost" disabled={it.status === "reading"} onClick={() => rereadPhoto(it.url, it.jpeg!)}>Read again</Button>}
+                    <Button size="sm" variant="ghost" onClick={() => removePhoto(it)}><Trash2 /> Remove</Button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button disabled={!allReady || anyBusy} onClick={() => finishPhotos(items)}>Looks good, continue</Button>
+          <Button variant="secondary" onClick={() => photosRef.current?.click()}><Images /> Add more photos</Button>
+          {photosInput}
+          <Button
+            variant="ghost"
+            onClick={() => { items.forEach((it) => URL.revokeObjectURL(it.url)); current.current++; setPhase({ step: "choose" }); }}
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   if (phase.step === "options") {
@@ -386,7 +549,10 @@ export default function Upload() {
           <div className="mt-4 flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => setPasting(true)}><ClipboardPaste /> Paste text</Button>
             <Button variant="secondary" onClick={() => cameraRef.current?.click()}><Camera /> Take a photo</Button>
+            <Button variant="secondary" onClick={() => photosRef.current?.click()}><Images /> Add several photos</Button>
           </div>
+          <p className="mt-2 text-[0.875rem] text-muted">Tip: paste a screenshot anywhere on this page.</p>
+          {photosInput}
           <input
             ref={cameraRef}
             type="file"
