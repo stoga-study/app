@@ -212,7 +212,7 @@ export default function SourcePage() {
       )}
       <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Tags">
         {s.tags.map((t) => (
-          <span key={t} className="inline-flex min-h-9 items-center gap-1 rounded-full bg-soft pl-3 pr-1 text-[0.875rem] font-bold text-ink-2">
+          <span key={t} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-line bg-soft pl-3 pr-1 text-[0.875rem] font-bold text-ink-2">
             #{t}
             <button type="button" aria-label={`Remove tag ${t}`} className="grid size-7 place-items-center rounded-full hover:bg-white/60" onClick={() => saveTags(s.tags.filter((x) => x !== t))}><X className="size-4" /></button>
           </span>
