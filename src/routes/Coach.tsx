@@ -30,8 +30,13 @@ export default function Coach() {
   const qc = useQueryClient();
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => saveCoach(userId, msgs), [userId, msgs]);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [msgs.length, busy]);
+  useEffect(() => {
+    saveCoach(userId, msgs);
+  }, [userId, msgs]);
+  // A block body on purpose: scrollIntoView returns a promise in newer browsers, and an effect must not.
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [msgs.length, busy]);
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["events"] });
