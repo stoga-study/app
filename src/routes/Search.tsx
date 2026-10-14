@@ -12,7 +12,8 @@ const ORDER: SearchKind[] = ["note", "file", "page", "card", "question"];
 
 function hrefFor(h: SearchHit) {
   if (h.kind === "note") return `/notes/${h.id}`;
-  if (h.kind === "file" || h.kind === "page") return `/sources/${h.source_id}`;
+  if (h.kind === "file") return `/sources/${h.source_id}`;
+  if (h.kind === "page") return h.page_no ? `/sources/${h.source_id}/view?page=${h.page_no}` : `/sources/${h.source_id}`;
   if (h.kind === "question") return h.extra_id ? `/quiz/${h.extra_id}` : `/subjects/${h.subject_id}/cards`;
   return `/subjects/${h.subject_id}/cards?q=${encodeURIComponent(h.title)}`;
 }
