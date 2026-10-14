@@ -3,6 +3,7 @@ import { Check, Info, Lightbulb, MessageCircleQuestion, RotateCcw, X } from "luc
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
+import { markPlanDone } from "@/lib/queries/plan";
 import { MathText } from "@/components/MathText";
 import { PageChips } from "@/components/PageChips";
 import { ReportButton } from "@/components/ReportButton";
@@ -163,6 +164,11 @@ export default function Quiz() {
       qc.invalidateQueries({ queryKey: ["mistakes"] });
       qc.invalidateQueries({ queryKey: ["quiz-list"] });
       qc.invalidateQueries({ queryKey: ["unfinished-quiz"] });
+      // Finishing ticks off the matching study-plan task for today.
+      if (next.length === items!.length) {
+        await markPlanDone(mistakesMode ? "mistakes" : unitMode ? `quiz:unit:${unitId}` : `quiz:${id}`).catch(() => {});
+        qc.invalidateQueries({ queryKey: ["plan-done"] });
+      }
     } catch {
       toast("We could not save that answer. Check your connection; your quiz continues.");
     }

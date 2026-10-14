@@ -81,3 +81,8 @@ export const sizeParam = (v: string | null) => (v === "10" || v === "20" ? Numbe
 // How typed answers are checked: by the AI, or by the student against the answer. This device only.
 export type Grading = "ai" | "self";
 export const useGrading = () => usePreference<Grading>("stoga-grading", ["ai", "self"] as const, "ai", () => {});
+
+// How long the study plan aims for each day, in minutes. This device only.
+export type PlanMinutes = "15" | "30" | "45" | "60";
+export const PLAN_MINUTES = ["15", "30", "45", "60"] as const;
+export const usePlanMinutes = () => usePreference<PlanMinutes>("stoga-plan-minutes", PLAN_MINUTES, "30", () => {});

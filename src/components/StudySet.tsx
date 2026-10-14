@@ -107,7 +107,8 @@ function RegenerateGuide({ onRegenerate, busy }: { onRegenerate: (focus: string)
 /** The finished study set: what was made, then each part to read. */
 export function SetView({ source, pagesSlot, onRegenerateGuide, regenerating }: { source: Source; pagesSlot: ReactNode; onRegenerateGuide?: (focus: string) => void; regenerating?: boolean }) {
   const set = useStudySet(source.id, true);
-  const [tab, setTab] = useState<Tab>("notes");
+  // ?tab=guide (from the study plan) opens straight on that part.
+  const [tab, setTab] = useState<Tab>(() => (new URLSearchParams(window.location.search).get("tab") as Tab | null) ?? "notes");
   const [open, setOpen] = useState<Record<string, boolean>>({});
   if (set.isPending) return <div className="skeleton mt-4 h-64 rounded-[1.5rem]" />;
   if (set.isError) return <p className="callout mt-4">We could not load the study set. Check your connection, then try again.</p>;
