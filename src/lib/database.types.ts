@@ -833,6 +833,27 @@ export type Database = {
           },
         ]
       }
+      plan_done: {
+        Row: {
+          created_at: string
+          day: string
+          key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          key: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plan_limits: {
         Row: {
           kind: Database["public"]["Enums"]["usage_kind"]
