@@ -6,40 +6,64 @@
 export type TextItem = { str: string; x: number; y: number; height: number; hasEOL: boolean };
 type Line = { x: number; y: number; height: number; text: string };
 
-function groupLines(items: TextItem[]): Line[] {
+function toLine(buf: TextItem[]): Line | null {
+  const text = buf.map((i) => i.str).join("");
+  if (!text.trim()) return null;
+  return { x: Math.min(...buf.map((i) => i.x)), y: buf[0].y, height: Math.max(...buf.map((i) => i.height)), text };
+}
+
+/** Lines from a stream of items still in reading order, using pdf.js's own hasEOL: right for normal
+ * flowing text, where consecutive items are really the same or the next line. */
+function linesFromEOL(items: TextItem[]): Line[] {
   const lines: Line[] = [];
   let buf: TextItem[] = [];
-  const flush = () => {
-    if (!buf.length) return;
-    const text = buf.map((i) => i.str).join("");
-    if (text.trim()) lines.push({ x: Math.min(...buf.map((i) => i.x)), y: buf[0].y, height: Math.max(...buf.map((i) => i.height)), text });
-    buf = [];
-  };
   for (const it of items) {
     buf.push(it);
-    if (it.hasEOL) flush();
+    if (it.hasEOL) {
+      const l = toLine(buf);
+      if (l) lines.push(l);
+      buf = [];
+    }
   }
-  flush();
+  const last = toLine(buf);
+  if (last) lines.push(last);
   return lines;
 }
 
-const byTopToBottom = (a: Line, b: Line) => b.y - a.y; // PDF y grows upward; top of page = larger y
+/** Lines from a stream of items that came from filtering a column out of the full page: hasEOL no
+ * longer means anything (it reflects the unfiltered page, where the next item may have been the other
+ * column's, at a similar y), so a new line starts whenever y actually moves instead. */
+function linesFromYChange(items: TextItem[]): Line[] {
+  const lines: Line[] = [];
+  let buf: TextItem[] = [];
+  let refY: number | null = null;
+  for (const it of items) {
+    if (refY !== null && Math.abs(it.y - refY) > Math.max(2, it.height * 0.4)) {
+      const l = toLine(buf);
+      if (l) lines.push(l);
+      buf = [];
+    }
+    buf.push(it);
+    refY = it.y;
+  }
+  const last = toLine(buf);
+  if (last) lines.push(last);
+  return lines;
+}
 
-/** Splits into two columns only on a clear, well-placed gutter with real content on both sides;
- * otherwise keeps pdf.js's own order untouched, since that is usually already correct. */
-function splitColumns(lines: Line[], pageWidth: number): Line[] {
-  if (lines.length < 6 || !pageWidth) return lines;
-  const xs = [...new Set(lines.map((l) => l.x))].sort((a, b) => a - b);
+/** A page-wide x split, only on a clear, well-placed gutter with real content on both sides. */
+function findColumnSplit(items: TextItem[], pageWidth: number): number | null {
+  if (items.length < 6 || !pageWidth) return null;
+  const xs = [...new Set(items.map((i) => Math.round(i.x)))].sort((a, b) => a - b);
   let bestGap = 0, splitX = -1;
   for (let i = 1; i < xs.length; i++) {
     const gap = xs[i] - xs[i - 1];
     if (gap > bestGap) { bestGap = gap; splitX = (xs[i - 1] + xs[i]) / 2; }
   }
-  if (splitX < pageWidth * 0.25 || splitX > pageWidth * 0.75 || bestGap < pageWidth * 0.08) return lines;
-  const left = lines.filter((l) => l.x < splitX).sort(byTopToBottom);
-  const right = lines.filter((l) => l.x >= splitX).sort(byTopToBottom);
-  if (left.length < 3 || right.length < 3) return lines;
-  return [...left, ...right];
+  if (splitX < pageWidth * 0.25 || splitX > pageWidth * 0.75 || bestGap < pageWidth * 0.08) return null;
+  const left = items.filter((i) => i.x < splitX).length;
+  if (left < 3 || items.length - left < 3) return null;
+  return splitX;
 }
 
 function modeHeight(lines: Line[]): number {
@@ -53,14 +77,20 @@ function modeHeight(lines: Line[]): number {
   return best;
 }
 
-/** One page's items into text: two-column order when a clear gutter is found, short oversized lines
- * marked as "## " headings (the usual signal in body text: a noticeably bigger line, standing alone). */
+/** One page's items into text: two-column order when a clear gutter is found (left column fully, top
+ * to bottom, then right column), short oversized lines marked as "## " headings. */
 export function reconstructPage(items: TextItem[], pageWidth: number): string {
-  const lines = groupLines(items);
+  if (!items.length) return "";
+  const splitX = findColumnSplit(items, pageWidth);
+  const lines = splitX === null
+    ? linesFromEOL(items)
+    : [
+        ...linesFromYChange(items.filter((i) => i.x < splitX)).sort((a, b) => b.y - a.y),
+        ...linesFromYChange(items.filter((i) => i.x >= splitX)).sort((a, b) => b.y - a.y),
+      ];
   if (!lines.length) return "";
-  const ordered = splitColumns(lines, pageWidth);
   const body = modeHeight(lines);
-  return ordered
+  return lines
     .map((l) => (body > 0 && l.height >= body * 1.3 && l.text.trim().length > 0 && l.text.trim().length <= 80 ? `## ${l.text.trim()}` : l.text))
     .join("\n");
 }

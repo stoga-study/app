@@ -34,6 +34,19 @@ describe("reconstructPage", () => {
     expect(reconstructPage(items, 600)).toBe("Left 1\nLeft 2\nLeft 3\nRight 1\nRight 2\nRight 3");
   });
 
+  it("still separates the columns when both rows of a pair sit on the exact same y (real pdf.js bug)", () => {
+    // pdf.js's own hasEOL only looks at whether y is about to change to the NEXT item in stream order.
+    // When a left-column line and the right-column line beside it share the same y, the item ending the
+    // left line is followed by a same-y item (the right column), so pdf.js marks it hasEOL: false — a
+    // naive hasEOL-based line join would merge "Left 1" and "Right 1" into one garbled line.
+    const items: TextItem[] = [
+      { x: 50, y: 700, height: 12, str: "Left 1", hasEOL: false }, { x: 320, y: 700, height: 12, str: "Right 1", hasEOL: true },
+      { x: 50, y: 680, height: 12, str: "Left 2", hasEOL: false }, { x: 320, y: 680, height: 12, str: "Right 2", hasEOL: true },
+      { x: 50, y: 660, height: 12, str: "Left 3", hasEOL: false }, { x: 320, y: 660, height: 12, str: "Right 3", hasEOL: true },
+    ];
+    expect(reconstructPage(items, 600)).toBe("Left 1\nLeft 2\nLeft 3\nRight 1\nRight 2\nRight 3");
+  });
+
   it("does not split on a narrow, indentation-sized gap (not a real column gutter)", () => {
     const items = [
       line(50, 700, "Heading"), line(60, 680, "- bullet one"), line(50, 660, "paragraph text"),
