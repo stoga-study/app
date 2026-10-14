@@ -7,8 +7,8 @@ export type Question = {
   id: string; quiz_id: string; prompt: string; options: string[]; answer_index: number; hint: string | null;
   explanation: string; topic: string | null; pages: number[]; quote: string | null;
 };
-const Q_FIELDS = "id, quiz_id, prompt, options, answer_index, hint, explanation, topic, pages, quote";
-const asQuestions = (rows: unknown[]) => (rows as (Omit<Question, "options"> & { options: unknown })[]).map((q) => ({ ...q, options: q.options as string[] }));
+export const Q_FIELDS = "id, quiz_id, prompt, options, answer_index, hint, explanation, topic, pages, quote";
+export const asQuestions = (rows: unknown[]) => (rows as (Omit<Question, "options"> & { options: unknown })[]).map((q) => ({ ...q, options: q.options as string[] }));
 
 /** A quiz with its questions, the source kind (for page chips) and the last finished attempt. */
 export function useQuiz(id: string | undefined) {
