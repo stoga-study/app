@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "1.4.11",
+      "date": "2026-10-14",
+      "title": "Faces, and a coach that's yours",
+      "intro": "Give your coach a face, a name and a personality. You get a face too.",
+      "highlights": [
+        {
+          "icon": "choose",
+          "title": "Build a face",
+          "text": "Pick the head shape, skin, hair and hair color, eyes, brows, mouth, extras like glasses or headphones, and colors. Or hit Shuffle."
+        },
+        {
+          "icon": "continue",
+          "title": "It comes alive",
+          "text": "Your coach blinks, glances around while it thinks, and talks while it answers."
+        },
+        {
+          "icon": "check",
+          "title": "Name and personality",
+          "text": "Call it whatever you like, and pick how it talks: Chill, Hype, Straight up or Calm, with short, normal or detailed replies."
+        },
+        {
+          "icon": "self",
+          "title": "Your face, too",
+          "text": "Make your own in Settings. It shows at the top of the app."
+        }
+      ]
+    },
+    {
       "version": "1.4.9",
       "date": "2026-10-14",
       "title": "A much smarter coach",
