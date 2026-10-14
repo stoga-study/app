@@ -187,7 +187,7 @@ try {
       say: "how am i doing in bio so far?",
       check: async (r) => [
         !r.steps.some((s) => /how you're doing/i.test(s)) && "did not check progress",
-        !/\b6\b|six/i.test(r.reply) && "doesn't mention the 6 cards",
+        !/\b6\b|six|all (of )?your/i.test(r.reply) && "doesn't use the real card numbers",
       ],
     },
     {
