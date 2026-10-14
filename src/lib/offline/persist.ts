@@ -18,4 +18,4 @@ export const shouldKeep = (q: Query) => q.state.status === "success" && OFFLINE.
 export const MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 /** Bump when the shape of cached data changes, so old caches are discarded instead of loaded. */
-export const CACHE_VERSION = "3";
+export const CACHE_VERSION = "4";

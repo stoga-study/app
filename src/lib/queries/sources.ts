@@ -23,6 +23,9 @@ export function useAllowance() {
   });
 }
 
+/** Fields added after a file was first saved on a device can be missing from that saved copy; fill them in. */
+const withDefaults = (s: Source): Source => ({ ...s, tags: s.tags ?? [], archived: s.archived ?? false });
+
 export function useSources() {
   const { session } = useAuth();
   return useQuery({
@@ -33,6 +36,7 @@ export function useSources() {
       if (error) throw error;
       return data;
     },
+    select: (rows) => rows.map(withDefaults),
   });
 }
 
@@ -45,6 +49,7 @@ export function useSource(id: string | undefined) {
       if (error) throw error;
       return data;
     },
+    select: (row) => (row ? withDefaults(row) : row),
   });
 }
 
