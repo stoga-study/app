@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth/session";
 import { unseen, useChangelog, type Release } from "@/lib/changelog";
 import { useProfile } from "@/lib/queries/profile";
 import { supabase } from "@/lib/supabase";
+import { dateFormat } from "@/lib/locale";
 
 const ICONS: Record<string, ReactNode> = {
   choose: <Wand2 />, amount: <ListChecks />, more: <Layers />, free: <Gift />, photo: <Camera />,
@@ -21,7 +22,7 @@ const ICONS: Record<string, ReactNode> = {
   mastery: <TrendingUp />, unitquiz: <Shuffle />, summary: <ClipboardList />,
   archive: <Archive />, copy: <Copy />, calendar: <CalendarDays />,
 };
-const fmtDate = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(`${iso}T12:00:00`));
+const fmtDate = (iso: string) => dateFormat({ month: "long", day: "numeric", year: "numeric" }).format(new Date(`${iso}T12:00:00`));
 
 function ReleaseBody({ r, big }: { r: Release; big?: boolean }) {
   return (

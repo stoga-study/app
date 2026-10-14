@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { daysBetween, fromIso, monthGrid, shortDate, today, whenText } from "@/lib/calendar";
+import { daysBetween, fromIso, monthGrid, monthTitle, shortDate, today, weekdayLetters, whenText } from "@/lib/calendar";
 import { isExam, isTask, useDeleteEvent, useEvents, useSaveEvent, type CalEvent, type EventDraft, type EventKind } from "@/lib/queries/events";
 import { useSubjects } from "@/lib/queries/profile";
 import { useAllUnits } from "@/lib/queries/units";
@@ -21,7 +21,6 @@ import { PLAN_MINUTES, usePlanMinutes } from "@/lib/preferences";
 import { unitName } from "@/lib/units";
 
 const KIND_VALUES: EventKind[] = ["test", "quiz", "homework", "project", "other"];
-const monthName = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" });
 
 /**
  * The calendar: tests, quizzes, homework, projects and anything else. Agenda (what's coming, and
@@ -251,14 +250,14 @@ function MonthView({ month, setMonth, events, picked, setPicked, now, dayList, o
   };
   return (
     <>
-      <section className="card p-4" aria-label={monthName.format(new Date(month.y, month.m, 1))}>
+      <section className="card p-4" aria-label={monthTitle(month.y, month.m)}>
         <div className="mb-2 flex items-center justify-between">
           <Button variant="ghost" size="sm" aria-label="Previous month" onClick={() => step(-1)}><ChevronLeft /></Button>
-          <h2 className="text-[1.25rem]">{monthName.format(new Date(month.y, month.m, 1))}</h2>
+          <h2 className="text-[1.25rem]">{monthTitle(month.y, month.m)}</h2>
           <Button variant="ghost" size="sm" aria-label="Next month" onClick={() => step(1)}><ChevronRight /></Button>
         </div>
         <div className="grid grid-cols-7 text-center text-[0.8125rem] font-bold text-muted" aria-hidden="true">
-          {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => <span key={i} className="py-1">{d}</span>)}
+          {weekdayLetters().map((d, i) => <span key={i} className="py-1">{d}</span>)}
         </div>
         <div role="grid" className="grid gap-1">
           {weeks.map((w) => (

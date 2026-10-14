@@ -17,9 +17,10 @@ import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
 import { TodayList } from "@/components/TodayList";
 import { CoachCard } from "@/components/CoachCard";
+import { dateFormat } from "@/lib/locale";
 
 function today() {
-  return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date());
+  return dateFormat({ weekday: "long", month: "long", day: "numeric" }).format(new Date());
 }
 
 export default function Home() {
@@ -41,7 +42,7 @@ export default function Home() {
     .filter((n): n is string => !!n);
   const sourceTotal = sources.data?.length ?? 0;
   const nextDue = due.data?.nextDue
-    ? new Intl.DateTimeFormat("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" }).format(new Date(due.data.nextDue))
+    ? dateFormat({ weekday: "long", hour: "numeric", minute: "2-digit" }).format(new Date(due.data.nextDue))
     : null;
 
   return (

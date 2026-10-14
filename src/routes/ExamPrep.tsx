@@ -14,6 +14,7 @@ import { useKeyTerms, usePracticePool, usePracticeTests } from "@/lib/queries/pr
 import { useSubjects } from "@/lib/queries/profile";
 import { useAllUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
+import { dateFormat } from "@/lib/locale";
 
 function useExam() {
   const { id } = useParams();
@@ -100,7 +101,7 @@ export default function ExamPrep() {
           <ul className="card divide-y divide-line px-5">
             {mine.map((t) => (
               <li key={t.id} className="flex items-center gap-3 py-3">
-                <span className="min-w-0 flex-1">{new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(t.finished_at))} · {t.total} questions</span>
+                <span className="min-w-0 flex-1">{dateFormat({ weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(t.finished_at))} · {t.total} questions</span>
                 <b className="tabular">{t.pct}%</b>
               </li>
             ))}

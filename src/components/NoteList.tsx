@@ -2,8 +2,9 @@ import { ChevronRight, NotebookPen } from "lucide-react";
 import { Link } from "react-router";
 import { notePreview, noteTitle } from "@/lib/noteEdit";
 import type { NoteSummary } from "@/lib/queries/notes";
+import { dateFormat } from "@/lib/locale";
 
-const fmt = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
+const fmt = (iso: string) => dateFormat({ month: "short", day: "numeric" }).format(new Date(iso));
 
 /** Your own notes, as rows like files have. */
 export function NoteList({ notes }: { notes: NoteSummary[] }) {

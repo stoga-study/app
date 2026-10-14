@@ -13,8 +13,9 @@ import { useAllowance } from "@/lib/queries/sources";
 import { askTutor, citesNotes, displayText, HINT_LABEL, makeCardFromAnswer, modeOf, useThreadMessages, useThreads, useThreadScope, type ChatScope, type Citation, type ExplainContext, type SourceRef, type TutorMessage, type TutorMode } from "@/lib/tutor";
 import { unitName } from "@/lib/units";
 import { useOnline } from "@/lib/useOnline";
+import { dateFormat } from "@/lib/locale";
 
-const fmtWhen = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
+const fmtWhen = (iso: string) => dateFormat({ month: "short", day: "numeric" }).format(new Date(iso));
 
 /** /tutor: choose a class, or pick up a recent conversation. */
 export function TutorHome() {

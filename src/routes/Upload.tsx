@@ -19,6 +19,7 @@ import { startErrorText, startGeneration, useCaps } from "@/lib/queries/studyset
 import { choiceFor, fileUnder, useUnits, type UnitChoice } from "@/lib/queries/units";
 import { findUnit } from "@/lib/units";
 import { useOnline } from "@/lib/useOnline";
+import { dateFormat } from "@/lib/locale";
 
 type Progress = { done: number; total: number; stage: ExtractStage };
 type PhotoItem = { file: File; url: string; jpeg: Blob | null; text: string; status: "reading" | "ready" | "error" };
@@ -33,7 +34,7 @@ type Phase =
   | { step: "error"; name: string; code: ExtractErrorCode | "limit" | "save" };
 
 const fmtSize = (b: number) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
-const fmtDate = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(iso));
+const fmtDate = (iso: string) => dateFormat({ month: "long", day: "numeric" }).format(new Date(iso));
 
 // What happened, what usually works, and that nothing was lost (Brand Guidelines p. 14).
 type ErrorCode = Extract<Phase, { step: "error" }>["code"];
@@ -278,7 +279,7 @@ export default function Upload() {
     current.current++;
     queued.current = null;
     setUnitPick(null);
-    const title = `Photos, ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date())}`;
+    const title = `Photos, ${dateFormat({ month: "short", day: "numeric" }).format(new Date())}`;
     setPhase({ step: "options", name: title, title, photo: true, progress: { done: ready.length, total: ready.length, stage: "scan" } });
     try {
       const { photosToPdf } = await import("@/lib/extract/combine");
@@ -308,7 +309,7 @@ export default function Upload() {
   }
 
   function onPaste() {
-    const name = pasteTitle.trim() || `Pasted notes, ${new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date())}`;
+    const name = pasteTitle.trim() || `Pasted notes, ${dateFormat({ month: "short", day: "numeric" }).format(new Date())}`;
     try {
       const extracted = extractPasted(pasted);
       current.current++;

@@ -22,8 +22,9 @@ import { EventRow } from "@/components/EventRow";
 import { today } from "@/lib/calendar";
 import { isExam, useEvents } from "@/lib/queries/events";
 import { useReadiness } from "@/lib/queries/plan";
+import { dateFormat } from "@/lib/locale";
 
-const fmt = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
+const fmt = (iso: string) => dateFormat({ month: "short", day: "numeric" }).format(new Date(iso));
 
 export default function Subject() {
   const { id } = useParams();

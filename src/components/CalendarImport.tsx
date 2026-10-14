@@ -8,6 +8,7 @@ import { calendarName } from "@/lib/ics";
 import { addFeed, FeedError, fetchFeed, importItems, itemsFrom, refineWithAi, removeFeed, syncFeed, type Feed, type ImportItem } from "@/lib/queries/calendarImport";
 import type { Subject } from "@/lib/queries/profile";
 import { KINDS } from "./EventForm";
+import { dateFormat } from "@/lib/locale";
 
 const FEED_ERROR: Record<FeedError["code"], string> = {
   bad_url: "That doesn't look like a calendar link. It should start with https:// or webcal://.",
@@ -182,7 +183,7 @@ export function LinkedCalendars({ feeds, subjects }: { feeds: Feed[]; subjects: 
           <li key={f.id} className="flex flex-wrap items-center gap-3 py-3">
             <span className="min-w-0 flex-1">
               <span className="block truncate font-bold">{f.name}</span>
-              <span className="block text-[0.8125rem] text-muted">{f.last_synced_at ? `Updated ${new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" }).format(new Date(f.last_synced_at))}` : "Not updated yet"}</span>
+              <span className="block text-[0.8125rem] text-muted">{f.last_synced_at ? `Updated ${dateFormat({ weekday: "short", hour: "numeric", minute: "2-digit" }).format(new Date(f.last_synced_at))}` : "Not updated yet"}</span>
             </span>
             {confirm === f.id ? (
               <>

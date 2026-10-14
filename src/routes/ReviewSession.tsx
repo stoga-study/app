@@ -21,6 +21,7 @@ import { reviewNextStep } from "@/lib/mastery";
 import { useUnitQuestionCounts } from "@/lib/queries/quiz";
 import { unitName } from "@/lib/units";
 import { clearRecent, setRecent } from "@/lib/recent";
+import { dateFormat } from "@/lib/locale";
 
 const REQUEUE_MINUTES = 20; // cards marked Again that are due within this window come back in this session
 
@@ -147,7 +148,7 @@ export default function ReviewSession() {
     const reviewed = ratings.length;
     const good = ratings.filter((r) => r >= 3).length;
     const mins = Math.max(1, Math.round((new Date().getTime() - startedAt) / 60000));
-    const next = nextDue.data ? new Intl.DateTimeFormat("en-US", { weekday: "long", hour: "numeric", minute: "2-digit" }).format(new Date(nextDue.data)) : null;
+    const next = nextDue.data ? dateFormat({ weekday: "long", hour: "numeric", minute: "2-digit" }).format(new Date(nextDue.data)) : null;
     if (reviewed === 0)
       return (
         <section className="mx-auto flex max-w-xl flex-col gap-4">

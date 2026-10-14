@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Face } from "@/components/Face";
 import { useFaces } from "@/lib/queries/profile";
+import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
@@ -120,7 +121,7 @@ function OwnKey() {
     return (
       <>
         <p>
-          A key for <b>{host}</b> ending in <b className="tabular">{key.data.last4}</b> is in use with the model <b className="break-all">{key.data.model}</b>, added {new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(key.data.created_at))}.
+          A key for <b>{host}</b> ending in <b className="tabular">{key.data.last4}</b> is in use with the model <b className="break-all">{key.data.model}</b>, added {dateFormat({ month: "long", day: "numeric" }).format(new Date(key.data.created_at))}.
           Your tutor answers and study sets run on it, with no Stoga.study limits.
         </p>
         <p className="field-hint">The key is stored encrypted and never shown again. Charges come from {host}, so set a monthly budget limit there. Answer quality depends on the model you chose.</p>
@@ -273,6 +274,13 @@ export default function Settings() {
           <span className="field-label">Text size</span>
           <Segmented<TextSize> label="Text size" value={size} options={["standard", "large", "largest"]} labels={TEXT_LABEL} onChange={setSize} />
           <p className="field-hint">Layouts reflow at every size. These settings stay on this device.</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="locale" className="field-label">Language and region</label>
+          <select id="locale" className="input max-w-sm" defaultValue={localeSetting()} onChange={(e) => setLocale(e.target.value)}>
+            {LOCALES.map((l) => <option key={l.code} value={l.code}>{l.code === "auto" ? `${l.label} (${appLocale()})` : l.label}</option>)}
+          </select>
+          <p className="field-hint">For dates, times and the first day of the week, and the language your coach replies in. The rest of the app is in English for now.</p>
         </div>
       </Section>
 

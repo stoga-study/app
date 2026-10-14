@@ -5,6 +5,7 @@ import { PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useProfile } from "@/lib/queries/profile";
 import { useAllowance } from "@/lib/queries/sources";
+import { dateFormat } from "@/lib/locale";
 
 const PLANS = [
   { id: "essential", name: "Essential", price: "Free", desc: "Normal study usage for a full course load.", points: ["50 tutor messages a day", "10 study sets a month (saving files is free)", "Every feature, same quality of answers"] },
@@ -12,7 +13,7 @@ const PLANS = [
   { id: "unlimited", name: "Unlimited", price: "$10 a month", desc: "Heavy use with plain-language fair use. Helps keep Essential free.", points: ["No daily or monthly caps", "A parent or guardian pays", "We email before limiting anything"] },
 ] as const;
 
-const fmt = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric" }).format(new Date(iso));
+const fmt = (iso: string) => dateFormat({ month: "long", day: "numeric" }).format(new Date(iso));
 
 function Meter({ label, used, limit, note }: { label: string; used: number; limit: number | null; note: string }) {
   return (
