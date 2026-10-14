@@ -63,6 +63,16 @@ describe("parseWhen", () => {
 });
 
 describe("guessing", () => {
+  it("guesses kinds from plurals and school shorthand", () => {
+    const cases: [string, string][] = [
+      ["EME Presentations", "project"], ["Early Modern Era Project", "project"], ["Unit 3 Exams", "test"], ["DBQ in class", "test"],
+      ["Ch. 5 Summative", "test"], ["Vocab Quizzes", "quiz"], ["Check-in 2", "quiz"], ["Unit 4 test review sheet", "homework"],
+      ["Test corrections", "homework"], ["DeltaMath 4.2", "homework"], ["Read pp. 112-130", "homework"], ["Final draft of essay", "project"],
+      ["Spirit week", "other"],
+    ];
+    for (const [title, kind] of cases) expect([title, guessKind(title)]).toEqual([title, kind]);
+  });
+
   it("guesses the kind from the title", () => {
     expect(guessKind("Unit 4 Test")).toBe("test");
     expect(guessKind("Vocab quiz 3")).toBe("quiz");
@@ -75,6 +85,18 @@ describe("guessing", () => {
     expect(guessClass({ title: "Unit 4 Test", categories: [], notes: "AP Biology" }, classes)).toBe("apbio");
     expect(guessClass({ title: "Lab", categories: ["Chemistry Honors"], notes: null }, classes)).toBe("chem");
     expect(guessClass({ title: "Pep rally", categories: [], notes: null }, classes)).toBeNull();
+  });
+
+  it("knows class nicknames, but only when they point to one class", () => {
+    const classes = [{ id: "chem", name: "Chemistry Honors" }, { id: "apush", name: "AP United States History" }, { id: "calc", name: "AP Calculus BC" }, { id: "precalc", name: "Precalculus" }];
+    const g = (title: string) => guessClass({ title, categories: [], notes: null }, classes);
+    expect(g("Chem lab 3")).toBe("chem");
+    expect(g("APUSH DBQ")).toBe("apush");
+    expect(g("Calc quiz")).toBe("calc");
+    expect(g("Precalc HW 2.1")).toBe("precalc");
+    expect(g("chemistry-ish words in chemical")).toBeNull();
+    // Two biology classes: "bio" alone can't choose.
+    expect(guessClass({ title: "Bio test", categories: [], notes: null }, [{ id: "a", name: "Biology" }, { id: "b", name: "AP Biology" }])).toBeNull();
   });
 });
 

@@ -63,26 +63,75 @@ export function parseIcs(text: string): IcsEvent[] {
   return out;
 }
 
+// Words for each kind, plurals and school shorthand included. Checked in order: quiz, test, project,
+// homework, so "Unit 4 test" is a test even though it is also due.
+const QUIZ = /\b(quiz(z?es)?|pop quiz|vocab check|check[- ]?ins?|exit tickets?)\b/;
+const TEST = /\b(tests?|exams?|midterms?|finals?(?! (drafts?|projects?|papers?|presentations?|copy|copies|versions?))|assessments?|summatives?|cfas?|benchmarks?|unit tests?|ap exams?|keystones?|dbqs?|frqs?|leqs?|in[- ]class (essay|writing)s?|performance tasks?)\b/;
+const PREP = /\b(review( sheet)?s?|study guides?|prep|corrections?|retakes? form|reflections?)\b/;
+const PROJECT = /\b(projects?|proj|presentations?|pres|essays?|papers?|lab reports?|research|portfolios?|posters?|speech(es)?|debates?|slides?|videos?|reports?|drafts?|final drafts?|websites?|models?)\b/;
+const HOMEWORK = /\b(hw|homework|assignments?|worksheets?|readings?|read|problems?|probs?|packets?|questions|notes|due|practice|exercises?|study guides?|chapters?|ch\.?\s?\d|pages?|pp?\.\s?\d|labs?|journals?|annotations?|responses?|discussions?|edpuzzles?|deltamath|khan|ixl|quizlet)\b/;
+
 /** What kind of item a title sounds like. */
 export function guessKind(title: string): EventKind {
   const t = title.toLowerCase();
-  if (/\bquiz(zes)?\b/.test(t)) return "quiz";
-  if (/\b(test|exam|midterm|final|assessment|ap exam|keystone)\b/.test(t)) return "test";
-  if (/\b(project|presentation|essay|paper|lab report|research|portfolio)\b/.test(t)) return "project";
-  if (/\b(hw|homework|assignment|worksheet|reading|problems?|due|packet|questions|notes|read)\b/.test(t)) return "homework";
+  if (QUIZ.test(t)) return "quiz";
+  // Getting ready for a test, or fixing one, is work to do, not the test.
+  if (TEST.test(t)) return PREP.test(t) ? "homework" : "test";
+  if (PROJECT.test(t)) return "project";
+  if (HOMEWORK.test(t)) return "homework";
   return "other";
 }
 
+// Short names students and teachers use for classes, keyed by a word in the class's name.
+const NICKNAMES: [RegExp, string[]][] = [
+  [/biology/, ["bio"]],
+  [/chemistry/, ["chem"]],
+  [/physics/, ["phys"]],
+  [/precalculus|pre-calculus/, ["precalc", "pre-calc"]],
+  [/calculus/, ["calc"]],
+  [/statistics/, ["stats", "stat"]],
+  [/algebra/, ["alg"]],
+  [/geometry/, ["geo"]],
+  [/united states history|u\.s\. history|us history|american history/, ["apush", "ush", "us hist"]],
+  [/world history/, ["whap", "apwh", "world hist"]],
+  [/european history/, ["apeuro", "euro"]],
+  [/government|civics/, ["gov", "govt", "civics"]],
+  [/economics/, ["econ", "macro", "micro"]],
+  [/psychology/, ["psych"]],
+  [/english|literature|language and composition/, ["eng", "english", "lit", "lang"]],
+  [/spanish/, ["span", "spanish", "español"]],
+  [/french/, ["french", "français"]],
+  [/german/, ["ger", "german"]],
+  [/latin/, ["latin"]],
+  [/chinese|mandarin/, ["chinese", "mandarin"]],
+  [/computer science/, ["cs", "csa", "csp", "apcs", "comp sci", "coding"]],
+  [/environmental/, ["apes", "enviro"]],
+  [/anatomy/, ["anatomy", "a&p"]],
+  [/health/, ["health"]],
+  [/physical education|phys ed/, ["gym"]],
+];
+
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasWord = (hay: string, w: string) => new RegExp(`(^|[^\\p{L}\\p{N}])${escape(w)}($|[^\\p{L}\\p{N}])`, "u").test(hay);
+
 /**
- * Which class an item belongs to: a class whose name appears in its title, categories or notes (the
- * longest match wins, so "AP Biology" beats "Biology"). Null when none does.
+ * Which class an item belongs to. First a class whose full name appears (longest wins, so "AP
+ * Biology" beats "Biology"); then a nickname ("chem", "APUSH") that fits exactly one class. Null
+ * when nothing fits, or when a nickname fits more than one class.
  */
 export function guessClass(e: Pick<IcsEvent, "title" | "categories" | "notes">, classes: { id: string; name: string }[]): string | null {
   const hay = [e.title, ...e.categories, e.notes ?? ""].join(" \n ").toLowerCase();
-  const hit = classes
+  const full = classes
     .filter((c) => c.name.trim().length > 2 && hay.includes(c.name.trim().toLowerCase()))
     .sort((a, b) => b.name.length - a.name.length)[0];
-  return hit?.id ?? null;
+  if (full) return full.id;
+  const byNick = classes.filter((c) => {
+    const name = c.name.toLowerCase();
+    // Only the first match counts, so Precalculus answers to "precalc" and not to "calc".
+    const nicks = NICKNAMES.find(([re]) => re.test(name))?.[1] ?? [];
+    return nicks.some((n) => hasWord(hay, n));
+  });
+  return byNick.length === 1 ? byNick[0].id : null;
 }
 
 /** The calendar's own name (X-WR-CALNAME), for naming a linked calendar. */
