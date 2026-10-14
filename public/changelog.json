@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "1.4.9",
+      "date": "2026-10-14",
+      "title": "A much smarter coach",
+      "intro": "The coach can now see your study material and do real things with it.",
+      "highlights": [
+        {
+          "icon": "browse",
+          "title": "It knows your stuff",
+          "text": "It can search and read your notes and files, check how you're doing in each class, go through your quiz mistakes and find your hardest cards, then answer with real numbers."
+        },
+        {
+          "icon": "deck",
+          "title": "It does things",
+          "text": "Ask for flashcards from your latest notes, a study plan written into your notes, or a test added to your calendar. Every change has an Undo button, and it can't delete your study material."
+        },
+        {
+          "icon": "continue",
+          "title": "Buttons to jump in",
+          "text": "When it helps, it gives you a button to start a review, a practice test, a unit quiz or open a file."
+        },
+        {
+          "icon": "check",
+          "title": "Feels alive",
+          "text": "Watch it work step by step, then read its answer as it streams in. Stop it any time."
+        }
+      ]
+    },
+    {
       "version": "1.4.8",
       "date": "2026-10-14",
       "title": "Smarter calendar imports",
