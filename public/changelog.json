@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.4.7",
+      "date": "2026-10-14",
+      "title": "Bring your own calendar",
+      "intro": "Already keep your assignments somewhere? Bring them in.",
+      "highlights": [
+        {
+          "icon": "calendar",
+          "title": "Import a calendar",
+          "text": "On the Calendar, tap Import. Paste a calendar link from Schoology, Google Calendar, Outlook or Apple Calendar, or upload an .ics file."
+        },
+        {
+          "icon": "check",
+          "title": "You check it first",
+          "text": "We guess whether each item is a test, quiz, homework or project, and which class it's for. Fix anything before it's added."
+        },
+        {
+          "icon": "continue",
+          "title": "Stays in sync",
+          "text": "A linked calendar updates when you open your calendar, without making copies. Your own changes and ticks stay put."
+        }
+      ]
+    },
+    {
       "version": "1.4.6",
       "date": "2026-10-14",
       "title": "Everything for one test, in one place",
