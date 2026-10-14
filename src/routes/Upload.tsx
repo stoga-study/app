@@ -64,8 +64,10 @@ function errorCopy(code: ErrorCode, name: string, resetsAt?: string, limit?: num
       return { title: `${name} is over 400 pages`, body: "That is more than one upload can hold.", tips: ["Split it into chapters or units, and upload the ones you are studying"] };
     case "legacy_doc":
       return { title: "This is an older Word file (.doc)", body: "We can read .docx files and PDFs.", tips: ["Open it in Word or Google Docs and save it as .docx or PDF", tips.paste] };
+    case "legacy_ppt":
+      return { title: "This is an older PowerPoint file (.ppt)", body: "We can read .pptx files and PDFs.", tips: ["Open it in PowerPoint or Google Slides and save it as .pptx or PDF", tips.paste] };
     case "unsupported":
-      return { title: "We cannot read this kind of file yet", body: "Use a PDF, a Word file (.docx), a text file or a photo (JPG, PNG or HEIC).", tips: [tips.paste] };
+      return { title: "We cannot read this kind of file yet", body: "Use a PDF, a Word file (.docx), slides (.pptx), a text file or a photo (JPG, PNG or HEIC).", tips: [tips.paste] };
     case "damaged":
       return { title: `${name} looks damaged`, body: "We could not open it.", tips: ["Download or export it again, then upload the new copy", tips.paste] };
     case "limit":
@@ -535,7 +537,7 @@ export default function Upload() {
           >
             <UploadIcon className="size-8 text-brand" />
             <span className="font-display text-[1.375rem] font-bold">Choose or drop a file</span>
-            <span className="text-[0.9375rem] text-muted">PDF (scans too), Word (.docx), text or a photo of notes. Up to {MAX_BYTES / 1024 / 1024} MB.</span>
+            <span className="text-[0.9375rem] text-muted">PDF (scans too), Word (.docx), slides (.pptx), text or a photo of notes. Up to {MAX_BYTES / 1024 / 1024} MB.</span>
           </button>
           <input
             ref={inputRef}
@@ -543,7 +545,7 @@ export default function Upload() {
             aria-label="Choose a file to upload"
             className="sr-only"
             tabIndex={-1}
-            accept=".pdf,.docx,.doc,.txt,.md,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,image/jpeg,image/png,image/webp,image/heic,image/heif"
+            accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.md,.jpg,.jpeg,.png,.webp,.heic,.heif,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,image/jpeg,image/png,image/webp,image/heic,image/heif"
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; onFile(f); }}
           />
           <div className="mt-4 flex flex-wrap gap-2">

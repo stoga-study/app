@@ -3,7 +3,7 @@
 // files and pasted text are split into numbered parts. Pages with no text (scans) and photos of notes
 // are rendered to images here and read by the AI (`readPage`), one page at a time.
 
-export type SourceKind = "pdf" | "docx" | "text" | "image";
+export type SourceKind = "pdf" | "docx" | "text" | "image" | "pptx";
 export type ExtractedPage = { page: number; text: string };
 export type Extracted = {
   kind: SourceKind;
@@ -17,7 +17,7 @@ export type Extracted = {
 };
 
 export type ExtractErrorCode =
-  | "password" | "scanned" | "empty" | "too_large" | "too_many_pages" | "unsupported" | "legacy_doc" | "damaged"
+  | "password" | "scanned" | "empty" | "too_large" | "too_many_pages" | "unsupported" | "legacy_doc" | "legacy_ppt" | "damaged"
   | "too_many_scanned" | "scan_limit" | "scan_failed" | "photo_unreadable";
 
 /** Reads one page image (a data URL) and returns its text. Throws ExtractError for limits and failures. */
@@ -40,11 +40,13 @@ export const PART_CHARS = 3_000;
 const MIN_PAGE_CHARS = 3;
 const SCANNED_CHARS_PER_PAGE = 25;
 
-export function kindOf(file: { name: string; type: string }): SourceKind | "legacy_doc" | null {
+export function kindOf(file: { name: string; type: string }): SourceKind | "legacy_doc" | "legacy_ppt" | null {
   const name = file.name.toLowerCase();
   if (file.type === "application/pdf" || name.endsWith(".pdf")) return "pdf";
   if (name.endsWith(".docx") || file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") return "docx";
   if (name.endsWith(".doc") || file.type === "application/msword") return "legacy_doc";
+  if (name.endsWith(".pptx") || file.type === "application/vnd.openxmlformats-officedocument.presentationml.presentation") return "pptx";
+  if (name.endsWith(".ppt") || file.type === "application/vnd.ms-powerpoint") return "legacy_ppt";
   if (/\.(txt|md|markdown)$/.test(name) || file.type === "text/plain" || file.type === "text/markdown") return "text";
   if (/^image\/(jpeg|png|webp|heic|heif)$/.test(file.type) || /\.(jpe?g|png|webp|heic|heif)$/.test(name)) return "image";
   return null;
@@ -113,9 +115,20 @@ export function assemblePdf(pageTexts: string[]): Extracted {
   return { kind: "pdf", pages, totalPages: total, skippedPages: total - pages.length };
 }
 
+/** Slides keep their real numbers (so "slide 7" in a citation is slide 7); empty slides are skipped. */
+export function assembleSlides(slideTexts: string[]): Extracted {
+  if (slideTexts.length > MAX_PAGES) throw new ExtractError("too_many_pages");
+  const pages = slideTexts
+    .map((t, i) => ({ page: i + 1, text: tidy(t).slice(0, MAX_PAGE_CHARS) }))
+    .filter((p) => p.text.length >= MIN_PAGE_CHARS);
+  if (!pages.length) throw new ExtractError("empty");
+  return { kind: "pptx", pages, totalPages: slideTexts.length, skippedPages: slideTexts.length - pages.length };
+}
+
 export async function extractFile(file: File, onProgress?: (done: number, total: number, stage: ExtractStage) => void, readPage?: PageReader): Promise<Extracted> {
   const kind = kindOf(file);
   if (kind === "legacy_doc") throw new ExtractError("legacy_doc");
+  if (kind === "legacy_ppt") throw new ExtractError("legacy_ppt");
   if (!kind) throw new ExtractError("unsupported");
   if (file.size > MAX_BYTES) throw new ExtractError("too_large");
   if (file.size === 0) throw new ExtractError("empty");
@@ -130,6 +143,17 @@ export async function extractFile(file: File, onProgress?: (done: number, total:
       if (e instanceof ExtractError) throw e;
       throw new ExtractError("damaged");
     }
+  }
+
+  if (kind === "pptx") {
+    const { readPptx } = await import("./pptx");
+    let slides: string[];
+    try {
+      slides = await readPptx(await file.arrayBuffer());
+    } catch {
+      throw new ExtractError("damaged");
+    }
+    return assembleSlides(slides);
   }
 
   if (kind === "image") {

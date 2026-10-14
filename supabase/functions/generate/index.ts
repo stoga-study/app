@@ -148,7 +148,7 @@ async function factCheck<T extends { pages: number[] }>(
   claims: string[],
   items: T[],
   pages: Page[],
-  word: "page" | "part",
+  word: "page" | "part" | "slide",
   own: OwnProvider | undefined,
   usage: { feature: string; userId: string; byok: boolean },
 ): Promise<{ item: T; quote: string | null }[]> {
@@ -200,7 +200,7 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
     return;
   }
 
-  const word = source.kind === "pdf" || source.kind === "image" ? "page" : "part";
+  const word = source.kind === "pdf" || source.kind === "image" ? "page" : source.kind === "pptx" ? "slide" : "part";
   const valid = new Set(pages.map((p) => p.page_no));
   // Students on the Independent plan generate with their own key.
   const own = await ownProvider(admin, userId);

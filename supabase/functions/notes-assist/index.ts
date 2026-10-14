@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       const { data: src } = await student.db.from("sources").select("kind, page_count").eq("id", note.source_id!).maybeSingle();
       const { data: pages } = await student.db.from("source_pages").select("page_no, text").eq("source_id", note.source_id!).order("page_no");
       if (!pages?.length) return json(req, { error: "no_file" }, 400);
-      const word = src?.kind === "pdf" || src?.kind === "image" ? "page" : "part";
+      const word = src?.kind === "pdf" || src?.kind === "image" ? "page" : src?.kind === "pptx" ? "slide" : "part";
       const valid = new Set(pages.map((p) => p.page_no));
       const out = await llmJson<GapsOut>({
         schemaName: "gaps", schema: GAPS_SCHEMA, own, effort: "normal", maxTokens: 1200, timeoutMs: 40_000,

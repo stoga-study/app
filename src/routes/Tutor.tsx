@@ -72,7 +72,7 @@ function CiteChip({ c }: { c: Pick<Citation, "source_id" | "page" | "kind" | "fi
   return (
     <Link to={paged ? `/sources/${c.source_id}/view?page=${c.page}` : `/sources/${c.source_id}`} className="source-chip mx-0.5 !min-h-7 align-middle !text-[0.75rem]" title={c.filename}>
       <FileText aria-hidden="true" />
-      {paged ? "p." : "part"} {c.page}
+      {paged ? "p." : c.kind === "pptx" ? "slide" : "part"} {c.page}
     </Link>
   );
 }

@@ -73,6 +73,7 @@ const STORAGE_TYPES = {
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   text: "text/plain",
   image: "image/jpeg",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 } as const;
 
 const safeName = (name: string) => name.normalize("NFKD").replace(/[^\w.-]+/g, "_").replace(/_+/g, "_").slice(-120) || "file";
@@ -203,6 +204,7 @@ export function useSignedFileUrl(storagePath: string | null | undefined) {
   });
 }
 
-/** PDFs and photos have pages; Word files and pasted text are split into parts. */
+/** PDFs and photos have pages (and open in the viewer); slide decks have slides; Word files and pasted text are split into parts. */
 export const isPaged = (kind: string) => kind === "pdf" || kind === "image";
-export const pageWord = (kind: string, n: number) => (isPaged(kind) ? (n === 1 ? "page" : "pages") : n === 1 ? "part" : "parts");
+export const pageWord = (kind: string, n: number) =>
+  isPaged(kind) ? (n === 1 ? "page" : "pages") : kind === "pptx" ? (n === 1 ? "slide" : "slides") : n === 1 ? "part" : "parts";

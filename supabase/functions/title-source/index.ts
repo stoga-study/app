@@ -19,7 +19,7 @@ Rules:
 - No file extension, quotes, emoji, dates or the class name unless the file is about the whole course.`;
 
 function clean(title: string): string | null {
-  const t = title.normalize("NFKC").replace(/[\u2010-\u2013]/g, "-").replace(/["“”'`]/g, "").replace(/\.(pdf|docx?|txt|md)$/i, "").replace(/\s+/g, " ").trim();
+  const t = title.normalize("NFKC").replace(/[\u2010-\u2013]/g, "-").replace(/["“”'`]/g, "").replace(/\.(pdf|docx?|pptx?|txt|md)$/i, "").replace(/\s+/g, " ").trim();
   return t.length >= MIN && t.length <= MAX ? t : null;
 }
 

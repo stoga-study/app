@@ -9,7 +9,7 @@ import { Link } from "react-router";
 export function PageChips({ pages, kind, quote, sourceId }: { pages: number[]; kind: string; quote?: string | null; sourceId?: string | null }) {
   const [open, setOpen] = useState(false);
   if (!pages.length) return null;
-  const label = kind === "pdf" || kind === "image" ? (pages.length === 1 ? "p." : "pp.") : pages.length === 1 ? "part" : "parts";
+  const label = kind === "pdf" || kind === "image" ? (pages.length === 1 ? "p." : "pp.") : kind === "pptx" ? (pages.length === 1 ? "slide" : "slides") : pages.length === 1 ? "part" : "parts";
   const shown = pages.length > 4 ? `${pages.slice(0, 4).join(", ")}…` : pages.join(", ");
   const interactive = !!quote || !!sourceId;
   if (!interactive)

@@ -27,7 +27,7 @@ export function chunkPages(pages: Page[], size = CHUNK_CHARS): Chunk[] {
   return chunks;
 }
 
-export function tagged(pages: Page[], word: "page" | "part") {
+export function tagged(pages: Page[], word: "page" | "part" | "slide") {
   return pages.map((p) => `<<${word} ${p.page_no}>>\n${p.text}`).join("\n\n");
 }
 
