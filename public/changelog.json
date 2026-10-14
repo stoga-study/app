@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "1.4.5",
+      "date": "2026-10-14",
+      "title": "Practice tests, timed",
+      "intro": "Try a test under real conditions before the real one.",
+      "highlights": [
+        {
+          "icon": "type",
+          "title": "Like the real thing",
+          "text": "A timer, no hints, and a mix of multiple choice and written answers. AP classes get more written questions, like the free-response section."
+        },
+        {
+          "icon": "weak",
+          "title": "Aimed at your weak spots",
+          "text": "Questions you got wrong before and your weakest cards come up first."
+        },
+        {
+          "icon": "summary",
+          "title": "A full review after",
+          "text": "Your score, every question with the right answer, and feedback on what you wrote. Misses go to mistake review and back into your cards."
+        },
+        {
+          "icon": "calendar",
+          "title": "Right from your calendar",
+          "text": "Tap Take a practice test on your next test's countdown, or find it on a class page."
+        }
+      ]
+    },
+    {
       "version": "1.4.4",
       "date": "2026-10-14",
       "title": "The coach, on Home",
