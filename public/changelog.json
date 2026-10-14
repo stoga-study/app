@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "1.4.0",
+      "date": "2026-10-14",
+      "title": "Your calendar",
+      "intro": "Keep every test, quiz and assignment in one place, next to what you study.",
+      "highlights": [
+        {
+          "icon": "calendar",
+          "title": "Calendar tab",
+          "text": "Add tests, quizzes, homework, projects and anything else, by class. See them as a list of what's coming or as a month."
+        },
+        {
+          "icon": "checklist",
+          "title": "Homework checklist",
+          "text": "Tick homework and projects off as you finish them. Anything past due and not done waits under Still to do."
+        },
+        {
+          "icon": "unit",
+          "title": "Countdown to your next test",
+          "text": "The calendar counts down to your next test or quiz. Add the units it covers, and the planner coming next will use them."
+        },
+        {
+          "icon": "group",
+          "title": "Coming up, on each class",
+          "text": "Every class page shows its next few tests and assignments. On phones, Progress is now the chart button at the top."
+        }
+      ]
+    },
+    {
       "version": "1.3.6",
       "date": "2026-10-13",
       "title": "Tidy up your files",
