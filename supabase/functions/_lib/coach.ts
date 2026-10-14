@@ -1,60 +1,65 @@
-// The study coach: prompt, response schema and the checks on what it may change. Pure, so it is
-// unit tested; the coach function does the reading, writing and model call.
+// The study coach: an agent that looks things up in the student's own study material and acts on it,
+// then answers. Prompts, schemas, labels and checks live here as pure functions (unit tested); the
+// coach function does the reading, writing and model calls.
 import { CRISIS_LINE } from "./tutor.ts";
 
 export const KINDS = ["test", "quiz", "homework", "project", "other"] as const;
 export type Kind = (typeof KINDS)[number];
-export const ACTION_TYPES = ["add_event", "update_event", "complete_event", "uncomplete_event", "delete_event", "set_current_unit"] as const;
-export type ActionType = (typeof ACTION_TYPES)[number];
 
-/** One change the model asks for. Classes, units and events are short refs (C1, U3, E2), never ids. */
-export type CoachAction = {
-  type: ActionType;
-  event: string | null;
-  kind: string | null;
-  title: string | null;
-  class: string | null;
-  date: string | null;
-  time: string | null;
-  units: string[];
-  unit: string | null;
-};
-export type CoachOut = { reply: string; actions: CoachAction[] };
+export const READ_TOOLS = ["search", "files", "progress", "mistakes", "weak_cards"] as const;
+export const WRITE_TOOLS = ["add_event", "update_event", "complete_event", "uncomplete_event", "delete_event", "set_current_unit", "make_cards", "write_note", "link"] as const;
+export const TOOLS = [...READ_TOOLS, ...WRITE_TOOLS] as const;
+export type Tool = (typeof TOOLS)[number];
+export type Call = { tool: Tool; args: Record<string, unknown> };
 
-const nullable = (t: string) => ({ type: [t, "null"] });
-export const COACH_SCHEMA = {
+/** Each round the model picks tools to call; an empty list means it is ready to answer. Args are a JSON string, checked per tool. */
+export const STEP_SCHEMA = {
   type: "object",
   additionalProperties: false,
-  required: ["reply", "actions"],
+  required: ["calls"],
   properties: {
-    reply: { type: "string" },
-    actions: {
+    calls: {
       type: "array",
       items: {
         type: "object",
         additionalProperties: false,
-        required: ["type", "event", "kind", "title", "class", "date", "time", "units", "unit"],
-        properties: {
-          type: { type: "string", enum: [...ACTION_TYPES] },
-          event: nullable("string"),
-          kind: nullable("string"),
-          title: nullable("string"),
-          class: nullable("string"),
-          date: nullable("string"),
-          time: nullable("string"),
-          units: { type: "array", items: { type: "string" } },
-          unit: nullable("string"),
-        },
+        required: ["tool", "args"],
+        properties: { tool: { type: "string", enum: [...TOOLS] }, args: { type: "string" } },
       },
     },
   },
 };
+export const MAX_ROUNDS = 4;
+export const MAX_CALLS = 6;
+export const MAX_CARDS = 20;
+
+/** Parse the model's calls, dropping unknown tools, unreadable args and repeats of an earlier call. */
+export function parseCalls(raw: { tool: string; args: string }[] | undefined, seen: Set<string>): Call[] {
+  const out: Call[] = [];
+  for (const c of raw ?? []) {
+    if (!(TOOLS as readonly string[]).includes(c.tool)) continue;
+    let args: Record<string, unknown> = {};
+    try {
+      const v = JSON.parse(c.args || "{}");
+      if (v && typeof v === "object" && !Array.isArray(v)) args = v;
+    } catch {
+      continue;
+    }
+    const key = `${c.tool}:${JSON.stringify(args)}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ tool: c.tool as Tool, args });
+    if (out.length >= MAX_CALLS) break;
+  }
+  return out;
+}
 
 export type Ctx = {
   today: string;
   firstName: string | null;
   classes: { ref: string; name: string; currentUnit: string | null; units: { ref: string; name: string }[]; dueCards: number }[];
   events: { ref: string; kind: string; title: string; classRef: string | null; date: string; time: string | null; done: boolean; unitRefs: string[] }[];
+  files?: { ref: string; name: string; classRef: string; unitRef: string | null }[];
   mistakes: number;
   weakTopics: string[];
   planToday: string[];
@@ -70,7 +75,7 @@ export const addDays = (iso: string, n: number) => {
 export const isIsoDate = (s: unknown): s is string => typeof s === "string" && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T12:00:00Z`)) && new Date(`${s}T12:00:00Z`).toISOString().slice(0, 10) === s;
 export const isTime = (s: unknown): s is string => typeof s === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 
-/** The context block: today, a date table (so weekdays never need arithmetic), classes, the calendar. */
+/** The context block: today, a date table (so weekdays never need arithmetic), classes, files, the calendar. */
 export function contextText(c: Ctx) {
   const days = Array.from({ length: 15 }, (_, i) => addDays(c.today, i)).map((d, i) => `${i === 0 ? "today" : i === 1 ? "tomorrow" : WEEKDAY[dayOf(d)]} ${d}`);
   const cls = c.classes.length
@@ -79,35 +84,79 @@ export function contextText(c: Ctx) {
   const evs = c.events.length
     ? c.events.map((e) => `${e.ref} ${e.kind} "${e.title}" ${e.classRef ?? "no class"} ${e.date}${e.time ? ` ${e.time}` : ""}${e.unitRefs.length ? ` units ${e.unitRefs.join(",")}` : ""}${e.done ? " [done]" : ""}`).join("\n")
     : "nothing yet";
+  const files = c.files?.length ? c.files.map((f) => `${f.ref} "${f.name}" ${f.classRef}${f.unitRef ? ` ${f.unitRef}` : ""}`).join("\n") : "none";
   return [
     `Today is ${WEEKDAY[dayOf(c.today)]} ${c.today}. Dates: ${days.join("; ")}.`,
     c.firstName ? `Student's first name: ${c.firstName}.` : "",
     `Classes:\n${cls}`,
+    `Files (newest first):\n${files}`,
     `Calendar (from a week ago on):\n${evs}`,
     `Today's study plan: ${c.planToday.length ? c.planToday.join("; ") : "nothing planned"}.`,
     `Open quiz mistakes: ${c.mistakes}${c.weakTopics.length ? `; weakest topics: ${c.weakTopics.join(", ")}` : ""}.`,
   ].filter(Boolean).join("\n\n");
 }
 
-export function coachSystem(feeling: "stressed" | null) {
-  return `You are the Stoga.study coach for a high school student. You sound like a warm, real older student who has their back: casual, kind, never preachy, never fake-cheerful. No guilt, no pressure, no streak talk.
+/** Deciding what to look up and do. Runs up to MAX_ROUNDS times; results come back between rounds. */
+export function stepSystem() {
+  return `You are the Stoga.study coach's planner. Decide which tools to call for the student's latest message, before anyone answers. Reply with {"calls": [...]}; each call has "tool" and "args" (a JSON object written as a string). Return {"calls": []} once you have what you need, or when the message needs no tools (small talk, feelings, a question the context already answers).
 
-What you do: help them plan and keep track of tests, quizzes, homework and projects, and figure out what to study next. You can change their calendar with actions. You do not teach subject content or do homework; for a subject question, point them to the tutor in one sentence.
+Refs: classes C1.., units U1.., files F1.., calendar items E1.. come from the context. Use only refs that exist.
 
-Rules for "reply":
-- Under 90 words. Plain sentences, no headings, no markdown except **bold** for one key thing at most.
-- ${feeling === "stressed" ? "They sound stressed. Start with one genuine sentence that acknowledges it, then give ONE small concrete step (for example 10 minutes on one thing tonight). Do not list everything." : "Give one concrete next step when it helps."}
-- Only talk about tests, dates, classes, units and numbers that are in the context. Never invent any. If you do not know, say so or ask.
-- When you make changes, say what you did in a few words. The app shows each change with an Undo button, so do not ask "are you sure" for clear requests.
+Look things up (results come back to you next round):
+- search {"query": "...", "class": "C1"?}: search their notes, files, cards and quiz questions. Use it before explaining or summarizing anything from their material, and before making cards or notes from it.
+- files {"class": "C1"?, "unit": "U1"?}: their files, with what has been made from each.
+- progress {"class": "C1"?}: cards by stage, cards due, reviews this week, latest quiz and practice-test scores.
+- mistakes {"class": "C1"?}: open quiz mistakes, with the right answers.
+- weak_cards {"class": "C1"?}: the cards they find hardest.
 
-Rules for "actions" (empty unless the student asked for a change, or clearly told you about a new test, quiz, homework or project):
-- add_event: needs title, kind (test, quiz, homework, project, other) and date (YYYY-MM-DD from the date table; "friday" means the next Friday on or after today). class is a class ref when one fits. units: unit refs of that class the test covers, if they said. time: "HH:MM" 24-hour, only if they said one.
-- update_event: event ref plus only the fields that change (others null, units empty unless changing them).
-- complete_event / uncomplete_event: event ref, for homework or projects they finished (or did not).
-- delete_event: event ref, only when they clearly ask to remove it.
-- set_current_unit: unit ref, when they say which unit a class is on now.
-- If the date, class or which event is unclear, do not act: ask one short question instead.
-- Never more than 5 actions. Use only refs from the context. Never delete or change notes, files, cards or quizzes: you cannot.`;
+Do things (only when they asked, or clearly told you something to record):
+- add_event {"title", "kind": test|quiz|homework|project|other, "date": "YYYY-MM-DD" from the date table, "class"?, "units"?: ["U1"], "time"?: "HH:MM"}
+- update_event {"event": "E1", plus only the fields that change}
+- complete_event / uncomplete_event / delete_event {"event": "E1"} (delete only when clearly asked)
+- set_current_unit {"unit": "U1"}
+- make_cards {"class": "C1", "unit"?: "U1", "cards": [{"front", "back"}]}: up to ${MAX_CARDS} flashcards, when they ask for cards. Base them on search results from their material when there are any; keep each answer short and exact.
+- write_note {"class": "C1", "unit"?: "U1", "title", "body"}: save a note to their notes (a plan, a summary, a checklist) when they ask you to write something down. Plain text with simple "- " lists.
+- link {"to": review|unit_quiz|practice_test|mistakes|file|exam|calendar|tutor|class, "class"?, "unit"?, "event"?, "file"?}: a button for them to tap, when starting something would help (for example review C1's cards, the practice test for E2, open F3).
+
+If the date, class or item is unclear, call nothing and let the answer ask. Never more than ${MAX_CALLS} calls a round. You cannot delete or change files, cards or quizzes, so never try.`;
+}
+
+/** Writing the answer, streamed, after the tools ran. */
+export function answerSystem(feeling: "stressed" | null) {
+  return `You are the Stoga.study coach for a high school student. You sound like a warm, real older student who has their back: casual, kind, direct, never preachy or fake-cheerful. No guilt, no pressure.
+
+You help with everything around studying: planning the week, what to study next, how they're doing, their material (you can see their files, notes, cards and mistakes through what was looked up below), making flashcards and notes, and keeping their calendar. For explaining a concept in depth or working a homework problem, give a short pointer and suggest the tutor.
+
+How to answer:
+- ${feeling === "stressed" ? "They sound stressed. Start with one genuine sentence that acknowledges it, then ONE small concrete step. Do not list everything." : "Lead with the answer or the one thing to do next."}
+- Usually under 120 words. Short paragraphs; a short "- " list only when it really helps (steps, a plan). **Bold** for one or two key things at most. No headings.
+- Use what was looked up below. Never invent tests, dates, scores, files or numbers. If something wasn't found, say so.
+- Describe what you did exactly as listed under "Done" (the app shows each with an Undo button). Never claim anything else was done. If something failed, say so plainly.
+- If buttons were made (listed under "Buttons"), mention them naturally, like "tap the button below".
+- Plain text and Unicode math, no LaTeX.`;
+}
+
+/** What a step looks like while it runs ("Searching your notes for mitosis"). */
+export function stepLabel(c: Call, names: { cls: (ref: unknown) => string | null; unit: (ref: unknown) => string | null }) {
+  const cls = names.cls(c.args.class);
+  const where = cls ? ` in ${cls}` : "";
+  const q = typeof c.args.query === "string" ? c.args.query.slice(0, 40) : "";
+  switch (c.tool) {
+    case "search": return q ? `Searching your notes${where} for “${q}”` : `Searching your notes${where}`;
+    case "files": return `Looking at your files${where}`;
+    case "progress": return `Checking how you're doing${where}`;
+    case "mistakes": return `Going through your quiz mistakes${where}`;
+    case "weak_cards": return `Finding your hardest cards${where}`;
+    case "add_event": return "Adding it to your calendar";
+    case "update_event": return "Updating your calendar";
+    case "complete_event": return "Ticking it off";
+    case "uncomplete_event": return "Unticking it";
+    case "delete_event": return "Removing it from your calendar";
+    case "set_current_unit": return `Setting your current unit${names.unit(c.args.unit) ? ` to ${names.unit(c.args.unit)}` : ""}`;
+    case "make_cards": return `Making flashcards${where}`;
+    case "write_note": return `Writing a note${where}`;
+    case "link": return "Getting a button ready";
+  }
 }
 
 /** The fixed reply to anything that sounds like a crisis: no model call, and always the 988 line. */
@@ -116,5 +165,21 @@ export function crisisReply(firstName: string | null) {
 }
 
 /** A clean, safe title: one line, at most 120 characters. */
-export const cleanTitle = (s: string | null) => (s ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
-export const validKind = (s: string | null): Kind | null => (KINDS as readonly string[]).includes(s ?? "") ? (s as Kind) : null;
+export const cleanTitle = (s: unknown) => (typeof s === "string" ? s : "").replace(/\s+/g, " ").trim().slice(0, 120);
+export const validKind = (s: unknown): Kind | null => (KINDS as readonly string[]).includes(String(s ?? "")) ? (s as Kind) : null;
+
+/** Cards the model wrote: trimmed, non-empty, at most MAX_CARDS, no repeats. */
+export function cleanCards(raw: unknown): { front: string; back: string }[] {
+  if (!Array.isArray(raw)) return [];
+  const seen = new Set<string>();
+  const out: { front: string; back: string }[] = [];
+  for (const c of raw) {
+    const front = typeof c?.front === "string" ? c.front.trim().slice(0, 1000) : "";
+    const back = typeof c?.back === "string" ? c.back.trim().slice(0, 2000) : "";
+    if (!front || !back || seen.has(front.toLowerCase())) continue;
+    seen.add(front.toLowerCase());
+    out.push({ front, back });
+    if (out.length >= MAX_CARDS) break;
+  }
+  return out;
+}
