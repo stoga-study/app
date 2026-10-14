@@ -12,6 +12,9 @@ import { daysBetween, fromIso, monthGrid, shortDate, today, whenText } from "@/l
 import { isExam, isTask, useDeleteEvent, useEvents, useSaveEvent, type CalEvent, type EventDraft, type EventKind } from "@/lib/queries/events";
 import { useSubjects } from "@/lib/queries/profile";
 import { useAllUnits } from "@/lib/queries/units";
+import { PlanTaskRow } from "@/components/PlanTaskRow";
+import { usePlan } from "@/lib/queries/plan";
+import { PLAN_MINUTES, usePlanMinutes } from "@/lib/preferences";
 import { unitName } from "@/lib/units";
 
 const KIND_VALUES: EventKind[] = ["test", "quiz", "homework", "project", "other"];
@@ -28,7 +31,7 @@ export default function Calendar() {
   const save = useSaveEvent();
   const del = useDeleteEvent();
   const [params, setParams] = useSearchParams();
-  const [view, setView] = useState<"agenda" | "month">("agenda");
+  const [view, setView] = useState<"agenda" | "month" | "plan">(() => (params.get("view") === "plan" ? "plan" : "agenda"));
   const now = today();
   const [month, setMonth] = useState(() => ({ y: fromIso(now).getFullYear(), m: fromIso(now).getMonth() }));
   const [picked, setPicked] = useState(now);
@@ -123,14 +126,16 @@ export default function Calendar() {
       )}
 
       <div className="mb-4 flex gap-2" role="tablist" aria-label="View">
-        {(["agenda", "month"] as const).map((v) => (
+        {(["agenda", "month", "plan"] as const).map((v) => (
           <button key={v} type="button" role="tab" aria-selected={view === v} className="pill-option" onClick={() => setView(v)}>
-            {v === "agenda" ? "Agenda" : "Month"}
+            {v === "agenda" ? "Agenda" : v === "month" ? "Month" : "Study plan"}
           </button>
         ))}
       </div>
 
-      {view === "agenda" ? (
+      {view === "plan" ? (
+        <PlanView />
+      ) : view === "agenda" ? (
         all.length === 0 ? (
           <section className="card card-dashed flex flex-col items-start gap-3 p-6">
             <span className="tile soft"><CalendarDays /></span>
@@ -249,5 +254,42 @@ function MonthView({ month, setMonth, events, picked, setPicked, now, dayList, o
         {dayList(on(picked))}
       </section>
     </>
+  );
+}
+
+/** The week ahead: what to study each day for the tests coming up, within a daily time budget. */
+function PlanView() {
+  const plan = usePlan();
+  const [minutes, setMinutes] = usePlanMinutes();
+  if (!plan.ready) return <div className="skeleton h-48 rounded-[1.5rem]" />;
+  const now = today();
+  return (
+    <div className="flex flex-col gap-4">
+      <section className="card p-5" aria-labelledby="budget">
+        <h2 id="budget" className="text-[1.25rem]">Time a day</h2>
+        <p className="text-[0.9375rem] text-muted">The plan fits into this, with a bit more in the two days before a test.</p>
+        <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Minutes a day">
+          {PLAN_MINUTES.map((m) => (
+            <button key={m} type="button" role="radio" aria-checked={minutes === m} className="pill-option" onClick={() => setMinutes(m)}>{m} min</button>
+          ))}
+        </div>
+      </section>
+      {plan.exams.length === 0 ? (
+        <section className="card card-dashed p-6">
+          <p className="font-bold">No tests or quizzes in the next two weeks</p>
+          <p className="mt-1 text-muted">Add one with its class, and the units it covers if you know them. Your plan appears here and on Home.</p>
+        </section>
+      ) : (
+        plan.days.filter((d) => d.tasks.length).map((d) => (
+          <section key={d.day} className="card p-5" aria-labelledby={`p-${d.day}`}>
+            <h2 id={`p-${d.day}`} className="text-[1.25rem]">
+              {whenText(d.day)}
+              <span className="ml-2 font-body text-[0.9375rem] font-normal text-muted">{daysBetween(now, d.day) <= 13 && shortDate(d.day)} · about {d.minutes} min</span>
+            </h2>
+            <ul className="divide-y divide-line">{d.tasks.map((t) => <PlanTaskRow key={t.key} t={t} today={d.day === now} />)}</ul>
+          </section>
+        ))
+      )}
+    </div>
   );
 }
