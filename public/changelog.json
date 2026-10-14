@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.4.8",
+      "date": "2026-10-14",
+      "title": "Smarter calendar imports",
+      "intro": "Imported items land in the right place more often.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "Knows school words",
+          "text": "Presentations, DBQs, summatives, check-ins, DeltaMath and more. Test reviews and corrections count as homework, not the test."
+        },
+        {
+          "icon": "unit",
+          "title": "Knows your classes' nicknames",
+          "text": "Chem, APUSH, Calc, Precalc and others match the right class."
+        },
+        {
+          "icon": "choose",
+          "title": "AI for the rest",
+          "text": "Anything still unsure gets a quick AI look, so “EME Presentations” lands in World History. Anything you've already changed stays as you set it."
+        }
+      ]
+    },
+    {
       "version": "1.4.7",
       "date": "2026-10-14",
       "title": "Bring your own calendar",
