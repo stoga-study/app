@@ -985,6 +985,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar: Json | null
+          coach: Json | null
           created_at: string
           first_name: string | null
           grade: string | null
@@ -999,6 +1001,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          avatar?: Json | null
+          coach?: Json | null
           created_at?: string
           first_name?: string | null
           grade?: string | null
@@ -1013,6 +1017,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          avatar?: Json | null
+          coach?: Json | null
           created_at?: string
           first_name?: string | null
           grade?: string | null
