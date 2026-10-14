@@ -46,7 +46,7 @@ export function useMistakes() {
       const { data: qs, error: qErr } = await supabase.from("quiz_questions").select(Q_FIELDS).in("id", ms.map((m) => m.question_id)).eq("hidden", false);
       if (qErr) throw qErr;
       const quizIds = [...new Set(qs.map((q) => q.quiz_id))];
-      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, subject_id, source_id, sources(kind)").in("id", quizIds);
+      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, subject_id, source_id, sources(kind)").in("id", quizIds).eq("archived", false);
       if (zErr) throw zErr;
       const byQuiz = new Map(quizzes.map((z) => [z.id, z]));
       const byQ = new Map(asQuestions(qs).map((q) => [q.id, q]));
@@ -54,6 +54,8 @@ export function useMistakes() {
         const q = byQ.get(m.question_id);
         if (!q) return [];
         const z = byQuiz.get(q.quiz_id);
+        // A question from an archived file or class waits until it is restored.
+        if (!z) return [];
         return [{ ...m, question: { ...q, subject_id: z?.subject_id ?? "", source_id: z?.source_id ?? null, kind: (z?.sources as unknown as { kind: string } | null)?.kind ?? "pdf" } }];
       });
     },
@@ -68,7 +70,7 @@ export function useQuizList() {
     enabled: !!session,
     queryFn: async () => {
       const [qz, at] = await Promise.all([
-        supabase.from("quizzes").select("id, title, subject_id, source_id, created_at, quiz_questions!quiz_questions_quiz_id_fkey(count)").order("created_at", { ascending: false }),
+        supabase.from("quizzes").select("id, title, subject_id, source_id, created_at, quiz_questions!quiz_questions_quiz_id_fkey(count)").eq("archived", false).order("created_at", { ascending: false }),
         supabase.from("quiz_attempts").select("quiz_id, correct, total, finished_at").not("finished_at", "is", null).order("finished_at", { ascending: false }),
       ]);
       if (qz.error) throw qz.error;
@@ -152,7 +154,7 @@ export function useUnitQuestions(unitId: string | undefined, limit = 15) {
       const { data: files, error: fErr } = await supabase.from("sources").select("id, kind").eq("unit_id", unitId!);
       if (fErr) throw fErr;
       if (!files.length) return [];
-      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, source_id").in("source_id", files.map((f) => f.id));
+      const { data: quizzes, error: zErr } = await supabase.from("quizzes").select("id, source_id").in("source_id", files.map((f) => f.id)).eq("archived", false);
       if (zErr) throw zErr;
       if (!quizzes.length) return [];
       const { data: qs, error } = await supabase.from("quiz_questions").select(Q_FIELDS).in("quiz_id", quizzes.map((z) => z.id)).eq("hidden", false);
@@ -177,6 +179,7 @@ export function useUnitQuestionCounts(subjectId: string | undefined) {
         .from("quizzes")
         .select("source_id, sources!inner(unit_id), quiz_questions!quiz_questions_quiz_id_fkey(count)")
         .eq("subject_id", subjectId!)
+        .eq("archived", false)
         .not("sources.unit_id", "is", null);
       if (error) throw error;
       const out: Record<string, number> = {};

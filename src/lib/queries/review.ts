@@ -34,7 +34,7 @@ export function useDueQueue() {
     enabled: !!session,
     refetchOnMount: "always",
     queryFn: async () => {
-      const { data, error } = await supabase.from("cards").select(CARD_FIELDS).eq("hidden", false).lte("due", endOfToday().toISOString()).order("due").limit(400);
+      const { data, error } = await supabase.from("cards").select(CARD_FIELDS).eq("hidden", false).eq("archived", false).lte("due", endOfToday().toISOString()).order("due").limit(400);
       if (error) throw error;
       const cutoff = endOfToday().getTime();
       return (await withPending(data as unknown as ReviewCard[])).filter((c) => new Date(c.due).getTime() <= cutoff);
@@ -64,7 +64,7 @@ export function useWeakCards() {
       const { data, error } = await supabase
         .from("cards")
         .select(CARD_FIELDS)
-        .eq("hidden", false)
+        .eq("hidden", false).eq("archived", false)
         .neq("state", 0)
         .or(`lapses.gte.${WEAK.lapses},difficulty.gte.${WEAK.difficulty}`)
         .order("lapses", { ascending: false })
@@ -83,7 +83,7 @@ export function useNextDue() {
     queryKey: ["next-due", session?.user.id],
     enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase.from("cards").select("due").eq("hidden", false).gt("due", new Date().toISOString()).order("due").limit(1);
+      const { data, error } = await supabase.from("cards").select("due").eq("hidden", false).eq("archived", false).gt("due", new Date().toISOString()).order("due").limit(1);
       if (error) throw error;
       return data[0]?.due ?? null;
     },

@@ -21,9 +21,9 @@ export function useDueCards() {
     queryFn: async () => {
       const cutoff = endOfToday().toISOString();
       const [due, next, total] = await Promise.all([
-        supabase.from("cards").select("subject_id").eq("hidden", false).lte("due", cutoff),
-        supabase.from("cards").select("due").eq("hidden", false).gt("due", cutoff).order("due").limit(1),
-        supabase.from("cards").select("id", { count: "exact", head: true }).eq("hidden", false),
+        supabase.from("cards").select("subject_id").eq("hidden", false).eq("archived", false).lte("due", cutoff),
+        supabase.from("cards").select("due").eq("hidden", false).eq("archived", false).gt("due", cutoff).order("due").limit(1),
+        supabase.from("cards").select("id", { count: "exact", head: true }).eq("hidden", false).eq("archived", false),
       ]);
       for (const r of [due, next, total]) if (r.error) throw r.error;
       // Plain object, not a Map: this result is saved for offline use as JSON.

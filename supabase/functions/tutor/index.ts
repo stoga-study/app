@@ -83,7 +83,7 @@ async function contextQuestion(db: SupabaseClient, ctx: ExplainContext) {
 
 /** Section titles from the subject's study sets, so the tutor knows what the student has uploaded. */
 async function noteTopics(db: SupabaseClient, subjectId: string) {
-  const { data: srcs } = await db.from("sources").select("id").eq("subject_id", subjectId).eq("status", "ready").order("created_at", { ascending: false }).limit(10);
+  const { data: srcs } = await db.from("sources").select("id").eq("subject_id", subjectId).eq("status", "ready").eq("archived", false).order("created_at", { ascending: false }).limit(10);
   if (!srcs?.length) return [];
   const { data } = await db.from("notes_sections").select("title").in("source_id", srcs.map((s) => s.id)).order("position").limit(40);
   return [...new Set((data ?? []).map((n) => String(n.title).trim()))].slice(0, 25);
