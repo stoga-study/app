@@ -81,9 +81,9 @@ export function CalendarImport({ subjects, onClose }: { subjects: Subject[]; onC
           <h2 id="import-title" className="text-[1.25rem]">{preview.name}</h2>
           <p className="text-[0.9375rem] text-muted">{preview.items.length} items from a month ago on. Check the kind and class we guessed, and untick anything you don't want.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-[0.9375rem]">
-          <label htmlFor="all-class" className="font-bold">Class for items with none:</label>
-          <select id="all-class" className="input !min-h-10 min-w-0 flex-1" defaultValue="" onChange={(e) => setPreview((p) => p && { ...p, items: p.items.map((i) => (i.subject_id ? i : { ...i, subject_id: e.target.value || null })) })}>
+        <div className="flex flex-col gap-1 text-[0.9375rem] sm:flex-row sm:items-center sm:gap-2">
+          <label htmlFor="all-class" className="font-bold">Class for items with none</label>
+          <select id="all-class" className="input !min-h-10 w-full sm:w-auto sm:flex-1" defaultValue="" onChange={(e) => setPreview((p) => p && { ...p, items: p.items.map((i) => (i.subject_id ? i : { ...i, subject_id: e.target.value || null })) })}>
             <option value="">Leave them without a class</option>
             {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
