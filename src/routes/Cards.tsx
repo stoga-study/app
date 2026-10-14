@@ -1,8 +1,9 @@
-import { ArrowLeft, Check, Layers, Merge, Pencil, PenLine, Play, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, FileUp, Layers, Merge, Pencil, PenLine, Play, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { CardBrowser, CardForm } from "@/components/CardBrowser";
+import { CardImport } from "@/components/CardImport";
 import { PageHeader } from "@/components/PageHeader";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export function ClassCards() {
   const org = useOrganise();
   const [size] = useSessionSize();
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
   if (subjects.isPending || cards.isPending) return <PageSkeleton label="Getting your cards." />;
   const subject = subjects.data?.find((s) => s.id === id);
   if (!subject) return <ErrorState title="We could not find that class">It may have been removed. <Link to="/subjects">See your subjects</Link>.</ErrorState>;
@@ -48,11 +50,23 @@ export function ClassCards() {
             {due > 0 && <Button asChild><Link to={`/review/session?subject=${subject.id}&size=${size}`}><Play /> Review {due} due</Link></Button>}
             {list.length > 0 && <Button asChild variant="secondary"><Link to={`/practice?subject=${subject.id}`}><PenLine /> Type answers</Link></Button>}
             <Button variant="secondary" onClick={() => setAdding(true)}><Plus /> New card</Button>
+            <Button variant="secondary" onClick={() => setImporting(true)}><FileUp /> Import</Button>
           </div>
         }
       >
         {plural(list.length, "card")}. Tap one to edit it, or Select to tag, add to a deck, move or delete several.
       </PageHeader>
+      {importing && (
+        <CardImport
+          className={subject.name}
+          onCancel={() => setImporting(false)}
+          onImport={async (cs, tags) => {
+            const n = await org.importCards(subject.id, cs, tags);
+            toast(`${plural(n, "card")} imported. They are due today.`);
+            setImporting(false);
+          }}
+        />
+      )}
       {adding && (
         <div className="card mb-6 p-5">
           <h2 className="mb-3 text-[1.25rem]">New card in {subject.name}</h2>

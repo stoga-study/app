@@ -128,6 +128,14 @@ export function useOrganise() {
       }
       return data.id;
     }),
+    /** Many cards at once (bulk import), in batches; all due today, marked as the student's own. */
+    importCards: run(async (subjectId: string, cards: { front: string; back: string }[], tags: string[] = []) => {
+      for (let i = 0; i < cards.length; i += 100) {
+        const { error } = await supabase.from("cards").insert(cards.slice(i, i + 100).map((c) => ({ subject_id: subjectId, front: c.front, back: c.back, tags, edited: true })));
+        if (error) throw error;
+      }
+      return cards.length;
+    }),
     createDeck: run(async (name: string) => {
       const { data, error } = await supabase.from("decks").insert({ name: name.trim().slice(0, 60) }).select("id").single();
       if (error) throw error;
