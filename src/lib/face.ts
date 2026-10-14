@@ -3,26 +3,24 @@
 
 export const PARTS = {
   shape: ["round", "oval", "square", "soft"],
-  skin: ["#FBE0CB", "#F1C7A1", "#E0A77A", "#C68652", "#8D5A3B", "#5C3A26"],
   hair: ["none", "buzz", "short", "side", "curly", "spiky", "long", "bob", "bun", "ponytail", "afro"],
-  hairColor: ["#231B1E", "#6B4226", "#E3B765", "#B5482C", "#B9B4B0", "#F06E9C", "#5B7CFA"],
   eyes: ["dots", "round", "happy", "wide", "sleepy", "wink"],
   brows: ["none", "flat", "raised", "focused", "thick"],
   mouth: ["smile", "grin", "open", "flat", "smirk", "tongue"],
   extra: ["none", "glasses", "round-glasses", "sunglasses", "headphones", "cap", "earring", "blush"],
-  shirt: ["#B5123E", "#231B1E", "#5B7CFA", "#2F9E6E", "#E9A23B", "#F4F1EE"],
-  bg: ["#F7E1E6", "#E3ECFF", "#DFF3E8", "#FFF0D2", "#ECE4FF", "#ECEAE8"],
+  top: ["tee", "black", "collar", "hoodie", "stripes"],
+  bg: ["#FFFFFF", "#F7E1E6", "#E3ECFF", "#DFF3E8", "#FFF0D2", "#ECE4FF", "#ECEAE8"],
 } as const;
 
 export type Part = keyof typeof PARTS;
 export type Face = { [K in Part]: (typeof PARTS)[K][number] };
 
 export const PART_LABEL: Record<Part, string> = {
-  shape: "Face", skin: "Skin", hair: "Hair", hairColor: "Hair color", eyes: "Eyes", brows: "Brows", mouth: "Mouth", extra: "Extras", shirt: "Shirt", bg: "Background",
+  shape: "Face", hair: "Hair", eyes: "Eyes", brows: "Brows", mouth: "Mouth", extra: "Extras", top: "Clothes", bg: "Background",
 };
 
-/** The coach everyone starts with: curly hair, happy eyes, a grin and headphones. */
-export const DEFAULT_COACH_FACE: Face = { shape: "round", skin: "#E0A77A", hair: "curly", hairColor: "#231B1E", eyes: "happy", brows: "raised", mouth: "grin", extra: "headphones", shirt: "#B5123E", bg: "#F7E1E6" };
+/** The coach everyone starts with: curly hair, happy eyes, a grin, headphones and a hoodie. */
+export const DEFAULT_COACH_FACE: Face = { shape: "round", hair: "curly", eyes: "happy", brows: "raised", mouth: "grin", extra: "headphones", top: "hoodie", bg: "#F7E1E6" };
 
 /** A face from any saved value: known choices kept, anything else from the fallback. */
 export function toFace(v: unknown, fallback: Face = DEFAULT_COACH_FACE): Face {

@@ -5,14 +5,14 @@ import { PART_LABEL, PARTS, randomFace, type Face as FaceT, type Part } from "@/
 import { Face } from "./Face";
 
 const TABS: { label: string; parts: Part[] }[] = [
-  { label: "Face", parts: ["shape", "skin"] },
-  { label: "Hair", parts: ["hair", "hairColor"] },
+  { label: "Face", parts: ["shape"] },
+  { label: "Hair", parts: ["hair"] },
   { label: "Eyes", parts: ["eyes", "brows"] },
   { label: "Mouth", parts: ["mouth"] },
   { label: "Extras", parts: ["extra"] },
-  { label: "Colors", parts: ["shirt", "bg"] },
+  { label: "Style", parts: ["top", "bg"] },
 ];
-const SWATCH: Part[] = ["skin", "hairColor", "shirt", "bg"];
+const SWATCH: Part[] = ["bg"];
 
 /** Build a face from parts: a big live preview, part tabs, each choice shown on your own face, and Shuffle. */
 export function FaceEditor({ value, onChange, title }: { value: FaceT; onChange: (f: FaceT) => void; title: string }) {

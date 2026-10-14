@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "1.4.13",
+      "date": "2026-10-14",
+      "title": "Faces, redrawn",
+      "intro": "Faces are now black-and-white ink drawings, cleaner and more grown-up.",
+      "highlights": [
+        {
+          "icon": "choose",
+          "title": "A new look",
+          "text": "Bold ink lines, solid black hair and small, expressive features. Pick a background color and clothes (tee, black tee, collar, hoodie or stripes). Your old face carries over."
+        }
+      ]
+    },
+    {
       "version": "1.4.12",
       "date": "2026-10-14",
       "title": "Dates your way",
