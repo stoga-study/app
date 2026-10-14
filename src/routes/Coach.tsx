@@ -203,7 +203,7 @@ export default function Coach() {
     <section className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-2xl flex-col" aria-label="Coach">
       {msgs.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 py-8 text-center">
-          <span className="coach-orb size-20 rounded-full" aria-hidden="true" />
+          <span className="coach-orb coach-orb-glow size-20 rounded-full" aria-hidden="true" />
           <div className="rise">
             <h1 className="text-[2.25rem] leading-tight md:text-[2.75rem]">{name ? `Hey ${name}.` : "Hey there."}</h1>
             <p className="mt-2 text-[1.0625rem] text-muted">I can see your classes, notes, cards and calendar. What do you need?</p>

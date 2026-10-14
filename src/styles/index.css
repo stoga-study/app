@@ -205,10 +205,8 @@ html[data-text="largest"] { font-size: 125%; }
   animation: shimmer-text 2.2s linear infinite;
 }
 .coach-caret { display: inline-block; width: 0.55em; height: 0.55em; margin-left: 0.2em; border-radius: 999px; background: var(--hot); vertical-align: 0.05em; animation: caret 1s ease-in-out infinite; }
-.coach-orb {
-  background: radial-gradient(circle at 30% 30%, #ff5c8a 0%, var(--hot) 35%, #720D19 70%, transparent 72%);
-  filter: blur(0.5px); box-shadow: 0 0 60px color-mix(in srgb, var(--hot) 45%, transparent); animation: breathe 6s ease-in-out infinite;
-}
+.coach-orb { background: radial-gradient(circle at 32% 28%, #ff8fb0 0%, var(--hot) 42%, #720D19 100%); animation: breathe 6s ease-in-out infinite; }
+.coach-orb-glow { box-shadow: 0 0 48px 4px color-mix(in srgb, var(--hot) 35%, transparent); }
 .coach-spin { width: 1rem; height: 1rem; border-radius: 999px; border: 2px solid color-mix(in srgb, var(--hot) 25%, transparent); border-top-color: var(--hot); animation: spin 0.8s linear infinite; }
 .check-in { animation: check-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
