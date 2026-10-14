@@ -28,7 +28,14 @@ export function PageChips({ pages, kind, quote, sourceId }: { pages: number[]; k
       {open && (
         <div role="status" className="mt-2 max-w-sm rounded-[0.875rem] border-2 border-tint-line bg-tint p-3 text-[0.875rem]">
           {quote ? <p className="italic text-ink-2">&ldquo;{quote}&rdquo;</p> : <p className="text-muted">Open the page to check this against your notes.</p>}
-          {sourceId && <Link to={`/sources/${sourceId}`} className="mt-1 inline-block font-bold text-brand">Open page →</Link>}
+          {sourceId && (
+            <Link
+              to={kind === "pdf" || kind === "image" ? `/sources/${sourceId}/view?page=${pages[0]}${quote ? `&quote=${encodeURIComponent(quote)}` : ""}` : `/sources/${sourceId}`}
+              className="mt-1 inline-block font-bold text-brand"
+            >
+              Open page →
+            </Link>
+          )}
         </div>
       )}
     </>

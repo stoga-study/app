@@ -24,6 +24,7 @@ import Subject from "./routes/Subject";
 import Subjects from "./routes/Subjects";
 import Tutor, { TutorHome } from "./routes/Tutor";
 import Upload from "./routes/Upload";
+import Viewer from "./routes/Viewer";
 import SignIn from "./routes/SignIn";
 import Welcome from "./routes/Welcome";
 import WhatsNew, { Changelog } from "./routes/WhatsNew";
@@ -61,6 +62,7 @@ export const router = createBrowserRouter([
           { path: "practice", element: <Practice /> },
           { path: "decks/:id", element: <DeckPage /> },
           { path: "sources/:id", element: <SourcePage /> },
+          { path: "sources/:id/view", element: <Viewer /> },
           { path: "notes/:id", element: <NotePage /> },
           { path: "classes", element: <Classes /> },
           { path: "upload", element: <Upload /> },

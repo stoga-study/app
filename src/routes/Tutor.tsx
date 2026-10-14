@@ -68,10 +68,11 @@ function CiteChip({ c }: { c: Pick<Citation, "source_id" | "page" | "kind" | "fi
         <NotebookPen aria-hidden="true" /> My notes
       </Link>
     );
+  const paged = c.kind === "pdf" || c.kind === "image";
   return (
-    <Link to={`/sources/${c.source_id}`} className="source-chip mx-0.5 !min-h-7 align-middle !text-[0.75rem]" title={c.filename}>
+    <Link to={paged ? `/sources/${c.source_id}/view?page=${c.page}` : `/sources/${c.source_id}`} className="source-chip mx-0.5 !min-h-7 align-middle !text-[0.75rem]" title={c.filename}>
       <FileText aria-hidden="true" />
-      {c.kind === "pdf" || c.kind === "image" ? "p." : "part"} {c.page}
+      {paged ? "p." : "part"} {c.page}
     </Link>
   );
 }

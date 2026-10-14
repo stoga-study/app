@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { NoteList } from "@/components/NoteList";
 import { UnitPicker } from "@/components/UnitPicker";
 import { useSubjects } from "@/lib/queries/profile";
-import { openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages } from "@/lib/queries/sources";
+import { isPaged, openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages } from "@/lib/queries/sources";
 import { startErrorText, startGeneration, useCaps, useLiveSource, useStudySet } from "@/lib/queries/studyset";
 import { newNoteUrl, useNotes } from "@/lib/queries/notes";
 import { useFileUnder, useUnits } from "@/lib/queries/units";
@@ -94,6 +94,9 @@ export default function SourcePage() {
                   </span>
                 </summary>
                 <p className="whitespace-pre-line px-4 pb-4 text-[0.9375rem] text-ink-2">{p.text}</p>
+                {isPaged(s.kind) && s.storage_path && (
+                  <Link to={`/sources/${s.id}/view?page=${p.page_no}`} className="mb-4 ml-4 inline-block text-[0.875rem] font-bold text-brand">View original →</Link>
+                )}
               </details>
             </li>
           ))}

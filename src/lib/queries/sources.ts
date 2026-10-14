@@ -189,6 +189,20 @@ export async function openOriginal(source: Source) {
   window.open(data.signedUrl, "_blank", "noopener");
 }
 
+/** A longer-lived signed URL for the in-app viewer, so a student can stay on one page a while. */
+export function useSignedFileUrl(storagePath: string | null | undefined) {
+  return useQuery({
+    queryKey: ["signed-file", storagePath],
+    enabled: !!storagePath,
+    staleTime: 50 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage.from("sources").createSignedUrl(storagePath!, 3600);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+  });
+}
+
 /** PDFs and photos have pages; Word files and pasted text are split into parts. */
 export const isPaged = (kind: string) => kind === "pdf" || kind === "image";
 export const pageWord = (kind: string, n: number) => (isPaged(kind) ? (n === 1 ? "page" : "pages") : n === 1 ? "part" : "parts");

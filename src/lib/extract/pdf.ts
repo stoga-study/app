@@ -37,6 +37,27 @@ export async function readPdf(data: ArrayBuffer, onProgress?: (done: number, tot
   }
 }
 
+/** Renders one page of a PDF at a signed URL onto a canvas, for the original-file viewer. */
+export async function renderPdfPageFromUrl(url: string, pageNo: number, canvas: HTMLCanvasElement, maxWidth: number): Promise<void> {
+  const task = getDocument({ url });
+  try {
+    const doc = await task.promise;
+    const page = await doc.getPage(Math.min(Math.max(1, pageNo), doc.numPages));
+    const base = page.getViewport({ scale: 1 });
+    const scale = Math.min(2.5, (maxWidth * (window.devicePixelRatio || 1)) / base.width);
+    const viewport = page.getViewport({ scale });
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+    page.cleanup();
+  } finally {
+    await task.destroy();
+  }
+}
+
 /**
  * Read pages that have no text (a scan) by rendering each one to an image and sending it to `readPage`.
  * Up to three pages are read at once. Returns page number → text.

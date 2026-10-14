@@ -11,7 +11,7 @@ import { setRecent } from "@/lib/recent";
 import { pushNote, saveDraft, useDeleteNote, useNote, type NoteDraft } from "@/lib/queries/notes";
 import { AssistError, fillGaps, makeCardsFromNote, tidyNote } from "@/lib/queries/notesAssist";
 import { useAllSubjects } from "@/lib/queries/profile";
-import { pageWord, useSource, useSourcePages } from "@/lib/queries/sources";
+import { isPaged, pageWord, useSource, useSourcePages } from "@/lib/queries/sources";
 import { useUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
 
@@ -367,7 +367,12 @@ function FilePanel({ sourceId }: { sourceId: string }) {
       <p className="flex items-center gap-2 font-bold"><FileText className="size-5 text-brand" /> <span className="truncate">{source.data?.filename}</span></p>
       {pages.data.map((p) => (
         <div key={p.page_no} className="card !shadow-none p-4">
-          <p className="mb-1 text-[0.8125rem] font-bold capitalize text-muted">{pageWord(source.data?.kind ?? "pdf", 1)} {p.page_no}</p>
+          <p className="mb-1 flex items-center justify-between gap-2 text-[0.8125rem] font-bold capitalize text-muted">
+            <span>{pageWord(source.data?.kind ?? "pdf", 1)} {p.page_no}</span>
+            {source.data && isPaged(source.data.kind) && source.data.storage_path && (
+              <Link to={`/sources/${sourceId}/view?page=${p.page_no}`} className="font-bold normal-case text-brand">View original →</Link>
+            )}
+          </p>
           <p className="whitespace-pre-line text-[0.9375rem] text-ink-2">{p.text}</p>
         </div>
       ))}
