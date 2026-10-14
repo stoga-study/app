@@ -1,4 +1,4 @@
-import { Archive, ArrowLeft, Check, NotebookPen, ChevronRight, FileText, Layers, ListChecks, MessageCircle, Pencil, Pin, PinOff, Upload } from "lucide-react";
+import { Archive, ArrowLeft, CalendarDays, Plus, Check, NotebookPen, ChevronRight, FileText, Layers, ListChecks, MessageCircle, Pencil, Pin, PinOff, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
@@ -18,6 +18,9 @@ import { newNoteUrl, useNotes, type NoteSummary } from "@/lib/queries/notes";
 import { useCurrentUnit, useRenameUnit, useUnits, type Unit } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
 import { toast } from "sonner";
+import { EventRow } from "@/components/EventRow";
+import { today } from "@/lib/calendar";
+import { useEvents } from "@/lib/queries/events";
 
 const fmt = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
 
@@ -30,6 +33,7 @@ export default function Subject() {
   const units = useUnits(id);
   const masteryAll = useMastery();
   const notes = useNotes(id);
+  const events = useEvents();
   const navigate = useNavigate();
   const [tag, setTag] = useState<string | null>(null);
   if (subjects.isPending) return <PageSkeleton />;
@@ -86,6 +90,26 @@ export default function Subject() {
               <Button asChild size="sm" variant="secondary" className="mt-auto self-start"><Link to={`/tutor/${subject.id}`}>Ask a question</Link></Button>
             </div>
           </div>
+        );
+      })()}
+      {(() => {
+        const now = today();
+        const next = (events.data ?? []).filter((e) => e.subject_id === subject.id && e.due_on >= now && !e.done_at).slice(0, 3);
+        const unitNames = (ids: string[]) => ids.map((u) => units.data?.find((x) => x.id === u)).filter((u) => !!u).map((u) => unitName(u!));
+        return (
+          <section className="card mb-8 p-5" aria-labelledby="coming-up">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 id="coming-up" className="flex flex-1 items-center gap-2 text-[1.25rem]"><CalendarDays className="size-5 text-brand" /> Coming up</h2>
+              <Button asChild size="sm" variant="secondary"><Link to={`/calendar?add=1&subject=${subject.id}`}><Plus /> Add a test or homework</Link></Button>
+            </div>
+            {next.length ? (
+              <ul className="mt-1 divide-y divide-line">
+                {next.map((e) => <EventRow key={e.id} e={e} unitNames={unitNames(e.unit_ids)} showWhen onOpen={() => navigate(`/calendar?event=${e.id}`)} />)}
+              </ul>
+            ) : (
+              <p className="mt-2 text-muted">Nothing on the calendar for this class yet.</p>
+            )}
+          </section>
         );
       })()}
       {!!units.data?.length && <NowStudying subjectId={subject.id} units={units.data} currentId={subject.current_unit_id} pinned={subject.current_unit_pinned} />}
