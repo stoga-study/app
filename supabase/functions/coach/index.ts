@@ -18,7 +18,7 @@ import { cleanText } from "../_lib/study.ts";
 import { wellbeing } from "../_lib/tutor.ts";
 import {
   addDays, answerSystem, cleanCards, cleanTitle, contextText, crisisReply, isIsoDate, isTime, MAX_ROUNDS, parseCalls, READ_TOOLS, STEP_SCHEMA, stepLabel,
-  stepSystem, validKind, type Call, type Ctx,
+  stepSystem, toPersona, validKind, type Call, type Ctx,
 } from "../_lib/coach.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -42,7 +42,7 @@ const strip = (s: string) => s.replace(/<\/?b>/g, "").replace(/\s+/g, " ").trim(
 
 async function loadContext(db: SupabaseClient, today: string, planToday: string[]) {
   const [profile, subjects, units, events, cards, mistakes, files] = await Promise.all([
-    db.from("profiles").select("first_name").maybeSingle(),
+    db.from("profiles").select("first_name, coach").maybeSingle(),
     db.from("subjects").select("id, name, current_unit_id, current_unit_pinned").eq("archived", false).order("created_at"),
     db.from("units").select("id, subject_id, number, title, word"),
     db.from("events").select("*, event_units(unit_id)").gte("due_on", addDays(today, -7)).order("due_on").limit(80),
@@ -82,7 +82,7 @@ async function loadContext(db: SupabaseClient, today: string, planToday: string[
     planToday,
   };
   return {
-    ctx, ref, byRef, unitName,
+    ctx, ref, byRef, unitName, persona: toPersona(profile.data?.coach),
     subjectName: new Map((subjects.data ?? []).map((s) => [s.id, s.name])),
     currentUnit: new Map((subjects.data ?? []).map((s) => [s.id, { unit_id: s.current_unit_id as string | null, pinned: !!s.current_unit_pinned }])),
   };
@@ -425,7 +425,7 @@ Deno.serve(async (req) => {
       const { res, model } = await llmStream({
         own, effort: "light", maxTokens: 900,
         messages: [
-          { role: "system", content: answerSystem(feeling) },
+          { role: "system", content: answerSystem(feeling, loaded.persona) },
           { role: "system", content: context },
           ...history,
           { role: "user", content: message },

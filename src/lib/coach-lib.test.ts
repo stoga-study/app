@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addDays, answerSystem, cleanCards, contextText, crisisReply, isIsoDate, isTime, MAX_CARDS, parseCalls, stepLabel, stepSystem, validKind, type Ctx } from "../../supabase/functions/_lib/coach";
+import { addDays, answerSystem, toPersona, cleanCards, contextText, crisisReply, isIsoDate, isTime, MAX_CARDS, parseCalls, stepLabel, stepSystem, validKind, type Ctx } from "../../supabase/functions/_lib/coach";
 
 const ctx: Ctx = {
   today: "2026-10-14",
@@ -63,6 +63,15 @@ describe("coach lib", () => {
     expect(answerSystem("stressed")).toMatch(/acknowledges it, then ONE small concrete step/);
     expect(answerSystem(null)).toMatch(/Never claim anything else was done/);
     expect(stepSystem()).toMatch(/You cannot delete or change files, cards or quizzes/);
+  });
+
+  it("follows the student's choices for their coach", () => {
+    const p = toPersona({ name: "Juno<script>", vibe: "hype", length: "short" });
+    expect(p).toEqual({ name: "Junoscript", vibe: "hype", length: "short" });
+    expect(answerSystem(null, p)).toMatch(/^You are Junoscript, the student's Stoga.study coach/);
+    expect(answerSystem(null, p)).toMatch(/under 60 words/);
+    expect(answerSystem(null, p)).toMatch(/high-energy/);
+    expect(toPersona(null)).toEqual({ name: "Coach", vibe: "chill", length: "normal" });
   });
 
   it("always gives the 988 line in a crisis", () => {

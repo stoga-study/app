@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, ArrowUp, CalendarPlus, Check, ChevronDown, Layers, ListChecks, RotateCcw, Sparkles, Square, Trash2, TrendingUp, WifiOff, X } from "lucide-react";
+import { ArrowRight, ArrowUp, CalendarPlus, Check, ChevronDown, Layers, ListChecks, Palette, RotateCcw, Sparkles, Square, Trash2, TrendingUp, WifiOff, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -9,7 +9,8 @@ import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { loadCoach, saveCoach, streamCoach, undoCoach, type CoachEvent, type CoachMessage } from "@/lib/queries/coach";
 import { usePlan } from "@/lib/queries/plan";
-import { useProfile } from "@/lib/queries/profile";
+import { useFaces, useProfile } from "@/lib/queries/profile";
+import { Face } from "@/components/Face";
 import { useOnline } from "@/lib/useOnline";
 
 const STARTERS: { icon: ReactNode; text: string }[] = [
@@ -88,6 +89,7 @@ export default function Coach() {
   const { session } = useAuth();
   const userId = session!.user.id;
   const profile = useProfile();
+  const { coach } = useFaces();
   const [msgs, setMsgs] = useState<CoachMessage[]>(() => loadCoach(userId));
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -203,10 +205,13 @@ export default function Coach() {
     <section className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-2xl flex-col" aria-label="Coach">
       {msgs.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 py-8 text-center">
-          <span className="coach-orb coach-orb-glow size-20 rounded-full" aria-hidden="true" />
+          <Link to="/coach/customize" aria-label={`Customize ${coach.name}`} className="face-hop rounded-full shadow-[0_12px_40px_-12px_color-mix(in_srgb,var(--hot)_45%,transparent)] transition-transform hover:scale-105">
+            <Face face={coach.face} size={104} mood="idle" />
+          </Link>
           <div className="rise">
-            <h1 className="text-[2.25rem] leading-tight md:text-[2.75rem]">{name ? `Hey ${name}.` : "Hey there."}</h1>
+            <h1 className="text-[2.25rem] leading-tight md:text-[2.75rem]">{name ? `Hey ${name}, I'm ${coach.name}.` : `Hey, I'm ${coach.name}.`}</h1>
             <p className="mt-2 text-[1.0625rem] text-muted">I can see your classes, notes, cards and calendar. What do you need?</p>
+            <Link to="/coach/customize" className="mt-2 inline-flex items-center gap-1.5 text-[0.9375rem] font-bold"><Palette className="size-4" /> Customize me</Link>
           </div>
           <div className="grid w-full gap-2 sm:grid-cols-2">
             {STARTERS.map((s, i) => (
@@ -227,8 +232,11 @@ export default function Coach() {
       ) : (
         <>
           <div className="mb-4 flex items-center justify-between">
-            <h1 className="flex items-center gap-2 text-[1.5rem]"><span className="coach-orb size-6 rounded-full" aria-hidden="true" /> Coach</h1>
-            <Button variant="ghost" size="sm" disabled={busy} onClick={() => setMsgs([])}><Trash2 /> New chat</Button>
+            <h1 className="flex items-center gap-2 text-[1.5rem]"><Face face={coach.face} size={36} mood={busy ? "thinking" : "idle"} /> {coach.name}</h1>
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" asChild><Link to="/coach/customize" aria-label={`Customize ${coach.name}`}><Palette /></Link></Button>
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setMsgs([])}><Trash2 /> New chat</Button>
+            </div>
           </div>
           <div className="flex flex-1 flex-col gap-5" aria-live="polite">
             {msgs.map((m, mi) =>
@@ -236,7 +244,7 @@ export default function Coach() {
                 <div key={mi} className="rise max-w-[85%] self-end whitespace-pre-line rounded-[1.25rem] rounded-br-md bg-tint px-4 py-3">{m.content}</div>
               ) : (
                 <div key={mi} className="flex gap-3">
-                  <span className={cn("coach-orb mt-1 size-6 flex-none rounded-full", !m.live && "[animation-play-state:paused]")} aria-hidden="true" />
+                  <Face face={coach.face} size={30} className="mt-0.5" mood={!m.live ? (mi === msgs.length - 1 ? "idle" : "still") : m.content ? "talking" : "thinking"} />
                   <div className="flex min-w-0 flex-1 flex-col gap-3">
                     {m.live && !m.content && !m.steps?.length && <p className="shimmer-text font-bold">Thinking…</p>}
                     <Steps m={m} />
