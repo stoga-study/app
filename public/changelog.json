@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "1.3.1",
+      "date": "2026-10-13",
+      "title": "See the real page",
+      "intro": "A citation is only as good as how easy it is to check.",
+      "highlights": [
+        {
+          "icon": "viewer",
+          "title": "The original file, in the app",
+          "text": "Tap a page chip or a tutor citation to see the real page, jumped straight to it, with the cited passage highlighted in what we read from it. No more opening a download."
+        }
+      ]
+    },
+    {
       "version": "1.3.0",
       "date": "2026-10-13",
       "title": "Search everything",
