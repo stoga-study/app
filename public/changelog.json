@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.4.1",
+      "date": "2026-10-14",
+      "title": "A plan for every test",
+      "intro": "Add a test to your calendar and Stoga spreads the studying over the days you have.",
+      "highlights": [
+        {
+          "icon": "calendar",
+          "title": "Study plan",
+          "text": "For each test or quiz in the next two weeks: cards from its units each day, practice quizzes, your quiz mistakes and study guides to read. A bit more in the last two days."
+        },
+        {
+          "icon": "checklist",
+          "title": "Today's plan on Home",
+          "text": "Today's tasks and homework due soon, at the top of Home. Tasks tick themselves off as you review cards and finish quizzes, or tick them yourself."
+        },
+        {
+          "icon": "retention",
+          "title": "Your time, your call",
+          "text": "Pick 15, 30, 45 or 60 minutes a day on the calendar's Study plan tab. The plan fits into it."
+        }
+      ]
+    },
+    {
       "version": "1.4.0",
       "date": "2026-10-14",
       "title": "Your calendar",
