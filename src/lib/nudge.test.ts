@@ -27,6 +27,10 @@ describe("coachNudge", () => {
   it("says so when looking ready", () => {
     expect(coachNudge({ ...base, exams: [exam({ fresh: 0, readiness: { level: "ready", label: "Ready", reason: "x" } })] })?.text).toMatch(/looking ready/);
   });
+  it("still offers a plan for a test with nothing to study from yet", () => {
+    expect(coachNudge({ ...base, exams: [exam({ fresh: 0, cards: 0 })] })).toMatchObject({ text: "Biology Unit 4 test in 3 days. Want a plan for it?", cta: "Make a plan" });
+  });
+
   it("helps catch up on overdue homework when no test is close", () => {
     expect(coachNudge({ ...base, exams: [exam({ daysLeft: 12 })], overdue: 2 })?.text).toBe("2 things are past due. Want to sort out when to get them done?");
   });

@@ -32,6 +32,8 @@ export function coachNudge(i: NudgeInput): Nudge | null {
     if (next.readiness?.level === "ready") {
       return { text: `${name} ${when(next.daysLeft)}, and you're looking ready. A quick practice quiz keeps it fresh.`, say: null, cta: "Open the coach" };
     }
+    // Nothing to study from yet: still worth a plan.
+    return { text: `${name} ${when(next.daysLeft)}. Want a plan for it?`, say: `Help me plan for my ${next.title}`, cta: "Make a plan" };
   }
   if (i.overdue > 0) {
     return { text: `${i.overdue === 1 ? "One thing is" : `${i.overdue} things are`} past due. Want to sort out when to get ${i.overdue === 1 ? "it" : "them"} done?`, say: "Help me catch up on my late homework", cta: "Make a catch-up plan" };
