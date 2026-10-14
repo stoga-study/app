@@ -87,3 +87,23 @@ export function usePracticeTests(subjectId: string | undefined) {
     },
   });
 }
+
+/** Key terms from the files in a class, or in some of its units, for the review pack. */
+export function useKeyTerms(subjectId: string | null, unitIds: string[]) {
+  return useQuery({
+    queryKey: ["key-terms", subjectId, [...unitIds].sort().join(",")],
+    enabled: !!subjectId,
+    queryFn: async () => {
+      let fq = supabase.from("sources").select("id").eq("subject_id", subjectId!).eq("archived", false);
+      if (unitIds.length) fq = fq.in("unit_id", unitIds);
+      const { data: files, error: fErr } = await fq;
+      if (fErr) throw fErr;
+      if (!files.length) return [];
+      const { data, error } = await supabase.from("key_terms").select("id, term, definition").eq("hidden", false).in("source_id", files.map((f) => f.id)).order("position").limit(60);
+      if (error) throw error;
+      // The same term from two files appears once.
+      const seen = new Set<string>();
+      return data.filter((t) => !seen.has(t.term.toLowerCase()) && seen.add(t.term.toLowerCase()));
+    },
+  });
+}

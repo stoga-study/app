@@ -49,11 +49,11 @@ function SideLink({ item }: { item: Item }) {
 export function Shell({ aside }: { aside?: ReactNode }) {
   useNoteSync();
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr]">
+    <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr] print:block">
       <a href="#main" className="sr-only-focusable btn btn-primary fixed left-4 top-4 z-50">Skip to content</a>
 
       {/* Desktop sidebar: 272px, per the brand layout spec. */}
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-1 border-r border-line px-4 py-5 lg:flex" aria-label="Sidebar">
+      <aside className="sticky top-0 hidden h-dvh print:!hidden flex-col gap-1 border-r border-line px-4 py-5 lg:flex" aria-label="Sidebar">
         <NavLink to="/" className="mb-6 px-1 text-ink no-underline">
           <Brand />
         </NavLink>
@@ -68,7 +68,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
 
       <div className="flex min-h-dvh min-w-0 flex-col">
         {/* Phone and tablet top bar; the sidebar carries the brand on desktop. */}
-        <header className="flex items-center justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] md:px-8 lg:hidden">
+        <header className="flex items-center justify-between print:hidden px-5 pt-[calc(1rem+env(safe-area-inset-top))] md:px-8 lg:hidden">
           <NavLink to="/" className="text-ink no-underline">
             <Brand descriptor={false} />
           </NavLink>
@@ -104,7 +104,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
         {/* Phone and tablet tab bar. */}
         <nav
           aria-label="Main"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-card px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 print:hidden border-t border-line bg-card px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] lg:hidden"
         >
           {TABS.map((i) => (
             <NavLink
