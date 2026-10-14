@@ -178,6 +178,14 @@ try {
       ],
     },
     {
+      name: "Lists homework and projects straight from the calendar",
+      say: "What homework do I have (includes projects, essays, presentations, etc.)",
+      check: async (r) => [
+        !/Worksheet 3|Unit 2 test/i.test(r.reply) && "doesn't list what's on the calendar",
+        /(don.t|can.t|cannot) (have|see|access)[^.]*calendar|not loaded/i.test(r.reply) && "claims it can't see the calendar",
+      ],
+    },
+    {
       name: "A quick content question is answered from their own notes",
       say: "what does the mitochondria do",
       check: async (r) => [r.actions.length > 0 && "made a change", !/respiration|ATP|energy/i.test(r.reply) && "no answer from the notes", /couldn.t find/i.test(r.reply) && "says it couldn't find it"],
@@ -197,7 +205,7 @@ try {
         const made = r.actions.find((a) => a.type === "make_cards" && a.ok);
         const { data: cards } = await admin.from("cards").select("id, front, back").eq("user_id", uid).contains("tags", ["coach"]);
         const fails = [
-          !r.steps.some((s) => /Searching your notes/i.test(s)) && "did not search the notes first",
+          !r.steps.some((s) => /Searching your notes|Reading /i.test(s)) && "did not look at the notes first",
           !made && "no make_cards",
           (cards?.length ?? 0) < 3 && `${cards?.length ?? 0} cards made`,
           cards && !cards.some((c) => /mitochondria|ATP|ribosome|nucleus|membrane/i.test(c.front + c.back)) && "cards not from the notes",

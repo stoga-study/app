@@ -63,6 +63,9 @@ describe("coach lib", () => {
     expect(answerSystem("stressed")).toMatch(/acknowledges it, then ONE small concrete step/);
     expect(answerSystem(null)).toMatch(/Never claim anything else was done/);
     expect(stepSystem()).toMatch(/You cannot delete or change files, cards or quizzes/);
+    // The calendar is already there: the answer must never claim it can't see it.
+    expect(answerSystem(null)).toMatch(/Never say you can't see their calendar/);
+    expect(stepSystem()).toMatch(/need no tools/);
   });
 
   it("follows the student's choices for their coach", () => {

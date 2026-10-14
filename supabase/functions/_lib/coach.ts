@@ -6,7 +6,7 @@ import { CRISIS_LINE } from "./tutor.ts";
 export const KINDS = ["test", "quiz", "homework", "project", "other"] as const;
 export type Kind = (typeof KINDS)[number];
 
-export const READ_TOOLS = ["search", "read_file", "files", "progress", "mistakes", "weak_cards"] as const;
+export const READ_TOOLS = ["calendar", "search", "read_file", "files", "progress", "mistakes", "weak_cards"] as const;
 export const WRITE_TOOLS = ["add_event", "update_event", "complete_event", "uncomplete_event", "delete_event", "set_current_unit", "make_cards", "write_note", "link"] as const;
 export const TOOLS = [...READ_TOOLS, ...WRITE_TOOLS] as const;
 export type Tool = (typeof TOOLS)[number];
@@ -102,7 +102,10 @@ export function stepSystem() {
 
 Refs: classes C1.., units U1.., files F1.., calendar items E1.. come from the context. Use only refs that exist. The context is the truth right now; earlier messages may describe changes that were since undone.
 
+The context already has their whole calendar from a week ago on (homework, projects, tests, quizzes), their classes, files and today's plan. Questions about those ("what homework do I have", "when's my bio test") need no tools: return no calls.
+
 Look things up (results come back to you next round):
+- calendar {"from": "YYYY-MM-DD"?, "to": "YYYY-MM-DD"?, "kind"?: test|quiz|homework|project|other, "class"?: "C1"}: calendar items in a range, including older ones the context leaves out.
 - search {"query": "...", "class": "C1"?}: search their notes, files, cards and quiz questions. Use it before explaining or summarizing anything from their material, and before making cards or notes from it.
 - read_file {"file": "F1"}: the text of one file (its first pages). Use it for "my latest notes" (the newest file is F1, files are listed newest first), "this file", or making cards, a summary or a plan from a particular file.
 - files {"class": "C1"?, "unit": "U1"?}: their files, with what has been made from each.
@@ -151,7 +154,8 @@ You help with everything around studying: planning the week, what to study next,
 How to answer:
 - ${feeling === "stressed" ? "They sound stressed. Start with one genuine sentence that acknowledges it, then ONE small concrete step. Do not list everything." : "Lead with the answer or the one thing to do next."}
 - Usually under ${WORDS[persona.length]} words. Short paragraphs; a short "- " list only when it really helps (steps, a plan). **Bold** for one or two key things at most. No headings.
-- Use what was looked up below. Never invent tests, dates, scores, files or numbers. If something wasn't found, say so.
+- The context above is theirs and already loaded: their calendar (every homework, project, test and quiz from a week ago on, with "[done]" on finished ones), classes, files and today's plan. Answer calendar and homework questions straight from it, listing the items with their dates. Never say you can't see their calendar.
+- Use what was looked up below too. Never invent tests, dates, scores, files or numbers. If something isn't in the context or the lookups, say so.
 - The context (calendar, classes, files) is the truth right now. Earlier messages in this chat can be out of date, since the student can undo changes; never repeat a date or item from them that the context doesn't show.
 - Describe what you did exactly as listed under "Done" (the app shows each with an Undo button). Never claim anything else was done. If something failed, say so plainly.
 - If buttons were made (listed under "Buttons"), mention them naturally, like "tap the button below".
@@ -166,6 +170,7 @@ export function stepLabel(c: Call, names: { cls: (ref: unknown) => string | null
   switch (c.tool) {
     case "search": return q ? `Searching your notes${where} for “${q}”` : `Searching your notes${where}`;
     case "read_file": return `Reading ${names.file?.(c.args.file) ?? "your file"}`;
+    case "calendar": return `Checking your calendar${where}`;
     case "files": return `Looking at your files${where}`;
     case "progress": return `Checking how you're doing${where}`;
     case "mistakes": return `Going through your quiz mistakes${where}`;

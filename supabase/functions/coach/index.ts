@@ -45,7 +45,7 @@ async function loadContext(db: SupabaseClient, today: string, planToday: string[
     db.from("profiles").select("first_name, coach").maybeSingle(),
     db.from("subjects").select("id, name, current_unit_id, current_unit_pinned").eq("archived", false).order("created_at"),
     db.from("units").select("id, subject_id, number, title, word"),
-    db.from("events").select("*, event_units(unit_id)").gte("due_on", addDays(today, -7)).order("due_on").limit(80),
+    db.from("events").select("*, event_units(unit_id)").gte("due_on", addDays(today, -7)).lte("due_on", addDays(today, 60)).order("due_on").limit(150),
     db.from("cards").select("subject_id").eq("hidden", false).eq("archived", false).lte("due", new Date().toISOString()).limit(5000),
     db.from("mistakes").select("question_id, quiz_questions(topic)").is("resolved_at", null).limit(200),
     db.from("sources").select("id, filename, subject_id, unit_id, status").eq("archived", false).neq("status", "uploaded").order("created_at", { ascending: false }).limit(40),
@@ -115,6 +115,18 @@ async function read(db: SupabaseClient, c: Call, l: Loaded): Promise<string> {
         return pg?.text ? `\n${strip(p.title)} p.${p.page_no} in full:\n${pg.text.slice(0, 1500)}` : "";
       }));
       return `Search "${query}":\n${lines.join("\n")}${full.join("")}`;
+    }
+    if (c.tool === "calendar") {
+      const from = isIsoDate(c.args.from) ? c.args.from : addDays(l.ctx.today, -7);
+      const to = isIsoDate(c.args.to) ? c.args.to : addDays(l.ctx.today, 120);
+      let q = db.from("events").select("kind, title, subject_id, due_on, due_time, done_at").gte("due_on", from).lte("due_on", to).order("due_on").limit(150);
+      if (validKind(c.args.kind)) q = q.eq("kind", validKind(c.args.kind)!);
+      if (classId) q = q.eq("subject_id", classId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data.length
+        ? data.map((e) => `- ${e.due_on}${e.due_time ? ` ${e.due_time.slice(0, 5)}` : ""} ${e.kind} "${e.title}"${e.subject_id ? ` · ${cname(e.subject_id)}` : ""}${e.done_at ? " [done]" : ""}`).join("\n")
+        : `Nothing on the calendar from ${from} to ${to}.`;
     }
     if (c.tool === "read_file") {
       const f = str(c.args.file) ? l.byRef.file.get(str(c.args.file)!) : undefined;
@@ -419,7 +431,7 @@ Deno.serve(async (req) => {
       }
 
       const summary = [
-        lookedUp.length ? `Looked up:\n${lookedUp.join("\n\n").slice(0, 12000)}` : "Nothing was looked up.",
+        lookedUp.length ? `Also looked up for this message:\n${lookedUp.join("\n\n").slice(0, 12000)}` : "No extra lookups were needed: answer from the context above (their calendar, classes, files and plan).",
         `Done:\n${done.length ? done.map((d) => `- ${d}`).join("\n") : "- nothing"}`,
         buttons.length ? `Buttons:\n${buttons.map((b) => `- ${b}`).join("\n")}` : "",
       ].filter(Boolean).join("\n\n");
