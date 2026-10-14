@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.3.6",
+      "date": "2026-10-13",
+      "title": "Tidy up your files",
+      "intro": "Keep a class neat as the year goes on, without losing anything.",
+      "highlights": [
+        {
+          "icon": "tag",
+          "title": "Tags on files",
+          "text": "Add tags like #lab or #test-review on any file's page. On the class page, tap a tag to see just those files."
+        },
+        {
+          "icon": "archive",
+          "title": "Archive",
+          "text": "Done with a file or a class? Archive it. Its cards and quizzes leave review, search and the tutor, and you can restore it any time from the class page."
+        },
+        {
+          "icon": "copy",
+          "title": "Duplicate",
+          "text": "Copy a file and everything made from it into the same class or another one. The copy's cards start fresh."
+        }
+      ]
+    },
+    {
       "version": "1.3.5",
       "date": "2026-10-13",
       "title": "Bring your cards with you",
