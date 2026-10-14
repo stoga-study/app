@@ -6,7 +6,8 @@ import { usePlanMinutes } from "../preferences";
 import { supabase } from "../supabase";
 import { daysBetween } from "../calendar";
 import { unitName } from "../units";
-import { isExam, useEvents } from "./events";
+import { isExam, useEvents, type CalEvent } from "./events";
+import { readiness, type Readiness } from "../readiness";
 import { useMistakes, useQuizList } from "./quiz";
 import { useSources } from "./sources";
 import { useAllUnits } from "./units";
@@ -73,33 +74,44 @@ function usePlanCards() {
   });
 }
 
-/** The study plan for the next week, from the calendar's upcoming tests and quizzes. */
-export function usePlan() {
+/** What the planner and readiness both read: the calendar, cards, quizzes, mistakes, files and units. */
+function useStudyData() {
   const events = useEvents();
   const data = usePlanCards();
   const mistakes = useMistakes();
   const quizzes = useQuizList();
   const sources = useSources();
   const units = useAllUnits();
+  if (!(events.data && data.data && mistakes.data && quizzes.data && sources.data && units.data)) return null;
+  const unitOf = new Map(sources.data.map((s) => [s.id, s.unit_id]));
+  return { events: events.data, ...data.data, mistakes: mistakes.data, quizzes: quizzes.data, sources: sources.data, units: units.data, unitOf };
+}
+type StudyData = NonNullable<ReturnType<typeof useStudyData>>;
+
+/** Whether something in a class and unit counts towards a test (all of the class when it names no units). */
+const coversFor = (e: CalEvent) => (subjectId: string, unitId: string | null) =>
+  subjectId === e.subject_id && (!e.unit_ids.length || (!!unitId && e.unit_ids.includes(unitId)));
+
+/** The study plan for the next week, from the calendar's upcoming tests and quizzes. */
+export function usePlan() {
+  const d = useStudyData();
   const done = usePlanDone();
   const [minutes] = usePlanMinutes();
-  const ready = !!(events.data && data.data && mistakes.data && quizzes.data && sources.data && units.data && done.data);
-  if (!ready) return { ready: false as const, days: [], exams: [] as ExamScope[] };
+  if (!d || !done.data) return { ready: false as const, days: [], exams: [] as ExamScope[] };
 
   const now = new Date().toISOString();
   const day = today();
-  const unitOf = new Map(sources.data!.map((s) => [s.id, s.unit_id]));
   const exams: ExamScope[] = [];
-  for (const e of events.data!) {
+  for (const e of d.events) {
     const left = daysBetween(day, e.due_on);
     if (!isExam(e.kind) || !e.subject_id || left < 1 || left > HORIZON) continue;
-    const covers = (subjectId: string, unitId: string | null) => subjectId === e.subject_id && (!e.unit_ids.length || (!!unitId && e.unit_ids.includes(unitId)));
-    const cards = data.data!.cards.filter((c) => covers(c.subject_id, c.unit_id));
+    const covers = coversFor(e);
+    const cards = d.cards.filter((c) => covers(c.subject_id, c.unit_id));
     const due = cards.filter((c) => c.due <= now);
     const unitQuizzes = e.unit_ids
-      .filter((u) => quizzes.data!.some((q) => q.count > 0 && q.source_id && unitOf.get(q.source_id) === u))
-      .map((u) => ({ key: `quiz:unit:${u}`, href: `/quiz/unit?unit=${u}`, label: unitName(units.data!.find((x) => x.id === u) ?? { number: null, title: "this unit" }) }));
-    const classQuizzes = quizzes.data!
+      .filter((u) => d.quizzes.some((q) => q.count > 0 && q.source_id && d.unitOf.get(q.source_id) === u))
+      .map((u) => ({ key: `quiz:unit:${u}`, href: `/quiz/unit?unit=${u}`, label: unitName(d.units.find((x) => x.id === u) ?? { number: null, title: "this unit" }) }));
+    const classQuizzes = d.quizzes
       .filter((q) => q.subject_id === e.subject_id && q.count > 0)
       .sort((a, b) => (a.last ? a.last.correct / a.last.total : -1) - (b.last ? b.last.correct / b.last.total : -1))
       .map((q) => ({ key: `quiz:${q.id}`, href: `/quiz/${q.id}`, label: q.title }));
@@ -109,14 +121,38 @@ export function usePlan() {
       due_on: e.due_on,
       dueNow: due.length,
       fresh: due.filter((c) => c.state === 0).length,
-      reviewedToday: cards.filter((c) => data.data!.reviewed.has(c.id)).length,
+      reviewedToday: cards.filter((c) => d.reviewed.has(c.id)).length,
       reviewHref: `/review/session?subject=${e.subject_id}${e.unit_ids.length === 1 ? `&unit=${e.unit_ids[0]}` : ""}`,
-      mistakes: mistakes.data!.filter((m) => covers(m.question.subject_id, m.question.source_id ? unitOf.get(m.question.source_id) ?? null : null)).length,
+      mistakes: d.mistakes.filter((m) => covers(m.question.subject_id, m.question.source_id ? d.unitOf.get(m.question.source_id) ?? null : null)).length,
       quizzes: e.unit_ids.length ? unitQuizzes : classQuizzes,
-      guides: sources.data!
-        .filter((s) => !s.archived && covers(s.subject_id, s.unit_id) && data.data!.guideMinutes.has(s.id))
-        .map((s) => ({ key: `guide:${s.id}`, href: `/sources/${s.id}?tab=guide`, label: s.filename, minutes: data.data!.guideMinutes.get(s.id)! })),
+      guides: d.sources
+        .filter((s) => !s.archived && covers(s.subject_id, s.unit_id) && d.guideMinutes.has(s.id))
+        .map((s) => ({ key: `guide:${s.id}`, href: `/sources/${s.id}?tab=guide`, label: s.filename, minutes: d.guideMinutes.get(s.id)! })),
     });
   }
-  return { ready: true as const, days: buildPlan({ today: day, exams, budget: Number(minutes), done: done.data! }), exams };
+  return { ready: true as const, days: buildPlan({ today: day, exams, budget: Number(minutes), done: done.data }), exams };
+}
+
+function readinessIn(d: StudyData, covers: (subjectId: string, unitId: string | null) => boolean) {
+  const qs = d.quizzes.filter((q) => q.count > 0 && covers(q.subject_id, q.source_id ? d.unitOf.get(q.source_id) ?? null : null));
+  return readiness({
+    cards: d.cards.filter((c) => covers(c.subject_id, c.unit_id)),
+    quizzes: qs.filter((q) => q.last).map((q) => q.last!),
+    quizzesAvailable: qs.length,
+    mistakes: d.mistakes.filter((m) => covers(m.question.subject_id, m.question.source_id ? d.unitOf.get(m.question.source_id) ?? null : null)).length,
+  });
+}
+
+/** Readiness for a test or quiz on the calendar, overall and for each unit it covers. */
+export function useReadiness() {
+  const d = useStudyData();
+  return (e: CalEvent): { overall: Readiness | null; units: { id: string; name: string; r: Readiness | null }[] } | null => {
+    if (!d || !e.subject_id || !isExam(e.kind)) return null;
+    return {
+      overall: readinessIn(d, coversFor(e)),
+      units: e.unit_ids.length > 1
+        ? e.unit_ids.map((u) => ({ id: u, name: unitName(d.units.find((x) => x.id === u) ?? { number: null, title: "Unit" }), r: readinessIn(d, (s, unit) => s === e.subject_id && unit === u) }))
+        : [],
+    };
+  };
 }
