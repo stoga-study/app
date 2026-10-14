@@ -1,6 +1,4 @@
-import { CalendarDays, Plus } from "lucide-react";
 import { Link, useNavigate } from "react-router";
-import { Button } from "@/components/ui/button";
 import { addDays, today } from "@/lib/calendar";
 import { isExam, isTask, useEvents } from "@/lib/queries/events";
 import { usePlan } from "@/lib/queries/plan";
@@ -21,16 +19,8 @@ export function TodayList() {
   const homework = events.data.filter((e) => isTask(e.kind) && !e.done_at && e.due_on <= addDays(now, 1));
   const testsToday = events.data.filter((e) => isExam(e.kind) && e.due_on === now);
 
-  if (!tasks.length && !homework.length && !testsToday.length) {
-    if (plan.exams.length || !subjects.data?.length) return null;
-    return (
-      <section className="card card-dashed mb-4 flex flex-wrap items-center gap-4 p-5">
-        <span className="tile soft"><CalendarDays /></span>
-        <p className="min-w-[12rem] flex-1 text-[0.9375rem]"><b>Got a test coming up?</b> Add it to your calendar and you get a study plan, a little each day.</p>
-        <Button asChild variant="secondary" size="sm"><Link to="/calendar?add=1"><Plus /> Add a test</Link></Button>
-      </section>
-    );
-  }
+  // Nothing today: the coach card below invites adding a test instead.
+  if (!tasks.length && !homework.length && !testsToday.length) return null;
 
   const left = tasks.filter((t) => !t.done);
   const mins = left.reduce((n, t) => n + t.minutes, 0);

@@ -146,10 +146,14 @@ function readinessIn(d: StudyData, covers: (subjectId: string, unitId: string | 
 /** Readiness for a test or quiz on the calendar, overall and for each unit it covers. */
 export function useReadiness() {
   const d = useStudyData();
-  return (e: CalEvent): { overall: Readiness | null; units: { id: string; name: string; r: Readiness | null }[] } | null => {
+  return (e: CalEvent): { overall: Readiness | null; units: { id: string; name: string; r: Readiness | null }[]; cards: number; fresh: number } | null => {
     if (!d || !e.subject_id || !isExam(e.kind)) return null;
+    const covers = coversFor(e);
+    const cards = d.cards.filter((c) => covers(c.subject_id, c.unit_id));
     return {
-      overall: readinessIn(d, coversFor(e)),
+      cards: cards.length,
+      fresh: cards.filter((c) => c.state === 0).length,
+      overall: readinessIn(d, covers),
       units: e.unit_ids.length > 1
         ? e.unit_ids.map((u) => ({ id: u, name: unitName(d.units.find((x) => x.id === u) ?? { number: null, title: "Unit" }), r: readinessIn(d, (s, unit) => s === e.subject_id && unit === u) }))
         : [],

@@ -16,6 +16,7 @@ import { getRecent, type Recent } from "@/lib/recent";
 import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
 import { TodayList } from "@/components/TodayList";
+import { CoachCard } from "@/components/CoachCard";
 
 function today() {
   return new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date());
@@ -53,6 +54,7 @@ export default function Home() {
       )}
       <ContinueStudying />
       <TodayList />
+      <CoachCard />
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-56" aria-hidden="true" />
