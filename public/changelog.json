@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.4.4",
+      "date": "2026-10-14",
+      "title": "The coach, on Home",
+      "intro": "A quick heads-up about what's coming, and one tap to plan for it.",
+      "highlights": [
+        {
+          "icon": "continue",
+          "title": "A nudge that fits your week",
+          "text": "Like “Biology Unit 4 test in 3 days, and 10 of its 20 cards are still new. Want tonight's plan?” Tap it and the coach picks up from there."
+        },
+        {
+          "icon": "checklist",
+          "title": "Catching up, not guilt",
+          "text": "Homework past due? It offers to help you sort out when to get it done. Nothing more."
+        }
+      ]
+    },
+    {
       "version": "1.4.3",
       "date": "2026-10-14",
       "title": "Meet your coach",
