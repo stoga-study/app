@@ -111,6 +111,44 @@ export type Database = {
         }
         Relationships: []
       }
+      calendar_feeds: {
+        Row: {
+          created_at: string
+          id: string
+          last_synced_at: string | null
+          name: string
+          subject_id: string | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          name: string
+          subject_id?: string | null
+          url: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_synced_at?: string | null
+          name?: string
+          subject_id?: string | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_feeds_subject_id_user_id_fkey"
+            columns: ["subject_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       card_reviews: {
         Row: {
           card_id: string
@@ -513,6 +551,8 @@ export type Database = {
           done_at: string | null
           due_on: string
           due_time: string | null
+          external_id: string | null
+          feed_id: string | null
           id: string
           kind: string
           notes: string | null
@@ -526,6 +566,8 @@ export type Database = {
           done_at?: string | null
           due_on: string
           due_time?: string | null
+          external_id?: string | null
+          feed_id?: string | null
           id?: string
           kind: string
           notes?: string | null
@@ -539,6 +581,8 @@ export type Database = {
           done_at?: string | null
           due_on?: string
           due_time?: string | null
+          external_id?: string | null
+          feed_id?: string | null
           id?: string
           kind?: string
           notes?: string | null
@@ -548,6 +592,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "events_feed_id_user_id_fkey"
+            columns: ["feed_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_feeds"
+            referencedColumns: ["id", "user_id"]
+          },
           {
             foreignKeyName: "events_subject_id_user_id_fkey"
             columns: ["subject_id", "user_id"]
