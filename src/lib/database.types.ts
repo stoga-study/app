@@ -875,6 +875,63 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_tests: {
+        Row: {
+          event_id: string | null
+          finished_at: string
+          id: string
+          items: Json
+          pct: number
+          points: number
+          seconds: number
+          subject_id: string
+          total: number
+          unit_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          event_id?: string | null
+          finished_at?: string
+          id?: string
+          items?: Json
+          pct: number
+          points: number
+          seconds: number
+          subject_id: string
+          total: number
+          unit_ids?: string[]
+          user_id?: string
+        }
+        Update: {
+          event_id?: string | null
+          finished_at?: string
+          id?: string
+          items?: Json
+          pct?: number
+          points?: number
+          seconds?: number
+          subject_id?: string
+          total?: number
+          unit_ids?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_tests_event_id_user_id_fkey"
+            columns: ["event_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "practice_tests_subject_id_user_id_fkey"
+            columns: ["subject_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
