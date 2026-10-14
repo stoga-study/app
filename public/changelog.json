@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.4.3",
+      "date": "2026-10-14",
+      "title": "Meet your coach",
+      "intro": "Someone in your corner for the planning side of school.",
+      "highlights": [
+        {
+          "icon": "calendar",
+          "title": "Just tell it",
+          "text": "Say “bio test friday on unit 4” and it's on your calendar, with the unit. It can also move things, tick off homework, remove things and set the unit a class is on."
+        },
+        {
+          "icon": "continue",
+          "title": "Undo, always",
+          "text": "Every change shows up as a card with an Undo button, so nothing happens behind your back."
+        },
+        {
+          "icon": "check",
+          "title": "Real talk when it's a lot",
+          "text": "Stressed about a test? It gets it, and helps you pick one small thing to do next. It counts toward your daily tutor messages."
+        }
+      ]
+    },
+    {
       "version": "1.4.2",
       "date": "2026-10-14",
       "title": "How ready am I?",
