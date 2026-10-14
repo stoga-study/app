@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.4.2",
+      "date": "2026-10-14",
+      "title": "How ready am I?",
+      "intro": "Every test on your calendar now tells you how ready you are, and the one thing that would help most.",
+      "highlights": [
+        {
+          "icon": "mastery",
+          "title": "Ready, Getting there or Needs work",
+          "text": "From how many of the test's cards you've studied, how well they're sticking, your practice quiz scores and mistakes left."
+        },
+        {
+          "icon": "unit",
+          "title": "Unit by unit",
+          "text": "A test that covers several units shows each one, so you know where to spend your time."
+        },
+        {
+          "icon": "check",
+          "title": "Always with a reason",
+          "text": "Like “6 cards not studied yet” or “No practice quiz taken yet”. No mystery scores."
+        }
+      ]
+    },
+    {
       "version": "1.4.1",
       "date": "2026-10-14",
       "title": "A plan for every test",
