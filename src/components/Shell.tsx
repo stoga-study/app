@@ -5,6 +5,8 @@ import { cn } from "@/lib/cn";
 import { Brand } from "./Brand";
 import { OfflineBanner } from "./OfflineBanner";
 import { useNoteSync } from "@/lib/queries/notes";
+import { useFaces } from "@/lib/queries/profile";
+import { Face } from "./Face";
 
 type Item = { to: string; label: string; icon: ReactNode; end?: boolean };
 
@@ -90,9 +92,9 @@ export function Shell({ aside }: { aside?: ReactNode }) {
             <NavLink
               to="/settings"
               aria-label="Settings"
-              className="grid size-11 place-items-center rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
+              className="grid size-11 place-items-center overflow-hidden rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
             >
-              <Settings />
+              <MeFace />
             </NavLink>
           </div>
         </header>
@@ -126,4 +128,10 @@ export function Shell({ aside }: { aside?: ReactNode }) {
       </div>
     </div>
   );
+}
+
+/** The student's face in the top bar (the settings icon until the profile loads). */
+function MeFace() {
+  const faces = useFaces();
+  return faces.ready ? <Face face={faces.me} size={40} mood="still" /> : <Settings />;
 }

@@ -3,6 +3,8 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { Face } from "@/components/Face";
+import { useFaces } from "@/lib/queries/profile";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
@@ -257,7 +259,10 @@ export default function Settings() {
       <PageHeader title="Settings" />
       <LinkRow to="/classes" icon={<GraduationCap />} title="Grade and classes" sub={profile.data?.graduation_year ? describeGrade(profile.data.graduation_year) : "Not set"} />
 
-      <Section title="Profile"><NameForm /></Section>
+      <Section title="Profile">
+        <FacesRow />
+        <NameForm />
+      </Section>
 
       <Section title="Display">
         <div className="flex flex-col gap-2">
@@ -288,5 +293,22 @@ export default function Settings() {
         <DangerZone />
       </Section>
     </>
+  );
+}
+
+/** Your face and your coach, each with a way to change it. */
+function FacesRow() {
+  const faces = useFaces();
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <Link to="/settings/face" className="card flex items-center gap-3 !rounded-[1rem] p-3 text-ink no-underline !shadow-none hover:!border-primary">
+        <Face face={faces.me} size={48} mood="still" />
+        <span className="flex-1"><b className="block">Your face</b><span className="text-[0.875rem] text-muted">Change how you look</span></span>
+      </Link>
+      <Link to="/coach/customize" className="card flex items-center gap-3 !rounded-[1rem] p-3 text-ink no-underline !shadow-none hover:!border-primary">
+        <Face face={faces.coach.face} size={48} mood="still" />
+        <span className="flex-1"><b className="block">Your coach: {faces.coach.name}</b><span className="text-[0.875rem] text-muted">Face, name and personality</span></span>
+      </Link>
+    </div>
   );
 }

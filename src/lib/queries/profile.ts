@@ -4,6 +4,7 @@ import { currentSchoolYear, departmentTone, findCourse, findSection, type Picks 
 import type { Database } from "../database.types";
 import { DEFAULT_RETENTION } from "../fsrs";
 import { supabase } from "../supabase";
+import { faceFor, toCoach, toFace, type CoachSettings, type Face } from "../face";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Subject = Database["public"]["Tables"]["subjects"]["Row"];
@@ -160,4 +161,30 @@ export function useTutorDepth() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
   });
   return { value: profile.data?.tutor_depth ?? "standard", set };
+}
+
+/** The coach's name, face and character, and the student's own face (with a starting one made from their account). */
+export function useFaces() {
+  const { session } = useAuth();
+  const profile = useProfile();
+  const userId = session?.user.id ?? "guest";
+  return {
+    ready: !!profile.data,
+    coach: toCoach(profile.data?.coach),
+    me: toFace(profile.data?.avatar, faceFor(userId)),
+    hasOwnFace: !!profile.data?.avatar,
+  };
+}
+
+/** Save the coach's settings or the student's face. */
+export function useSaveFaces() {
+  const { session } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (patch: { coach?: CoachSettings; avatar?: Face }) => {
+      const { error } = await supabase.from("profiles").update(patch as never).eq("user_id", session!.user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["profile"] }),
+  });
 }
