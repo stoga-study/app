@@ -1,6 +1,6 @@
 import { CalendarDays, ChevronLeft, ChevronRight, HeartHandshake, Plus, Timer } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { EventForm, kindMeta } from "@/components/EventForm";
 import { EventRow } from "@/components/EventRow";
@@ -33,6 +33,7 @@ export default function Calendar() {
   const readinessOf = useReadiness();
   const del = useDeleteEvent();
   const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const [view, setView] = useState<"agenda" | "month" | "plan">(() => (params.get("view") === "plan" ? "plan" : "agenda"));
   const now = today();
   const [month, setMonth] = useState(() => ({ y: fromIso(now).getFullYear(), m: fromIso(now).getMonth() }));
@@ -53,6 +54,7 @@ export default function Calendar() {
   const unitNames = (e: CalEvent) => e.unit_ids.map((id) => units.data?.find((u) => u.id === id)).filter((u) => !!u).map((u) => unitName(u!));
   const editing = editId ? all.find((e) => e.id === editId) : undefined;
   const open = (e: CalEvent) => {
+    if (isExam(e.kind)) return navigate(`/exam/${e.id}`);
     setParams({ event: e.id });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

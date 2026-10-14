@@ -107,7 +107,7 @@ export default function Subject() {
             </div>
             {next.length ? (
               <ul className="mt-1 divide-y divide-line">
-                {next.map((e) => <EventRow key={e.id} e={e} unitNames={unitNames(e.unit_ids)} showWhen onOpen={() => navigate(`/calendar?event=${e.id}`)} readiness={isExam(e.kind) ? readinessOf(e)?.overall : null} />)}
+                {next.map((e) => <EventRow key={e.id} e={e} unitNames={unitNames(e.unit_ids)} showWhen onOpen={() => navigate(isExam(e.kind) ? `/exam/${e.id}` : `/calendar?event=${e.id}`)} readiness={isExam(e.kind) ? readinessOf(e)?.overall : null} />)}
               </ul>
             ) : (
               <p className="mt-2 text-muted">Nothing on the calendar for this class yet.</p>
