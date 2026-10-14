@@ -13,7 +13,8 @@ import { isExam, isTask, useDeleteEvent, useEvents, useSaveEvent, type CalEvent,
 import { useSubjects } from "@/lib/queries/profile";
 import { useAllUnits } from "@/lib/queries/units";
 import { PlanTaskRow } from "@/components/PlanTaskRow";
-import { usePlan } from "@/lib/queries/plan";
+import { usePlan, useReadiness } from "@/lib/queries/plan";
+import { ReadinessBadge } from "@/components/ReadinessBadge";
 import { PLAN_MINUTES, usePlanMinutes } from "@/lib/preferences";
 import { unitName } from "@/lib/units";
 
@@ -29,6 +30,7 @@ export default function Calendar() {
   const subjects = useSubjects();
   const units = useAllUnits();
   const save = useSaveEvent();
+  const readinessOf = useReadiness();
   const del = useDeleteEvent();
   const [params, setParams] = useSearchParams();
   const [view, setView] = useState<"agenda" | "month" | "plan">(() => (params.get("view") === "plan" ? "plan" : "agenda"));
@@ -55,7 +57,7 @@ export default function Calendar() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const row = (e: CalEvent, showWhen = false) => (
-    <EventRow key={e.id} e={e} className={className(e.subject_id)} unitNames={unitNames(e)} onOpen={() => open(e)} showWhen={showWhen} />
+    <EventRow key={e.id} e={e} className={className(e.subject_id)} unitNames={unitNames(e)} onOpen={() => open(e)} showWhen={showWhen} readiness={e.due_on >= now ? readinessOf(e)?.overall : null} />
   );
 
   const blank: EventDraft = {
@@ -122,6 +124,22 @@ export default function Calendar() {
             <span className="block text-[1.25rem] font-bold">{nextTest.title}</span>
             <span className="block text-[0.9375rem] text-[#F7EAEC]">{[className(nextTest.subject_id), unitNames(nextTest).join(", "), shortDate(nextTest.due_on)].filter(Boolean).join(" · ")}</span>
           </button>
+          {(() => {
+            const r = readinessOf(nextTest);
+            if (!r?.overall) return null;
+            return (
+              <div className="mt-4 flex flex-col gap-2">
+                <ReadinessBadge r={r.overall} onDark />
+                {r.units.length > 0 && (
+                  <ul className="flex flex-col gap-1.5 border-t border-white/15 pt-3" aria-label="By unit">
+                    {r.units.map((u) => (
+                      <li key={u.id} className="flex flex-wrap items-center gap-2 text-[0.9375rem]"><b className="min-w-[5rem]">{u.name}</b>{u.r ? <ReadinessBadge r={u.r} onDark /> : <span className="text-[#F7EAEC]">Nothing to study yet</span>}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            );
+          })()}
         </section>
       )}
 

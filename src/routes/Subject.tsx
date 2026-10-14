@@ -20,7 +20,8 @@ import { unitName } from "@/lib/units";
 import { toast } from "sonner";
 import { EventRow } from "@/components/EventRow";
 import { today } from "@/lib/calendar";
-import { useEvents } from "@/lib/queries/events";
+import { isExam, useEvents } from "@/lib/queries/events";
+import { useReadiness } from "@/lib/queries/plan";
 
 const fmt = (iso: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" }).format(new Date(iso));
 
@@ -34,6 +35,7 @@ export default function Subject() {
   const masteryAll = useMastery();
   const notes = useNotes(id);
   const events = useEvents();
+  const readinessOf = useReadiness();
   const navigate = useNavigate();
   const [tag, setTag] = useState<string | null>(null);
   if (subjects.isPending) return <PageSkeleton />;
@@ -104,7 +106,7 @@ export default function Subject() {
             </div>
             {next.length ? (
               <ul className="mt-1 divide-y divide-line">
-                {next.map((e) => <EventRow key={e.id} e={e} unitNames={unitNames(e.unit_ids)} showWhen onOpen={() => navigate(`/calendar?event=${e.id}`)} />)}
+                {next.map((e) => <EventRow key={e.id} e={e} unitNames={unitNames(e.unit_ids)} showWhen onOpen={() => navigate(`/calendar?event=${e.id}`)} readiness={isExam(e.kind) ? readinessOf(e)?.overall : null} />)}
               </ul>
             ) : (
               <p className="mt-2 text-muted">Nothing on the calendar for this class yet.</p>
