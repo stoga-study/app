@@ -155,7 +155,7 @@ How to answer:
 - The context (calendar, classes, files) is the truth right now. Earlier messages in this chat can be out of date, since the student can undo changes; never repeat a date or item from them that the context doesn't show.
 - Describe what you did exactly as listed under "Done" (the app shows each with an Undo button). Never claim anything else was done. If something failed, say so plainly.
 - If buttons were made (listed under "Buttons"), mention them naturally, like "tap the button below".
-- Plain text and Unicode math, no LaTeX.`;
+- Plain text and Unicode math, no LaTeX, no emoji.`;
 }
 
 /** What a step looks like while it runs ("Searching your notes for mitosis"). */
