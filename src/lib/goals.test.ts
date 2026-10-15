@@ -51,6 +51,12 @@ describe("weekly recap", () => {
     expect(recap.risingClass).toBe("chem");
   });
 
+  it("doesn't judge last week on goals set this week", () => {
+    const fresh = weeklyRecap({ today: "2026-10-19", firstDay: 0, rows: all, sessions, goals: [g({ id: "a", kind: "cards", target: 100, created_at: "2026-10-19T08:00:00Z" })], ticks: {} });
+    expect(fresh).toMatchObject({ goals: 0, goalsMet: 0 });
+    expect(fresh.next).not.toMatch(/close on a goal/);
+  });
+
   it("suggests one thing, by rule", () => {
     expect(recap.next).toMatch(/close on a goal/);
     expect(weeklyRecap({ today: "2026-10-19", firstDay: 0, rows: [], sessions: [], goals: [], ticks: {} }).next).toMatch(/A fresh week/);

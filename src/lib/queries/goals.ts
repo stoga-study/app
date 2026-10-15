@@ -14,7 +14,7 @@ export function useGoalList() {
     enabled: !!session,
     queryFn: async () => {
       const [goals, ticks] = await Promise.all([
-        supabase.from("goals").select("id, kind, target, label, subject_id").order("created_at"),
+        supabase.from("goals").select("id, kind, target, label, subject_id, created_at").order("created_at"),
         supabase.from("goal_ticks").select("id, goal_id, day").gte("day", addDays(today(), -21)).order("created_at"),
       ]);
       if (goals.error) throw goals.error;

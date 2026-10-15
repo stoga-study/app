@@ -3,7 +3,10 @@ import { addDays, daysBetween, fromIso } from "./calendar";
 import type { HistoryRow } from "./history";
 
 export type GoalKind = "days" | "cards" | "questions" | "minutes" | "custom";
-export type Goal = { id: string; kind: GoalKind; target: number; label: string | null; subject_id: string | null };
+export type Goal = { id: string; kind: GoalKind; target: number; label: string | null; subject_id: string | null; created_at?: string };
+
+/** Goals that existed by the end of a week: a goal set this week is not judged on last week. */
+export const goalsBy = (goals: Goal[], weekEnd: string) => goals.filter((g) => !g.created_at || g.created_at.slice(0, 10) <= weekEnd);
 export type Session = { started_at: string; ended_at: string; subject_ids: string[]; startDay: string };
 
 export const GOAL_KINDS: { kind: GoalKind; label: string; unit: (n: number) => string; presets: number[] }[] = [
@@ -98,7 +101,8 @@ export function weeklyRecap(o: { today: string; firstDay: number; rows: HistoryR
   const perClass = (rs: HistoryRow[]) => rs.reduce((m, r) => m.set(r.subject_id, (m.get(r.subject_id) ?? 0) + r.n), new Map<string, number>());
   const nowC = perClass(rows), thenC = perClass(prev);
   const rising = [...nowC].map(([id, n]) => [id, n - (thenC.get(id) ?? 0)] as const).filter(([, d]) => d >= 10).sort((a, b) => b[1] - a[1])[0];
-  const results = o.goals.map((g) => goalProgress(g, week, o.rows, o.sessions, o.ticks[g.id] ?? []));
+  const goals = goalsBy(o.goals, week.end);
+  const results = goals.map((g) => goalProgress(g, week, o.rows, o.sessions, o.ticks[g.id] ?? []));
   const goalsMet = results.filter((r) => r.done).length;
   const recallPct = cards >= 5 ? Math.round((100 * cardsRight) / cards) : null;
   const quizPct = questions >= 5 ? Math.round((100 * questionsRight) / questions) : null;
@@ -119,7 +123,7 @@ export function weeklyRecap(o: { today: string; firstDay: number; rows: HistoryR
   return {
     week, activity, days: perDay.size, cards, questions, recallPct, quizPct,
     bestDay: best ? { day: best[0], activity: best[1] } : null,
-    goalsMet, goals: o.goals.length,
+    goalsMet, goals: goals.length,
     change: prevActivity > 0 ? Math.round(((activity - prevActivity) / prevActivity) * 100) / 100 : null,
     risingClass: rising?.[0] ?? null,
     next,

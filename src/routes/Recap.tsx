@@ -4,7 +4,7 @@ import { GoalRing } from "@/components/Goals";
 import { PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { addDays, isoDate, shortDate } from "@/lib/calendar";
-import { goalName, goalProgress, goalText } from "@/lib/goals";
+import { goalName, goalProgress, goalsBy, goalText } from "@/lib/goals";
 import { dayTotals } from "@/lib/history";
 import { dateFormat } from "@/lib/locale";
 import { useGoalList, useGoals } from "@/lib/queries/goals";
@@ -25,7 +25,7 @@ export default function Recap() {
   const days = Array.from({ length: 7 }, (_, i) => addDays(r.week.start, i));
   const max = Math.max(1, ...days.map((d) => totals.get(d)?.activity ?? 0));
   const sess = (sessions.data ?? []).map((s) => ({ ...s, startDay: isoDate(new Date(s.started_at)) }));
-  const lastWeekGoals = list.data.goals.map((goal) => ({ goal, ...goalProgress(goal, r.week, history.data!, sess, (list.data!.ticks[goal.id] ?? []).map((t) => t.day)) }));
+  const lastWeekGoals = goalsBy(list.data.goals, r.week.end).map((goal) => ({ goal, ...goalProgress(goal, r.week, history.data!, sess, (list.data!.ticks[goal.id] ?? []).map((t) => t.day)) }));
 
   return (
     <section className="mx-auto max-w-2xl" aria-labelledby="recap-title">
