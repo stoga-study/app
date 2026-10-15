@@ -1728,6 +1728,40 @@ export type Database = {
         }
         Returns: undefined
       }
+      study_events: {
+        Args: { p_since: string }
+        Returns: {
+          at: string
+          correct: number
+          kind: string
+          n: number
+          subject_id: string
+        }[]
+      }
+      study_history: {
+        Args: { p_days: number; p_tz: string }
+        Returns: {
+          correct: number
+          day: string
+          kind: string
+          n: number
+          subject_id: string
+        }[]
+      }
+      study_sessions: {
+        Args: { p_days: number; p_limit?: number }
+        Returns: {
+          correct: number
+          ended_at: string
+          graded: number
+          practice_tests: number
+          quiz_answers: number
+          reviews: number
+          started_at: string
+          subject_ids: string[]
+          tutor: number
+        }[]
+      }
       tag_cards: {
         Args: { card_ids: string[]; tag: string }
         Returns: undefined
