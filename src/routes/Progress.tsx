@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { Heatmap, TrendLine } from "@/components/HistoryCharts";
 import { GoalsSection } from "@/components/Goals";
+import { StreakSettings } from "@/components/Streak";
 import { MasteryChip } from "@/components/MasteryChip";
 import { PageHeader } from "@/components/PageHeader";
 import { PageSkeleton } from "@/components/States";
@@ -105,6 +106,7 @@ export default function Progress() {
       </div>
 
       <GoalsSection />
+      <StreakSettings />
 
       <section className="card mt-4 p-6" aria-labelledby="history-h">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">

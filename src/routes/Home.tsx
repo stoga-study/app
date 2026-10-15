@@ -18,6 +18,7 @@ import { SUBJECT_TILE } from "@/lib/subjects";
 import { TodayList } from "@/components/TodayList";
 import { CoachCard } from "@/components/CoachCard";
 import { GoalsStrip, RecapCard } from "@/components/Goals";
+import { StreakCard } from "@/components/Streak";
 import { showRecapCard, weekOf } from "@/lib/goals";
 import { today as todayIso } from "@/lib/calendar";
 import { weekStart } from "@/lib/locale";
@@ -60,6 +61,7 @@ export default function Home() {
       <WeeklyRecap />
       <ContinueStudying />
       <TodayList />
+      <StreakCard />
       <GoalsStrip />
       <CoachCard />
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
