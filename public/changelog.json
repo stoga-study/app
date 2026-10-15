@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.5.4",
+      "date": "2026-10-15",
+      "title": "Gentle reminders",
+      "intro": "Optional phone notifications that respect your evenings.",
+      "highlights": [
+        {
+          "icon": "continue",
+          "title": "At most one a day",
+          "text": "An evening nudge only if you have cards due and haven't studied yet, and a heads-up the night before a test. Each has its own switch."
+        },
+        {
+          "icon": "retention",
+          "title": "Your times, your quiet hours",
+          "text": "Pick when reminders come and when they never do. Nothing is sent during quiet hours."
+        },
+        {
+          "icon": "choose",
+          "title": "iPhone too",
+          "text": "Add Stoga.study to your Home Screen, then turn on reminders in Settings. There's a step-by-step guide."
+        }
+      ]
+    },
+    {
       "version": "1.5.3",
       "date": "2026-10-15",
       "title": "Quiet milestones",
