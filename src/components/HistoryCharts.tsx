@@ -19,11 +19,12 @@ export function Heatmap({ weeks, summary }: { weeks: HeatCell[][]; summary: stri
   const letters = weekdayLetters(weekStart());
   return (
     <div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        <div className="grid grid-rows-7 gap-[3px] pt-0 text-[0.6875rem] font-bold leading-none text-muted" aria-hidden="true">
-          {letters.map((l, i) => <span key={i} className={cn("flex h-3.5 items-center", i % 2 && "invisible")}>{l}</span>)}
+      <div className="flex gap-2">
+        <div className="grid flex-none grid-rows-7 gap-[3px] text-[0.6875rem] font-bold leading-none text-muted" aria-hidden="true">
+          {letters.map((l, i) => <span key={i} className={cn("flex items-center", i % 2 && "invisible")}>{l}</span>)}
         </div>
-        <div className="flex gap-[3px]" role="img" aria-label={summary} onMouseLeave={() => setHover(null)}>
+        {/* Weeks stretch to fill the card; each day stays square. */}
+        <div className="grid min-w-0 flex-1 gap-[3px]" style={{ gridTemplateColumns: `repeat(${weeks.length}, minmax(0, 1fr))` }} role="img" aria-label={summary} onMouseLeave={() => setHover(null)}>
           {weeks.map((w) => (
             <div key={w[0].day} className="grid grid-rows-7 gap-[3px]">
               {w.map((c) => (
@@ -35,7 +36,7 @@ export function Heatmap({ weeks, summary }: { weeks: HeatCell[][]; summary: stri
                   disabled={c.future}
                   onMouseEnter={() => setHover(c)}
                   onClick={() => setHover(c)}
-                  className={cn("size-3.5 rounded-[3px] transition-transform hover:scale-125", c.future && "opacity-0", hover?.day === c.day && "ring-2 ring-ink ring-offset-1 ring-offset-card")}
+                  className={cn("aspect-square w-full max-w-7 rounded-[3px] transition-transform hover:scale-110", c.future && "opacity-0", hover?.day === c.day && "ring-2 ring-ink ring-offset-1 ring-offset-card")}
                   style={{ background: SHADE[c.level] }}
                 />
               ))}
