@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "1.5.0",
+      "date": "2026-10-15",
+      "title": "See how you're really doing",
+      "intro": "Progress now shows your study history, how consistent you are, and where each class is heading.",
+      "highlights": [
+        {
+          "icon": "history",
+          "title": "Study history",
+          "text": "A heatmap of the last 20 weeks: every day you reviewed cards, answered quiz questions, took a practice test or asked the tutor. Tap a day to see what you did."
+        },
+        {
+          "icon": "mastery",
+          "title": "Trends",
+          "text": "Your card recall and quiz accuracy, week by week."
+        },
+        {
+          "icon": "unit",
+          "title": "By class",
+          "text": "How much you studied each class in the last 30 days compared with the 30 before, with recall, quiz scores and mastery."
+        },
+        {
+          "icon": "continue",
+          "title": "Sessions",
+          "text": "Your recent study sessions: when, which classes, what you did and how it went."
+        }
+      ]
+    },
+    {
       "version": "1.4.13",
       "date": "2026-10-14",
       "title": "Faces, redrawn",
