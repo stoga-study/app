@@ -2,6 +2,7 @@ import { ArrowDownRight, ArrowRight, ArrowUpRight, CalendarClock, Sparkles } fro
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { Heatmap, TrendLine } from "@/components/HistoryCharts";
+import { GoalsSection } from "@/components/Goals";
 import { MasteryChip } from "@/components/MasteryChip";
 import { PageHeader } from "@/components/PageHeader";
 import { PageSkeleton } from "@/components/States";
@@ -102,6 +103,8 @@ export default function Progress() {
           <p className="mt-3 text-[0.875rem] text-muted">{stats.data?.total ?? 0} cards in all.</p>
         </section>
       </div>
+
+      <GoalsSection />
 
       <section className="card mt-4 p-6" aria-labelledby="history-h">
         <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">

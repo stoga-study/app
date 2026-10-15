@@ -21,6 +21,7 @@ import Settings from "./routes/Settings";
 import Search from "./routes/Search";
 import Calendar from "./routes/Calendar";
 import Coach from "./routes/Coach";
+import Recap from "./routes/Recap";
 import { CustomizeCoach, YourFace } from "./routes/Customize";
 import PracticeTest from "./routes/PracticeTest";
 import ExamPrep, { ReviewPack } from "./routes/ExamPrep";
@@ -81,6 +82,7 @@ export const router = createBrowserRouter([
           { path: "search", element: <Search /> },
           { path: "calendar", element: <Calendar /> },
           { path: "coach", element: <Coach /> },
+          { path: "recap", element: <Recap /> },
           { path: "coach/customize", element: <CustomizeCoach /> },
           { path: "settings/face", element: <YourFace /> },
           { path: "practice-test", element: <PracticeTest /> },

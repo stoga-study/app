@@ -22,13 +22,13 @@ export function useStudyHistory(days = 182) {
 export type StudySession = { started_at: string; ended_at: string; subject_ids: string[]; reviews: number; quiz_answers: number; practice_tests: number; tutor: number; correct: number; graded: number };
 
 /** Recent sittings: studying with no gap over 30 minutes counts as one. */
-export function useStudySessions(days = 30) {
+export function useStudySessions(days = 30, limit = 20) {
   const { session } = useAuth();
   return useQuery({
-    queryKey: ["study-sessions", session?.user.id, days],
+    queryKey: ["study-sessions", session?.user.id, days, limit],
     enabled: !!session,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("study_sessions", { p_days: days, p_limit: 20 });
+      const { data, error } = await supabase.rpc("study_sessions", { p_days: days, p_limit: limit });
       if (error) throw error;
       return (data ?? []) as StudySession[];
     },

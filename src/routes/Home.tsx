@@ -17,6 +17,10 @@ import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
 import { TodayList } from "@/components/TodayList";
 import { CoachCard } from "@/components/CoachCard";
+import { GoalsStrip, RecapCard } from "@/components/Goals";
+import { showRecapCard, weekOf } from "@/lib/goals";
+import { today as todayIso } from "@/lib/calendar";
+import { weekStart } from "@/lib/locale";
 import { dateFormat } from "@/lib/locale";
 
 function today() {
@@ -53,8 +57,10 @@ export default function Home() {
           <span><b>New school year.</b> Update your classes for {currentSchoolYear}. Last year&apos;s notes and cards stay safe.</span>
         </Link>
       )}
+      <WeeklyRecap />
       <ContinueStudying />
       <TodayList />
+      <GoalsStrip />
       <CoachCard />
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
@@ -142,5 +148,32 @@ function ContinueStudying() {
         <ArrowRight className="size-5 flex-none text-brand" aria-hidden="true" />
       </Link>
     </section>
+  );
+}
+
+/** The recap of last week, for the first three days of a new week, until closed (remembered on this device). */
+function WeeklyRecap() {
+  const now = todayIso();
+  const first = weekStart();
+  const key = `stoga-recap-${weekOf(now, first).start}`;
+  const [closed, setClosed] = useState(() => {
+    try {
+      return localStorage.getItem(key) === "1";
+    } catch {
+      return false;
+    }
+  });
+  if (closed || !showRecapCard(now, first)) return null;
+  return (
+    <RecapCard
+      onClose={() => {
+        try {
+          localStorage.setItem(key, "1");
+        } catch {
+          /* blocked storage: it just closes for this visit */
+        }
+        setClosed(true);
+      }}
+    />
   );
 }
