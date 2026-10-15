@@ -427,3 +427,6 @@ enabled = true
 # generate checks auth itself: student calls need a valid session, chain calls need the service key.
 [functions.generate]
 verify_jwt = false
+
+[functions.send-reminders]
+verify_jwt = false
