@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.5.1",
+      "date": "2026-10-15",
+      "title": "Goals, and your week in review",
+      "intro": "Set a weekly goal that fits you, and look back on each week.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "Weekly goals",
+          "text": "Up to four: study days, cards reviewed, quiz questions or study minutes, for all classes or one. Or make your own, like “Read a chapter”, and tick it off. They reset every week."
+        },
+        {
+          "icon": "history",
+          "title": "Your week in review",
+          "text": "At the start of each week: what you studied, your best day, which class picked up, how your goals went, and one thing to try next."
+        }
+      ]
+    },
+    {
       "version": "1.5.0",
       "date": "2026-10-15",
       "title": "See how you're really doing",
