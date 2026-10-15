@@ -1062,6 +1062,7 @@ export type Database = {
           grade: string | null
           graduation_year: number | null
           last_seen_version: string | null
+          milestones: Json
           onboarded: boolean
           plan: Database["public"]["Enums"]["plan"]
           review_retention: number
@@ -1080,6 +1081,7 @@ export type Database = {
           grade?: string | null
           graduation_year?: number | null
           last_seen_version?: string | null
+          milestones?: Json
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
@@ -1098,6 +1100,7 @@ export type Database = {
           grade?: string | null
           graduation_year?: number | null
           last_seen_version?: string | null
+          milestones?: Json
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
