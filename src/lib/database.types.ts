@@ -954,6 +954,27 @@ export type Database = {
           },
         ]
       }
+      notification_log: {
+        Row: {
+          day: string
+          kind: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          day: string
+          kind: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          day?: string
+          kind?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       plan_done: {
         Row: {
           created_at: string
@@ -1063,6 +1084,7 @@ export type Database = {
           graduation_year: number | null
           last_seen_version: string | null
           milestones: Json
+          notify: Json | null
           onboarded: boolean
           plan: Database["public"]["Enums"]["plan"]
           review_retention: number
@@ -1082,6 +1104,7 @@ export type Database = {
           graduation_year?: number | null
           last_seen_version?: string | null
           milestones?: Json
+          notify?: Json | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
@@ -1101,6 +1124,7 @@ export type Database = {
           graduation_year?: number | null
           last_seen_version?: string | null
           milestones?: Json
+          notify?: Json | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
@@ -1109,6 +1133,33 @@ export type Database = {
           streak_pauses?: string[]
           tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          user_id?: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
           user_id?: string
         }
         Relationships: []
