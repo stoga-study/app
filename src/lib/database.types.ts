@@ -1066,6 +1066,8 @@ export type Database = {
           plan: Database["public"]["Enums"]["plan"]
           review_retention: number
           school: string | null
+          streak_days: number | null
+          streak_pauses: string[]
           tutor_depth: Database["public"]["Enums"]["tutor_depth"]
           updated_at: string
           user_id: string
@@ -1082,6 +1084,8 @@ export type Database = {
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
           school?: string | null
+          streak_days?: number | null
+          streak_pauses?: string[]
           tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
           updated_at?: string
           user_id: string
@@ -1098,6 +1102,8 @@ export type Database = {
           plan?: Database["public"]["Enums"]["plan"]
           review_retention?: number
           school?: string | null
+          streak_days?: number | null
+          streak_pauses?: string[]
           tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
           updated_at?: string
           user_id?: string
