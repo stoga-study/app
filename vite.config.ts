@@ -35,6 +35,8 @@ export default defineConfig({
         // pdf.js ships a large worker; it is fetched on demand, not precached.
         globIgnores: ["**/pdf.worker*"],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        // Phone notifications (public/push-sw.js).
+        importScripts: ["push-sw.js"],
       },
     }),
   ],

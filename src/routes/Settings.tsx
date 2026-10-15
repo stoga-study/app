@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Face } from "@/components/Face";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { useFaces } from "@/lib/queries/profile";
 import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
@@ -283,6 +284,8 @@ export default function Settings() {
           <p className="field-hint">For dates, times and the first day of the week, and the language your coach replies in. The rest of the app is in English for now.</p>
         </div>
       </Section>
+
+      <Section id="notifications" title="Notifications"><NotificationSettings /></Section>
 
       <Section id="review" title="Flashcard reviews"><RetentionChoice /></Section>
 
