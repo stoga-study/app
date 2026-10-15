@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.5.2",
+      "date": "2026-10-15",
+      "title": "Streaks, your way",
+      "intro": "An optional weekly streak that works around your life.",
+      "highlights": [
+        {
+          "icon": "weak",
+          "title": "Pick your days",
+          "text": "Choose how many days a week you want to study, from 1 to 7. Hit that and the week counts. The rest are rest days."
+        },
+        {
+          "icon": "continue",
+          "title": "No guilt",
+          "text": "A week you can't make just doesn't count, and that's okay. Going away or sick? Pause the week and your streak is safe. Always free."
+        },
+        {
+          "icon": "check",
+          "title": "Only real studying counts",
+          "text": "Reviewing cards, quizzes, practice tests and asking the tutor. Turn it on from Progress."
+        }
+      ]
+    },
+    {
       "version": "1.5.1",
       "date": "2026-10-15",
       "title": "Goals, and your week in review",
