@@ -16,7 +16,8 @@ export function GoalRing({ pct, done, size = 56 }: { pct: number; done: boolean;
     <svg viewBox="0 0 48 48" width={size} height={size} className="flex-none -rotate-90" aria-hidden="true">
       <circle cx={24} cy={24} r={r} fill="none" stroke="var(--line)" strokeWidth={5} />
       <circle cx={24} cy={24} r={r} fill="none" stroke="var(--primary)" strokeWidth={5} strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} className="transition-[stroke-dashoffset] duration-700 ease-out" />
-      {done && <path d="M17 24 l5 5 l9 -10" transform="rotate(90 24 24)" fill="none" stroke="var(--primary)" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" className="check-in" />}
+      {/* The ring is turned to start at the top; the check is turned back on a wrapper, since its pop-in animation sets its own transform. */}
+      {done && <g transform="rotate(90 24 24)"><path d="M16 24.5 l5.5 5.5 l10 -11" fill="none" stroke="var(--primary)" strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" className="check-in" style={{ transformBox: "fill-box", transformOrigin: "center" }} /></g>}
     </svg>
   );
 }
