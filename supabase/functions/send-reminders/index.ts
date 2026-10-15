@@ -8,6 +8,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import webpush from "npm:web-push@3.6.7";
 import { eveningMessage, inWindow, isQuiet, localNow, minutesOf, toPrefs } from "../_lib/notify.ts";
+import { corsHeaders, json } from "../_lib/cors.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 webpush.setVapidDetails(Deno.env.get("VAPID_SUBJECT") ?? "https://beta.stoga.study", Deno.env.get("VAPID_PUBLIC_KEY")!, Deno.env.get("VAPID_PRIVATE_KEY")!);
@@ -41,16 +42,18 @@ async function studiedSince(userId: string, since: string) {
 }
 
 Deno.serve(async (req) => {
+  // The app calls this for a test send, so it answers the browser's CORS check.
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders(req) });
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
   // A test send for one's own devices: { test: true } with the student's sign-in.
   const body = await req.json().catch(() => ({}));
   if (body.test === true) {
     const token = req.headers.get("Authorization")?.replace(/^Bearer /, "");
     const { data: user } = token ? await admin.auth.getUser(token) : { data: { user: null } };
-    if (!user?.user) return Response.json({ error: "not_signed_in" }, { status: 401 });
+    if (!user?.user) return json(req, { error: "not_signed_in" }, 401);
     const { data: subs } = await admin.from("push_subscriptions").select("*").eq("user_id", user.user.id);
     const sent = await push((subs ?? []) as Sub[], { title: "Notifications are on", body: "This is how Stoga.study reminders will look.", url: "/settings#notifications", tag: "test" });
-    return Response.json({ sent });
+    return json(req, { sent });
   }
 
   const { data: subs, error } = await admin.from("push_subscriptions").select("id, user_id, endpoint, p256dh, auth");
