@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.5.3",
+      "date": "2026-10-15",
+      "title": "Quiet milestones",
+      "intro": "A few moments worth marking, without the noise.",
+      "highlights": [
+        {
+          "icon": "mastery",
+          "title": "Moments that matter",
+          "text": "Your first review, 100 cards learned, your first unit mastered, four weeks in a row, 90% on a practice test and a few more. Each one shows up once on Home, then lives on your Progress page."
+        },
+        {
+          "icon": "check",
+          "title": "No points, no leaderboards",
+          "text": "Just you and how far you've come."
+        }
+      ]
+    },
+    {
       "version": "1.5.2",
       "date": "2026-10-15",
       "title": "Streaks, your way",
