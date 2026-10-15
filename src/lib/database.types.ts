@@ -662,6 +662,76 @@ export type Database = {
         }
         Relationships: []
       }
+      goal_ticks: {
+        Row: {
+          created_at: string
+          day: string
+          goal_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          day: string
+          goal_id: string
+          id?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          day?: string
+          goal_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goal_ticks_goal_id_user_id_fkey"
+            columns: ["goal_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string | null
+          subject_id: string | null
+          target: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          label?: string | null
+          subject_id?: string | null
+          target: number
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string | null
+          subject_id?: string | null
+          target?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_subject_id_user_id_fkey"
+            columns: ["subject_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       guide_sections: {
         Row: {
           body_md: string
