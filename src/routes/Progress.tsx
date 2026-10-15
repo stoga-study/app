@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { Heatmap, TrendLine } from "@/components/HistoryCharts";
 import { GoalsSection } from "@/components/Goals";
 import { StreakSettings } from "@/components/Streak";
+import { MilestonesSection } from "@/components/Milestones";
 import { MasteryChip } from "@/components/MasteryChip";
 import { PageHeader } from "@/components/PageHeader";
 import { PageSkeleton } from "@/components/States";
@@ -198,6 +199,8 @@ export default function Progress() {
           )}
         </section>
       </div>
+
+      <MilestonesSection />
 
       <Link to="/calendar?view=plan" className="card card-dashed mt-4 flex items-start gap-4 p-5 text-ink no-underline">
         <span className="tile soft"><CalendarClock /></span>

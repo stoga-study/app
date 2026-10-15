@@ -19,6 +19,7 @@ import { TodayList } from "@/components/TodayList";
 import { CoachCard } from "@/components/CoachCard";
 import { GoalsStrip, RecapCard } from "@/components/Goals";
 import { StreakCard } from "@/components/Streak";
+import { MilestoneCard } from "@/components/Milestones";
 import { showRecapCard, weekOf } from "@/lib/goals";
 import { today as todayIso } from "@/lib/calendar";
 import { weekStart } from "@/lib/locale";
@@ -58,6 +59,7 @@ export default function Home() {
           <span><b>New school year.</b> Update your classes for {currentSchoolYear}. Last year&apos;s notes and cards stay safe.</span>
         </Link>
       )}
+      <MilestoneCard />
       <WeeklyRecap />
       <ContinueStudying />
       <TodayList />
