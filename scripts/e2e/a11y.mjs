@@ -35,7 +35,7 @@ await run("a11y", async ({ p, uid, wh }) => {
   ok(`no serious or critical problems (${all.size} kinds found)`, all.size === 0);
   // The Motion switch: on, it marks the page so every animation stops.
   await p.goto(`${APP}/settings`, { waitUntil: "networkidle" });
-  await p.getByRole("radio", { name: "Reduce motion" }).click();
+  await p.getByRole("button", { name: "Reduce motion" }).click();
   await p.reload({ waitUntil: "networkidle" });
   ok("Reduce motion holds after a reload", (await p.evaluate(() => document.documentElement.dataset.motion)) === "reduce");
 }, { width: 390, height: 844 });
