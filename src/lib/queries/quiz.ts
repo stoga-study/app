@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../auth/session";
 import type { Json } from "../database.types";
 import { supabase } from "../supabase";
+import { enqueueQuiz } from "../offline/outbox";
 
 export type Question = {
   id: string; quiz_id: string; prompt: string; options: string[]; answer_index: number; hint: string | null;
@@ -15,20 +16,23 @@ export function useQuiz(id: string | undefined) {
   return useQuery({
     queryKey: ["quiz", id],
     enabled: !!id,
-    queryFn: async () => {
-      const { data: quiz, error } = await supabase.from("quizzes").select("id, title, subject_id, source_id, sources(kind)").eq("id", id!).maybeSingle();
-      if (error) throw error;
-      if (!quiz) return null;
-      const [qs, last] = await Promise.all([
-        supabase.from("quiz_questions").select(Q_FIELDS).eq("quiz_id", id!).eq("hidden", false).order("position"),
-        supabase.from("quiz_attempts").select("correct, total, finished_at").eq("quiz_id", id!).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1),
-      ]);
-      if (qs.error) throw qs.error;
-      if (last.error) throw last.error;
-      const kind = (quiz.sources as unknown as { kind: string } | null)?.kind ?? "pdf";
-      return { quiz, kind, questions: asQuestions(qs.data), last: last.data[0] ?? null };
-    },
+    queryFn: () => fetchQuiz(id!),
   });
+}
+
+/** One quiz with its questions (also saved ahead of time for offline use). */
+export async function fetchQuiz(id: string) {
+  const { data: quiz, error } = await supabase.from("quizzes").select("id, title, subject_id, source_id, sources(kind)").eq("id", id).maybeSingle();
+  if (error) throw error;
+  if (!quiz) return null;
+  const [qs, last] = await Promise.all([
+    supabase.from("quiz_questions").select(Q_FIELDS).eq("quiz_id", id).eq("hidden", false).order("position"),
+    supabase.from("quiz_attempts").select("correct, total, finished_at").eq("quiz_id", id).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(1),
+  ]);
+  if (qs.error) throw qs.error;
+  if (last.error) throw last.error;
+  const kind = (quiz.sources as unknown as { kind: string } | null)?.kind ?? "pdf";
+  return { quiz, kind, questions: asQuestions(qs.data), last: last.data[0] ?? null };
 }
 
 export type Mistake = { id: string; question_id: string; chosen_index: number | null; created_at: string; question: Question & { kind: string; subject_id: string; source_id: string | null } };
@@ -86,27 +90,19 @@ export function useQuizList() {
   });
 }
 
+/** Start an attempt. Its id is made here, so a quiz can start (and finish) offline and sync later. */
 export async function startAttempt(quizId: string, total: number) {
-  const { data, error } = await supabase.from("quiz_attempts").insert({ quiz_id: quizId, total, answers: [] }).select("id").single();
-  if (error) throw error;
-  return data.id as string;
+  const id = crypto.randomUUID();
+  await enqueueQuiz({ client_id: crypto.randomUUID(), at: new Date().toISOString(), type: "start", attempt_id: id, quiz_id: quizId, total });
+  return id;
 }
 
+/** Save an answer: the attempt so far, and the question in or out of mistake review. Works offline. */
 export async function recordAnswer(opts: { attemptId: string | null; questionId: string; chosen: number; correct: boolean; answers: Json[]; correctSoFar: number; finished: boolean }) {
-  if (opts.attemptId) {
-    await supabase.from("quiz_attempts").update({
-      answers: opts.answers, correct: opts.correctSoFar, ...(opts.finished ? { finished_at: new Date().toISOString() } : {}),
-    }).eq("id", opts.attemptId);
-  }
-  if (opts.correct) {
-    // Getting it right clears it from mistake review.
-    await supabase.from("mistakes").update({ resolved_at: new Date().toISOString() }).eq("question_id", opts.questionId).is("resolved_at", null);
-  } else {
-    await supabase.from("mistakes").upsert(
-      { question_id: opts.questionId, attempt_id: opts.attemptId, chosen_index: opts.chosen, resolved_at: null, created_at: new Date().toISOString() },
-      { onConflict: "user_id,question_id" },
-    );
-  }
+  await enqueueQuiz({
+    client_id: crypto.randomUUID(), at: new Date().toISOString(), type: "answer", attempt_id: opts.attemptId, question_id: opts.questionId,
+    chosen: opts.chosen, correct: opts.correct, answers: opts.answers, correct_so_far: opts.correctSoFar, finished: opts.finished,
+  });
 }
 
 /**
