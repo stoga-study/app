@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.6.2",
+      "date": "2026-10-16",
+      "title": "Pick up on any device",
+      "intro": "Start on your laptop, keep going on your phone.",
+      "highlights": [
+        {
+          "icon": "continue",
+          "title": "Continue studying, everywhere",
+          "text": "Home offers the last file, note or review you had open, even if it was on another device."
+        },
+        {
+          "icon": "check",
+          "title": "Your coach chat follows you",
+          "text": "Your conversation with your coach shows up on your phone and your laptop."
+        }
+      ]
+    },
+    {
       "version": "1.6.1",
       "date": "2026-10-16",
       "title": "Quizzes offline, too",
