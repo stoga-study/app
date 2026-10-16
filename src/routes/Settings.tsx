@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { Face } from "@/components/Face";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { InstallCard } from "@/components/Install";
 import { useFaces } from "@/lib/queries/profile";
 import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
@@ -286,6 +287,8 @@ export default function Settings() {
       </Section>
 
       <Section id="notifications" title="Notifications"><NotificationSettings /></Section>
+
+      <Section id="install" title="Install the app"><InstallCard where="settings" /></Section>
 
       <Section id="review" title="Flashcard reviews"><RetentionChoice /></Section>
 
