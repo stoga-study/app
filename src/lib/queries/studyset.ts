@@ -102,28 +102,31 @@ export function useStudySet(sourceId: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: ["studyset", sourceId],
     enabled: !!sourceId && enabled,
-    queryFn: async () => {
-      const id = sourceId!;
-      const [notes, cards, quizzes, guide, summary, terms] = await Promise.all([
-        supabase.from("notes_sections").select("id, title, body_md, pages").eq("source_id", id).eq("hidden", false).order("position"),
-        supabase.from("cards").select("id, front, back, pages, quote").eq("source_id", id).eq("hidden", false).order("created_at"),
-        supabase.from("quizzes").select("id, title").eq("source_id", id).order("created_at"),
-        supabase.from("guide_sections").select("id, title, body_md, minutes, pages").eq("source_id", id).eq("hidden", false).order("position"),
-        supabase.from("summaries").select("id, body_md").eq("source_id", id).eq("hidden", false).maybeSingle(),
-        supabase.from("key_terms").select("id, term, definition, pages").eq("source_id", id).eq("hidden", false).order("position"),
-      ]);
-      for (const r of [notes, cards, quizzes, guide, summary, terms]) if (r.error) throw r.error;
-      // A file can have several quizzes ("another practice quiz").
-      type Question = { id: string; prompt: string; options: string[]; answer_index: number; hint: string | null; explanation: string; pages: number[]; quote: string | null };
-      const list: { id: string; title: string; questions: Question[] }[] = [];
-      for (const quiz of quizzes.data!) {
-        const { data, error } = await supabase
-          .from("quiz_questions").select("id, prompt, options, answer_index, hint, explanation, pages, quote").eq("quiz_id", quiz.id).eq("hidden", false).order("position");
-        if (error) throw error;
-        list.push({ ...quiz, questions: data.map((q) => ({ ...q, options: q.options as string[] })) });
-      }
-      const questions = list.flatMap((q) => q.questions);
-      return { notes: notes.data!, cards: cards.data!, quizzes: list, quiz: list[0] ?? null, questions, guide: guide.data!, summary: summary.data, terms: terms.data! };
-    },
+    queryFn: () => fetchStudySet(sourceId!),
   });
+}
+
+/** Everything made from one file (also saved ahead of time for offline use). */
+export async function fetchStudySet(sourceId: string) {
+  const id = sourceId;
+  const [notes, cards, quizzes, guide, summary, terms] = await Promise.all([
+    supabase.from("notes_sections").select("id, title, body_md, pages").eq("source_id", id).eq("hidden", false).order("position"),
+    supabase.from("cards").select("id, front, back, pages, quote").eq("source_id", id).eq("hidden", false).order("created_at"),
+    supabase.from("quizzes").select("id, title").eq("source_id", id).order("created_at"),
+    supabase.from("guide_sections").select("id, title, body_md, minutes, pages").eq("source_id", id).eq("hidden", false).order("position"),
+    supabase.from("summaries").select("id, body_md").eq("source_id", id).eq("hidden", false).maybeSingle(),
+    supabase.from("key_terms").select("id, term, definition, pages").eq("source_id", id).eq("hidden", false).order("position"),
+  ]);
+  for (const r of [notes, cards, quizzes, guide, summary, terms]) if (r.error) throw r.error;
+  // A file can have several quizzes ("another practice quiz").
+  type Question = { id: string; prompt: string; options: string[]; answer_index: number; hint: string | null; explanation: string; pages: number[]; quote: string | null };
+  const list: { id: string; title: string; questions: Question[] }[] = [];
+  for (const quiz of quizzes.data!) {
+    const { data, error } = await supabase
+      .from("quiz_questions").select("id, prompt, options, answer_index, hint, explanation, pages, quote").eq("quiz_id", quiz.id).eq("hidden", false).order("position");
+    if (error) throw error;
+    list.push({ ...quiz, questions: data.map((q) => ({ ...q, options: q.options as string[] })) });
+  }
+  const questions = list.flatMap((q) => q.questions);
+  return { notes: notes.data!, cards: cards.data!, quizzes: list, quiz: list[0] ?? null, questions, guide: guide.data!, summary: summary.data, terms: terms.data! };
 }

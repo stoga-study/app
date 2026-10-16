@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { Brand } from "./Brand";
 import { OfflineBanner } from "./OfflineBanner";
 import { useNoteSync } from "@/lib/queries/notes";
+import { useOfflinePrefetch } from "@/lib/offline/prefetch";
 import { useFaces } from "@/lib/queries/profile";
 import { Face } from "./Face";
 
@@ -50,6 +51,7 @@ function SideLink({ item }: { item: Item }) {
 
 export function Shell({ aside }: { aside?: ReactNode }) {
   useNoteSync();
+  useOfflinePrefetch();
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[17rem_1fr] print:block">
       <a href="#main" className="sr-only-focusable btn btn-primary fixed left-4 top-4 z-50">Skip to content</a>
