@@ -86,3 +86,12 @@ export const useGrading = () => usePreference<Grading>("stoga-grading", ["ai", "
 export type PlanMinutes = "15" | "30" | "45" | "60";
 export const PLAN_MINUTES = ["15", "30", "45", "60"] as const;
 export const usePlanMinutes = () => usePreference<PlanMinutes>("stoga-plan-minutes", PLAN_MINUTES, "30", () => {});
+
+// Motion: follow the device's setting, or always reduce it in the app. This device only.
+export type MotionChoice = "system" | "reduce";
+const applyMotion = (m: MotionChoice) => {
+  if (m === "reduce") document.documentElement.setAttribute("data-motion", "reduce");
+  else document.documentElement.removeAttribute("data-motion");
+};
+export const useMotion = () => usePreference<MotionChoice>("stoga-motion", ["system", "reduce"] as const, "system", applyMotion);
+export const MOTION_LABEL: Record<MotionChoice, string> = { system: "Match device", reduce: "Reduce motion" };

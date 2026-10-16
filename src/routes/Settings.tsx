@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
 import { describeGrade } from "@/lib/grade";
-import { TEXT_LABEL, THEME_LABEL, useTextSize, useTheme, type TextSize, type ThemeChoice } from "@/lib/preferences";
+import { MOTION_LABEL, TEXT_LABEL, THEME_LABEL, useMotion, useTextSize, useTheme, type MotionChoice, type TextSize, type ThemeChoice } from "@/lib/preferences";
 import { deleteAccount, hostOf, KeyError, PROVIDER_PRESETS, useApiKey, useRemoveKey, useSaveKey, useUpdateName } from "@/lib/queries/account";
 import { RETENTION_CHOICES } from "@/lib/fsrs";
 import { useProfile, useRetention, useTutorDepth, type TutorDepth } from "@/lib/queries/profile";
@@ -255,6 +255,7 @@ function RetentionChoice() {
 export default function Settings() {
   const [theme, setTheme] = useTheme();
   const [size, setSize] = useTextSize();
+  const [motion, setMotion] = useMotion();
   const { session } = useAuth();
   const profile = useProfile();
   return (
@@ -276,6 +277,11 @@ export default function Settings() {
           <span className="field-label">Text size</span>
           <Segmented<TextSize> label="Text size" value={size} options={["standard", "large", "largest"]} labels={TEXT_LABEL} onChange={setSize} />
           <p className="field-hint">Layouts reflow at every size. These settings stay on this device.</p>
+        </div>
+        <div className="flex flex-col gap-2">
+          <span className="field-label">Motion</span>
+          <Segmented<MotionChoice> label="Motion" value={motion} options={["system", "reduce"]} labels={MOTION_LABEL} onChange={setMotion} />
+          <p className="field-hint">Reduce motion turns off animations like the coach's face, shimmering text and sliding cards, even if your device allows them.</p>
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="locale" className="field-label">Language and region</label>
