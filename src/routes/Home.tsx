@@ -12,7 +12,7 @@ import { useDueQueue } from "@/lib/queries/review";
 import { useSources } from "@/lib/queries/sources";
 import { useSessionSize } from "@/lib/preferences";
 import { useUnfinishedQuiz } from "@/lib/queries/quiz";
-import { getRecent, type Recent } from "@/lib/recent";
+import { getRecent, newestRecent, type Recent } from "@/lib/recent";
 import { sourceCount } from "./Subjects";
 import { SUBJECT_TILE } from "@/lib/subjects";
 import { TodayList } from "@/components/TodayList";
@@ -133,7 +133,10 @@ const RECENT_WORD: Record<Recent["kind"] | "quiz", string> = { note: "Keep writi
 /** One thing to pick back up: a quiz left part-way (any device), or the last note, file or review here. */
 function ContinueStudying() {
   const quiz = useUnfinishedQuiz();
-  const [recent] = useState(getRecent);
+  const profile = useProfile();
+  const [local] = useState(getRecent);
+  // This device's last place, or another device's if that is newer.
+  const recent = newestRecent(local, profile.data?.recent);
   const q = quiz.data;
   const pick: (Omit<Recent, "kind"> & { kind: Recent["kind"] | "quiz" }) | null =
     q && (!recent || new Date(q.at).getTime() >= recent.at)
