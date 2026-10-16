@@ -6,6 +6,7 @@ import { Brand } from "./Brand";
 import { OfflineBanner } from "./OfflineBanner";
 import { useNoteSync } from "@/lib/queries/notes";
 import { useOfflinePrefetch } from "@/lib/offline/prefetch";
+import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { useFaces } from "@/lib/queries/profile";
 import { Face } from "./Face";
 
@@ -102,6 +103,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
         </header>
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[70rem] flex-1 px-5 pb-28 pt-5 outline-none md:px-8 lg:px-12 lg:pb-12 lg:pt-8">
           <OfflineBanner />
+          <KeyboardShortcuts />
           <Outlet />
         </main>
 
