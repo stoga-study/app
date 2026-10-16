@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.6.3",
+      "date": "2026-10-16",
+      "title": "Install it like an app",
+      "intro": "Stoga.study on your Home Screen, one tap away.",
+      "highlights": [
+        {
+          "icon": "choose",
+          "title": "One-tap install",
+          "text": "On Chrome, Edge and Android, install Stoga.study from Home or Settings. It opens like an app and works offline."
+        },
+        {
+          "icon": "check",
+          "title": "iPhone steps",
+          "text": "On iPhone and iPad, a short guide shows you how to add it to your Home Screen, which also turns on reminders."
+        }
+      ]
+    },
+    {
       "version": "1.6.2",
       "date": "2026-10-16",
       "title": "Pick up on any device",
