@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.6.0",
+      "date": "2026-10-16",
+      "title": "Sturdier on a shaky connection",
+      "intro": "Fewer dead ends when the Wi-Fi drops or a server has a moment.",
+      "highlights": [
+        {
+          "icon": "offline",
+          "title": "It tries again by itself",
+          "text": "Loading, saving an upload and the coach all retry on their own after a passing hiccup, instead of showing an error."
+        },
+        {
+          "icon": "check",
+          "title": "Smoother updates",
+          "text": "The update notice says what's new and links to it. Screens that changed in an update reload themselves instead of showing a problem."
+        },
+        {
+          "icon": "type",
+          "title": "Tell us in one tap",
+          "text": "If a screen does hit a problem, Send a report tells us what went wrong, so we can fix it fast."
+        }
+      ]
+    },
+    {
       "version": "1.5.5",
       "date": "2026-10-16",
       "title": "Check-ins from your coach",
