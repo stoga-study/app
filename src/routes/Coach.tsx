@@ -7,7 +7,7 @@ import { Markdown } from "@/components/Markdown";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
 import { cn } from "@/lib/cn";
-import { loadCoach, saveCoach, streamCoach, undoCoach, type CoachEvent, type CoachMessage } from "@/lib/queries/coach";
+import { loadCoach, loadCoachFrom, localCoachAt, saveCoach, saveCoachRemote, streamCoach, undoCoach, type CoachEvent, type CoachMessage } from "@/lib/queries/coach";
 import { usePlan } from "@/lib/queries/plan";
 import { useFaces, useProfile } from "@/lib/queries/profile";
 import { Face } from "@/components/Face";
@@ -101,9 +101,29 @@ export default function Coach() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abort = useRef<AbortController | null>(null);
 
+  // Saved on this device at once, and to the profile a moment after the conversation settles, so it
+  // follows the student to their other devices.
+  const edited = useRef(false);
   useEffect(() => {
-    saveCoach(userId, msgs);
-  }, [userId, msgs]);
+    if (!edited.current) return;
+    const at = Date.now();
+    saveCoach(userId, msgs, at);
+    if (busy) return;
+    const t = setTimeout(() => void saveCoachRemote(userId, msgs, at).catch(() => {}), 1200);
+    return () => clearTimeout(t);
+  }, [userId, msgs, busy]);
+  // Another device's conversation is newer: show that one (only before anything is typed here).
+  const remoteAt = profile.data?.coach_chat_at ? Date.parse(profile.data.coach_chat_at) : 0;
+  const remote = profile.data?.coach_chat;
+  useEffect(() => {
+    if (edited.current || !remoteAt || remoteAt <= localCoachAt(userId) || !Array.isArray(remote)) return;
+    setMsgs(loadCoachFrom(remote));
+    saveCoach(userId, loadCoachFrom(remote), remoteAt);
+  }, [remoteAt, remote, userId]);
+  const setMsgsEdited: typeof setMsgs = (v) => {
+    edited.current = true;
+    setMsgs(v);
+  };
   // Follow the answer as it grows, unless the student scrolled up to read.
   const last = msgs.at(-1);
   const growth = `${msgs.length}:${last?.content.length ?? 0}:${last?.steps?.length ?? 0}:${last?.actions?.length ?? 0}`;
@@ -125,12 +145,12 @@ export default function Coach() {
     const message = text.trim();
     if (!message || busy) return;
     const before = msgs;
-    setMsgs([...before, { role: "user", content: message }, { role: "assistant", content: "", steps: [], actions: [], links: [], live: true }]);
+    setMsgsEdited([...before, { role: "user", content: message }, { role: "assistant", content: "", steps: [], actions: [], links: [], live: true }]);
     setDraft("");
     setBusy(true);
     const ctl = new AbortController();
     abort.current = ctl;
-    const patch = (fn: (m: CoachMessage) => CoachMessage) => setMsgs((ms) => ms.map((m, i) => (i === ms.length - 1 ? fn(m) : m)));
+    const patch = (fn: (m: CoachMessage) => CoachMessage) => setMsgsEdited((ms) => ms.map((m, i) => (i === ms.length - 1 ? fn(m) : m)));
     let changed = false;
     let failed: string | null = null;
     const planToday = plan.ready ? (plan.days[0]?.tasks ?? []).map((t) => `${t.title}${t.done ? " (done)" : ""}`) : [];
@@ -172,7 +192,7 @@ export default function Coach() {
     } else if (failed) {
       const code: string = failed;
       // Nothing came back: put the message back to try again. A half-written answer stays as it is.
-      setMsgs((ms) => {
+      setMsgsEdited((ms) => {
         const lastMsg = ms.at(-1);
         if (lastMsg && !lastMsg.content && !lastMsg.actions?.length) return before;
         return ms.map((m, i) => (i === ms.length - 1 ? { ...m, live: false } : m));
@@ -202,7 +222,7 @@ export default function Coach() {
     if (!a?.undo || a.undone) return;
     try {
       await undoCoach(a.undo);
-      setMsgs((m) => m.map((x, i) => (i !== mi ? x : { ...x, actions: x.actions!.map((y, j) => (j === ai ? { ...y, undone: true } : y)) })));
+      setMsgsEdited((m) => m.map((x, i) => (i !== mi ? x : { ...x, actions: x.actions!.map((y, j) => (j === ai ? { ...y, undone: true } : y)) })));
       refresh();
     } catch {
       toast("We couldn't undo that. Check your connection, then try again.");
@@ -244,7 +264,7 @@ export default function Coach() {
             <h1 className="flex items-center gap-2 text-[1.5rem]"><Face face={coach.face} size={36} mood={busy ? "thinking" : "idle"} /> {coach.name}</h1>
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" asChild><Link to="/coach/customize" aria-label={`Customize ${coach.name}`}><Palette /></Link></Button>
-              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setMsgs([])}><Trash2 /> New chat</Button>
+              <Button variant="ghost" size="sm" disabled={busy} onClick={() => setMsgsEdited([])}><Trash2 /> New chat</Button>
             </div>
           </div>
           <div className="flex flex-1 flex-col gap-5" aria-live="polite">

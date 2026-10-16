@@ -93,19 +93,41 @@ export async function undoCoach(u: Undo) {
 
 // The conversation stays on this device (the last 40 messages).
 const key = (userId: string) => `stoga-coach-${userId}`;
+/** A saved conversation, tidied: a reply cut off by closing the app is kept as it stands. */
+export function loadCoachFrom(v: unknown): CoachMessage[] {
+  return Array.isArray(v)
+    ? (v as CoachMessage[]).filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .map((m) => ({ ...m, live: false, steps: m.steps?.map((s) => (s.status === "running" ? { ...s, status: "failed" as const } : s)) }))
+    : [];
+}
+
 export function loadCoach(userId: string): CoachMessage[] {
   try {
-    const v = JSON.parse(localStorage.getItem(key(userId)) ?? "[]");
-    // A reply cut off by closing the app is kept as it stands.
-    return Array.isArray(v) ? v.map((m: CoachMessage) => ({ ...m, live: false, steps: m.steps?.map((s) => (s.status === "running" ? { ...s, status: "failed" as const } : s)) })) : [];
+    return loadCoachFrom(JSON.parse(localStorage.getItem(key(userId)) ?? "[]"));
   } catch {
     return [];
   }
 }
-export function saveCoach(userId: string, msgs: CoachMessage[]) {
+export function saveCoach(userId: string, msgs: CoachMessage[], at = Date.now()) {
   try {
     localStorage.setItem(key(userId), JSON.stringify(msgs.slice(-40)));
+    localStorage.setItem(`${key(userId)}-at`, String(at));
   } catch {
     /* storage full or blocked: the chat still works for this visit */
   }
+}
+
+/** When this device's copy of the conversation was last saved (ms), or 0. */
+export function localCoachAt(userId: string) {
+  try {
+    return Number(localStorage.getItem(`${key(userId)}-at`) ?? 0) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** Save the conversation to the profile, so it follows the student to their other devices. */
+export async function saveCoachRemote(userId: string, msgs: CoachMessage[], at: number) {
+  const clean = msgs.filter((m) => !m.live).slice(-40).map(({ live: _live, ...m }) => m);
+  await supabase.from("profiles").update({ coach_chat: clean as never, coach_chat_at: new Date(at).toISOString() }).eq("user_id", userId);
 }
