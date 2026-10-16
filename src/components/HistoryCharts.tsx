@@ -28,15 +28,13 @@ export function Heatmap({ weeks, summary }: { weeks: HeatCell[][]; summary: stri
           {weeks.map((w) => (
             <div key={w[0].day} className="grid grid-rows-7 gap-[3px]">
               {w.map((c) => (
-                <button
+                // Plain shapes, not buttons: the map is one labelled image for screen readers, and
+                // hovering or tapping a day still shows what was done in the line below.
+                <span
                   key={c.day}
-                  type="button"
-                  tabIndex={-1}
-                  aria-hidden="true"
-                  disabled={c.future}
-                  onMouseEnter={() => setHover(c)}
-                  onClick={() => setHover(c)}
-                  className={cn("aspect-square w-full max-w-7 rounded-[3px] transition-transform hover:scale-110", c.future && "opacity-0", hover?.day === c.day && "ring-2 ring-ink ring-offset-1 ring-offset-card")}
+                  onMouseEnter={() => !c.future && setHover(c)}
+                  onClick={() => !c.future && setHover(c)}
+                  className={cn("block aspect-square w-full max-w-7 cursor-pointer rounded-[3px] transition-transform hover:scale-110", c.future && "pointer-events-none opacity-0", hover?.day === c.day && "ring-2 ring-ink ring-offset-1 ring-offset-card")}
                   style={{ background: SHADE[c.level] }}
                 />
               ))}
