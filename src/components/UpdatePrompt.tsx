@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useRegisterSW } from "virtual:pwa-register/react";
+import { compareVersions } from "@/lib/changelog";
 
 /** Screens where a reload would interrupt something (a review, a quiz, writing, an upload). */
 const BUSY = /^\/(review\/session|quiz\/|notes\/|upload|practice)/;
@@ -22,12 +23,25 @@ export function UpdatePrompt() {
 
   useEffect(() => {
     if (!needRefresh) return;
-    toast("A new version of Stoga.study is ready.", {
-      id: "sw-update",
-      duration: Infinity,
-      action: { label: "Update", onClick: () => updateServiceWorker() },
-      cancel: { label: "Later", onClick: () => setNeedRefresh(false) },
-    });
+    let alive = true;
+    // Name what's new: the new version's changelog is already live on the server.
+    void fetch("/changelog.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .catch(() => null)
+      .then((data: { releases?: { version: string; title: string }[] } | null) => {
+        if (!alive) return;
+        const latest = data?.releases?.slice().sort((a, b) => compareVersions(b.version, a.version))[0];
+        toast(latest ? `Update ready: ${latest.title}` : "A new version of Stoga.study is ready.", {
+          id: "sw-update",
+          duration: Infinity,
+          closeButton: true,
+          description: latest ? `Version ${latest.version}. Update now, or it goes in next time you switch away.` : undefined,
+          action: { label: "Update", onClick: () => updateServiceWorker() },
+          cancel: { label: "What's new", onClick: () => { setNeedRefresh(false); window.location.assign("/changelog"); } },
+          onDismiss: () => setNeedRefresh(false),
+        });
+      });
+    return () => { alive = false; };
   }, [needRefresh, setNeedRefresh, updateServiceWorker]);
 
   // "Later" only hides the notice; the update still goes in at the next quiet moment.

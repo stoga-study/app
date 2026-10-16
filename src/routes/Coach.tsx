@@ -134,7 +134,9 @@ export default function Coach() {
     let changed = false;
     let failed: string | null = null;
     const planToday = plan.ready ? (plan.days[0]?.tasks ?? []).map((t) => `${t.title}${t.done ? " (done)" : ""}`) : [];
-    await streamCoach(message, before, planToday, (e: CoachEvent) => {
+    let heard = false;
+    const onEvent = (e: CoachEvent) => {
+      if (e.type !== "error") heard = true;
       if (e.type === "step") {
         patch((m) => {
           const steps = m.steps ?? [];
@@ -154,7 +156,14 @@ export default function Coach() {
       } else if (e.type === "error") {
         failed = e.error;
       }
-    }, ctl.signal);
+    };
+    await streamCoach(message, before, planToday, onEvent, ctl.signal);
+    // A hiccup before anything arrived (nothing was looked up or changed yet): try once more by itself.
+    if (failed && !heard && ["unavailable", "busy", "interrupted"].includes(failed) && !ctl.signal.aborted) {
+      failed = null;
+      await new Promise((r) => setTimeout(r, 1500));
+      if (!ctl.signal.aborted) await streamCoach(message, before, planToday, onEvent, ctl.signal);
+    }
     abort.current = null;
     setBusy(false);
     if (changed) refresh();
