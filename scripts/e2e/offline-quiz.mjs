@@ -1,6 +1,5 @@
 // v1.6.1: take a quiz with no connection, then reconnect: the attempt and mistakes sync.
-import { admin, APP, ok, run, until, waitForDeploy } from "./harness.mjs";
-await waitForDeploy("changes will sync");
+import { admin, APP, ok, run, until } from "./harness.mjs";
 await run("offline", async ({ p, uid, wh }) => {
   const src = (await admin.from("sources").insert({ user_id: uid, subject_id: wh.id, filename: "Cells", kind: "text", bytes: 1, page_count: 1, status: "ready" }).select().single()).data;
   const qz = (await admin.from("quizzes").insert({ user_id: uid, source_id: src.id, subject_id: wh.id, title: "Cells quiz" }).select().single()).data;
