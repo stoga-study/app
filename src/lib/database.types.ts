@@ -1081,6 +1081,8 @@ export type Database = {
         Row: {
           avatar: Json | null
           coach: Json | null
+          coach_chat: Json | null
+          coach_chat_at: string | null
           created_at: string
           first_name: string | null
           grade: string | null
@@ -1090,6 +1092,7 @@ export type Database = {
           notify: Json | null
           onboarded: boolean
           plan: Database["public"]["Enums"]["plan"]
+          recent: Json | null
           review_retention: number
           school: string | null
           streak_days: number | null
@@ -1101,6 +1104,8 @@ export type Database = {
         Insert: {
           avatar?: Json | null
           coach?: Json | null
+          coach_chat?: Json | null
+          coach_chat_at?: string | null
           created_at?: string
           first_name?: string | null
           grade?: string | null
@@ -1110,6 +1115,7 @@ export type Database = {
           notify?: Json | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
+          recent?: Json | null
           review_retention?: number
           school?: string | null
           streak_days?: number | null
@@ -1121,6 +1127,8 @@ export type Database = {
         Update: {
           avatar?: Json | null
           coach?: Json | null
+          coach_chat?: Json | null
+          coach_chat_at?: string | null
           created_at?: string
           first_name?: string | null
           grade?: string | null
@@ -1130,6 +1138,7 @@ export type Database = {
           notify?: Json | null
           onboarded?: boolean
           plan?: Database["public"]["Enums"]["plan"]
+          recent?: Json | null
           review_retention?: number
           school?: string | null
           streak_days?: number | null
