@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.6.4",
+      "date": "2026-10-16",
+      "title": "Keyboard shortcuts",
+      "intro": "Study faster from a laptop.",
+      "highlights": [
+        {
+          "icon": "type",
+          "title": "Quizzes and tests",
+          "text": "A to D picks an answer, Enter checks it and moves on, H shows a hint. In practice tests, arrow keys move between questions."
+        },
+        {
+          "icon": "browse",
+          "title": "Get around",
+          "text": "Press / to search, and G then a letter to jump: G H for Home, G C for Calendar, G R for Review, G O for your coach."
+        },
+        {
+          "icon": "check",
+          "title": "See them all",
+          "text": "Press ? anywhere for the full list."
+        }
+      ]
+    },
+    {
       "version": "1.6.3",
       "date": "2026-10-16",
       "title": "Install it like an app",
