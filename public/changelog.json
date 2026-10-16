@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.6.5",
+      "date": "2026-10-16",
+      "title": "Easier for everyone",
+      "intro": "An accessibility pass across the app, and a switch for motion.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "Checked screen by screen",
+          "text": "Every main screen was checked for screen readers, keyboard use and contrast, in light and dark."
+        },
+        {
+          "icon": "retention",
+          "title": "Reduce motion",
+          "text": "Settings, Display has a Motion switch that turns off animations in the app, even if your device allows them."
+        }
+      ]
+    },
+    {
       "version": "1.6.4",
       "date": "2026-10-16",
       "title": "Keyboard shortcuts",
