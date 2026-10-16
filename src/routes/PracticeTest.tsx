@@ -16,6 +16,7 @@ import { finishTest, usePracticePool, type PoolCard, type PoolQuestion, type Tes
 import { useSubjects } from "@/lib/queries/profile";
 import { useUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
+import { choiceKey, isTyping } from "@/lib/shortcuts";
 
 type Phase =
   | { step: "setup" }
@@ -170,6 +171,12 @@ function Running({ items, endsAt, at, setAt, answers, setAnswers, q, c, onHandIn
   const [left, setLeft] = useState(() => Math.round((endsAt - Date.now()) / 1000));
   const [confirm, setConfirm] = useState(false);
   const handedIn = useRef(false);
+  const keys = useRef<(e: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keys.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   useEffect(() => {
     const t = setInterval(() => {
       const s = Math.round((endsAt - Date.now()) / 1000);
@@ -192,7 +199,18 @@ function Running({ items, endsAt, at, setAt, answers, setAnswers, q, c, onHandIn
 
   const item = items[at];
   const a = answers[item.id] ?? { chosen: null, text: "" };
+  // Keyboard: A to D choose, arrows move between questions (never while typing an answer).
+  const onKeys = (e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
+    const k = item.kind === "mc" ? choiceKey(e.key, q.get(item.id)?.options.length ?? 0) : null;
+    if (k !== null) set({ chosen: k });
+    else if (e.key === "ArrowRight" && at < items.length - 1) setAt(at + 1);
+    else if (e.key === "ArrowLeft" && at > 0) setAt(at - 1);
+  };
   const set = (patch: Partial<Answer>) => setAnswers((x) => ({ ...x, [item.id]: { ...a, ...patch } }));
+  useEffect(() => {
+    keys.current = onKeys;
+  });
   const answered = (i: TestItem) => (i.kind === "mc" ? answers[i.id]?.chosen != null : !!answers[i.id]?.text.trim());
   const unanswered = items.filter((i) => !answered(i)).length;
 

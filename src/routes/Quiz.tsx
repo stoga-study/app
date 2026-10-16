@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Check, Info, Lightbulb, MessageCircleQuestion, RotateCcw, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 import { markPlanDone } from "@/lib/queries/plan";
@@ -15,6 +15,7 @@ import { loadAttempt, recordAnswer, startAttempt, useMistakes, useQuiz, useUnitQ
 import { useSources } from "@/lib/queries/sources";
 import { useAllUnits } from "@/lib/queries/units";
 import { unitName } from "@/lib/units";
+import { choiceKey, isTyping } from "@/lib/shortcuts";
 
 type Item = Question & { kind: string; source_id?: string | null };
 
@@ -53,6 +54,14 @@ export default function Quiz() {
   const [hint, setHint] = useState(false);
   const [answers, setAnswers] = useState<{ q: string; chosen: number; correct: boolean }[]>([]);
   const [attemptId, setAttemptId] = useState<string | null>(null);
+  // Keyboard: A to D (or 1 to 4) choose, Enter checks then continues, H shows the hint. The handler is
+  // refreshed each render (keys.current) so it always sees the current question.
+  const keys = useRef<(e: KeyboardEvent) => void>(() => {});
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => keys.current(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // ?attempt= picks up a quiz left part-way ("Continue studying"); otherwise a new try starts.
   const resume = params.get("attempt");
@@ -148,6 +157,14 @@ export default function Quiz() {
 
   // ----- Question -----
   const q = items[i];
+  keys.current = (e: KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
+    const k = choiceKey(e.key, q.options.length);
+    if (k !== null && !checked) setPick(k);
+    else if (e.key === "Enter" && !checked && pick !== null) { e.preventDefault(); void check(); }
+    else if (e.key === "Enter" && checked) { e.preventDefault(); setI((n) => n + 1); setPick(null); setChecked(false); setHint(false); }
+    else if (e.key.toLowerCase() === "h" && q.hint && !checked) setHint(true);
+  };
   const isRight = pick === q.answer_index;
   const qSubjectId = mistakesMode ? (q as Item & { subject_id?: string }).subject_id ?? null : quiz.data?.quiz.subject_id ?? unit?.subject_id ?? null;
 
