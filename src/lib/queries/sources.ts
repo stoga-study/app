@@ -3,6 +3,7 @@ import { useAuth } from "../auth/session";
 import type { Database } from "../database.types";
 import type { Extracted } from "../extract";
 import { supabase } from "../supabase";
+import { must, withRetry } from "../retry";
 
 export type Source = Database["public"]["Tables"]["sources"]["Row"];
 export type UsageKind = Database["public"]["Enums"]["usage_kind"];
@@ -122,28 +123,26 @@ export async function saveUpload(opts: {
       // A photo is stored as the upright, shrunk JPEG it was read from.
       const name = extracted.upload ? safeName(file.name).replace(/\.[a-z0-9]+$/i, "") + ".jpg" : safeName(file.name);
       storagePath = `${userId}/${id}/${name}`;
-      const { error: upErr } = await supabase.storage
-        .from("sources")
-        .upload(storagePath, extracted.upload ?? file, { contentType: STORAGE_TYPES[extracted.kind], upsert: false });
-      if (upErr) throw upErr;
+      // Each step can be repeated safely, so a dropped connection is retried rather than failing the upload.
+      const path = storagePath;
+      await withRetry(() => must(supabase.storage.from("sources").upload(path, extracted.upload ?? file, { contentType: STORAGE_TYPES[extracted.kind], upsert: true })));
     }
     const rows = extracted.pages.map((p) => ({ source_id: id, page_no: p.page, text: p.text }));
     for (let i = 0; i < rows.length; i += 40) {
-      const { error: pErr } = await supabase.from("source_pages").insert(rows.slice(i, i + 40));
-      if (pErr) throw pErr;
+      await withRetry(() => must(supabase.from("source_pages").upsert(rows.slice(i, i + 40), { onConflict: "source_id,page_no" })));
       opts.onSaving?.(Math.min(i + 40, rows.length), rows.length);
     }
-    const { error: sErr } = await supabase
+    const hash = file ? await fingerprint(file) : null;
+    await withRetry(() => must(supabase
       .from("sources")
       .update({
         status: "ready_text",
         page_count: extracted.totalPages,
         storage_path: storagePath,
         original_filename: (opts.originalName ?? filename).slice(0, 255),
-        content_hash: file ? await fingerprint(file) : null,
+        content_hash: hash,
       })
-      .eq("id", id);
-    if (sErr) throw sErr;
+      .eq("id", id)));
     return id;
   } catch (e) {
     if (storagePath) await supabase.storage.from("sources").remove([storagePath]);

@@ -14,10 +14,11 @@ import { UpdatePrompt } from "./components/UpdatePrompt";
 import { AuthProvider } from "./lib/auth/session";
 import { CACHE_VERSION, MAX_AGE, persister, shouldKeep } from "./lib/offline/persist";
 import { router } from "./router";
+import { backoff, queryRetry } from "./lib/retry";
 
 const queryClient = new QueryClient({
   // gcTime must cover the offline window, or persisted data would be dropped before it is restored.
-  defaultOptions: { queries: { staleTime: 30_000, gcTime: MAX_AGE, retry: 1, refetchOnWindowFocus: false } },
+  defaultOptions: { queries: { staleTime: 30_000, gcTime: MAX_AGE, retry: queryRetry, retryDelay: (n) => backoff(n + 1), refetchOnWindowFocus: false } },
 });
 
 createRoot(document.getElementById("root")!).render(
