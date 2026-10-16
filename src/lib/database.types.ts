@@ -960,18 +960,21 @@ export type Database = {
           kind: string
           sent_at: string
           user_id: string
+          variant: number
         }
         Insert: {
           day: string
           kind: string
           sent_at?: string
           user_id: string
+          variant?: number
         }
         Update: {
           day?: string
           kind?: string
           sent_at?: string
           user_id?: string
+          variant?: number
         }
         Relationships: []
       }
