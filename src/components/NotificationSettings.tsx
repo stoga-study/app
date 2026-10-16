@@ -48,7 +48,7 @@ export function NotificationSettings() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <p className="flex-1">{on ? "Reminders are on for this device." : "Get a gentle reminder in the evening, and a heads-up the night before a test. Never more than one a day."}</p>
+        <p className="flex-1">{on ? "Reminders are on for this device." : "Get a gentle reminder in the evening, a heads-up the night before a test, and the odd check-in from your coach. Never more than one a day."}</p>
         {on ? (
           <>
             <Button variant="secondary" size="sm" disabled={busy} onClick={() => { setBusy(true); sendTest().then((n) => toast(n ? "Sent. It should arrive in a moment." : "Couldn't reach this device. Try turning notifications off and on.")).catch(() => toast("We couldn't send a test.")).finally(() => setBusy(false)); }}>Send a test</Button>
@@ -72,7 +72,7 @@ export function NotificationSettings() {
         <>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-1 font-bold">What to send</legend>
-            {([["study", "Evening study reminder", "Only if you have cards due and haven't studied yet that day."], ["tests", "Test tomorrow", "The evening before a test or quiz on your calendar."]] as const).map(([k, label, hint]) => (
+            {([["study", "Evening study reminder", "Only if you have cards due and haven't studied yet that day."], ["tests", "Test tomorrow", "The evening before a test or quiz on your calendar."], ["checkins", "Check-ins from your coach", "After a rough quiz, when a test is close and you've been away a couple of days, or after a quiet stretch. At most one a week of each."]] as const).map(([k, label, hint]) => (
               <label key={k} className="flex items-start gap-3">
                 <input type="checkbox" className="mt-1 size-5 accent-[var(--primary)]" checked={prefs[k]} onChange={(e) => void save({ [k]: e.target.checked })} />
                 <span><b className="block">{label}</b><span className="text-[0.875rem] text-muted">{hint}</span></span>

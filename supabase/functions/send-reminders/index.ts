@@ -7,7 +7,7 @@
 // calling it more often sends nothing extra.
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import webpush from "npm:web-push@3.6.7";
-import { eveningMessage, inWindow, isQuiet, localNow, minutesOf, toPrefs } from "../_lib/notify.ts";
+import { eveningMessage, inWindow, isQuiet, localNow, minutesOf, toPrefs, type Kind, type Sent } from "../_lib/notify.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -31,14 +31,28 @@ async function push(subs: Sub[], payload: unknown) {
   return delivered;
 }
 
-/** Did the student study at all since their day began? Real studying only. */
-async function studiedSince(userId: string, since: string) {
-  const checks = await Promise.all([
-    admin.from("card_reviews").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("reviewed_at", since),
-    admin.from("quiz_attempts").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", since).neq("answers", "[]"),
-    admin.from("practice_tests").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("finished_at", since),
+const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.parse(`${a}T12:00:00Z`)) / 86400_000);
+const addDay = (d: string, n: number) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
+
+/** When the student last studied (real studying only), as an instant, or null. */
+async function lastStudied(userId: string) {
+  const [r, q, t] = await Promise.all([
+    admin.from("card_reviews").select("reviewed_at").eq("user_id", userId).order("reviewed_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("quiz_attempts").select("created_at").eq("user_id", userId).neq("answers", "[]").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("practice_tests").select("finished_at").eq("user_id", userId).order("finished_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
-  return checks.some((c) => (c.count ?? 0) > 0);
+  const all = [r.data?.reviewed_at, q.data?.created_at, t.data?.finished_at].filter((x): x is string => !!x).sort();
+  return all.at(-1) ?? null;
+}
+
+/** The lowest quiz or practice-test score since the student's day began, as a percentage. */
+async function worstScoreSince(userId: string, since: string) {
+  const [q, t] = await Promise.all([
+    admin.from("quiz_attempts").select("correct, total").eq("user_id", userId).gte("finished_at", since).gte("total", 5),
+    admin.from("practice_tests").select("pct").eq("user_id", userId).gte("finished_at", since),
+  ]);
+  const scores = [...(q.data ?? []).map((a) => Math.round((100 * a.correct) / a.total)), ...(t.data ?? []).map((x) => x.pct)];
+  return scores.length ? Math.min(...scores) : null;
 }
 
 Deno.serve(async (req) => {
@@ -61,13 +75,13 @@ Deno.serve(async (req) => {
   const byUser = new Map<string, Sub[]>();
   for (const s of (subs ?? []) as Sub[]) byUser.set(s.user_id, [...(byUser.get(s.user_id) ?? []), s]);
   if (!byUser.size) return Response.json({ checked: 0, sent: 0 });
-  const { data: profiles } = await admin.from("profiles").select("user_id, first_name, notify").in("user_id", [...byUser.keys()]);
+  const { data: profiles } = await admin.from("profiles").select("user_id, first_name, notify, coach").in("user_id", [...byUser.keys()]);
 
   let sent = 0;
   for (const p of profiles ?? []) {
     try {
       const prefs = toPrefs(p.notify);
-      if (!prefs.study && !prefs.tests) continue;
+      if (!prefs.study && !prefs.tests && !prefs.checkins) continue;
       const local = localNow(prefs.tz);
       if (isQuiet(local.minutes, minutesOf(prefs.quiet_start), minutesOf(prefs.quiet_end))) continue;
       if (!inWindow(local.minutes, minutesOf(prefs.time))) continue;
@@ -75,13 +89,32 @@ Deno.serve(async (req) => {
       const { error: claimed } = await admin.from("notification_log").insert({ user_id: p.user_id, kind: "evening", day: local.date });
       if (claimed) continue;
       const tomorrow = new Date(Date.parse(`${local.date}T12:00:00Z`) + 86400_000).toISOString().slice(0, 10);
-      const [due, test, studied] = await Promise.all([
+      const [due, test, soon, last, worst, log] = await Promise.all([
         admin.from("cards").select("id", { count: "exact", head: true }).eq("user_id", p.user_id).eq("hidden", false).eq("archived", false).lte("due", new Date().toISOString()),
         admin.from("events").select("id, title").eq("user_id", p.user_id).in("kind", ["test", "quiz"]).eq("due_on", tomorrow).limit(1).maybeSingle(),
-        studiedSince(p.user_id, local.dayStart.toISOString()),
+        admin.from("events").select("id, title, due_on").eq("user_id", p.user_id).in("kind", ["test", "quiz"]).gt("due_on", tomorrow).lte("due_on", addDay(local.date, 5)).order("due_on").limit(1).maybeSingle(),
+        lastStudied(p.user_id),
+        worstScoreSince(p.user_id, local.dayStart.toISOString()),
+        admin.from("notification_log").select("kind, day, variant").eq("user_id", p.user_id).gte("day", addDay(local.date, -14)).neq("kind", "evening").order("day", { ascending: false }),
       ]);
-      const msg = eveningMessage({ firstName: p.first_name, due: due.count ?? 0, testTomorrow: test.data, studiedToday: studied, prefs });
+      const sentBefore: Sent = {};
+      for (const l of log.data ?? []) sentBefore[l.kind as Kind] ??= { daysAgo: dayDiff(l.day, local.date), variant: l.variant };
+      const lastDay = last ? localNow(prefs.tz, new Date(last)).date : null;
+      const coach = p.coach && typeof p.coach === "object" && typeof (p.coach as { name?: unknown }).name === "string" ? String((p.coach as { name: string }).name).slice(0, 24) : "Coach";
+      const msg = eveningMessage({
+        firstName: p.first_name,
+        coachName: coach,
+        due: due.count ?? 0,
+        testTomorrow: test.data,
+        testSoon: soon.data ? { id: soon.data.id, title: soon.data.title, when: new Intl.DateTimeFormat("en-US", { weekday: "long", timeZone: "UTC" }).format(new Date(`${soon.data.due_on}T12:00:00Z`)) } : null,
+        studiedToday: lastDay === local.date,
+        daysSinceStudy: lastDay ? dayDiff(lastDay, local.date) : null,
+        worstScoreToday: worst,
+        sent: sentBefore,
+        prefs,
+      });
       if (!msg) continue;
+      await admin.from("notification_log").insert({ user_id: p.user_id, kind: msg.kind, day: local.date, variant: msg.variant });
       sent += await push(byUser.get(p.user_id)!, { title: msg.title, body: msg.body, url: msg.url, tag: msg.kind });
     } catch (e) {
       console.error("reminder", p.user_id, e instanceof Error ? e.message : e);
