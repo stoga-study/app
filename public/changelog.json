@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.5.5",
+      "date": "2026-10-16",
+      "title": "Check-ins from your coach",
+      "intro": "Your coach can now reach out, now and then, when it matters.",
+      "highlights": [
+        {
+          "icon": "continue",
+          "title": "When it helps",
+          "text": "After a rough quiz, when a test is close and you've been away a couple of days (“Your Bio test is Friday: 10 minutes tonight?”), or after a quiet stretch."
+        },
+        {
+          "icon": "check",
+          "title": "Never pushy",
+          "text": "Still one notification an evening at most, each kind at most weekly, different words each time, and its own switch in Settings."
+        }
+      ]
+    },
+    {
       "version": "1.5.4",
       "date": "2026-10-15",
       "title": "Gentle reminders",
