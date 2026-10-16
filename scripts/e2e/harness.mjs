@@ -24,7 +24,7 @@ export const until = async (fn, ms = 15000) => { for (let t = 0; t < ms; t += 50
  * Run `body({ p, uid, wh, errs })` as a fresh student with a Biology class; always cleans up.
  * `persistent: true` uses a normal (not incognito) browser profile, which Chrome needs for push.
  */
-export async function run(name, body, { width = 390, height = 844, persistent = false } = {}) {
+export async function run(name, body, { width = 390, height = 844, persistent = false, expectErrors = null } = {}) {
   const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: `e2e-${name}-${Date.now()}@example.com`, options: { redirectTo: APP + "/" } });
   if (error) throw error;
   const uid = data.user.id;
@@ -42,8 +42,10 @@ export async function run(name, body, { width = 390, height = 844, persistent = 
     await p.goto(data.properties.action_link, { waitUntil: "networkidle" });
     await p.waitForURL((u) => !u.pathname.includes("verify") && !u.pathname.includes("welcome"));
     await body({ p, uid, wh, errs });
-    ok("no page errors", errs.length === 0);
-    if (errs.length) console.log(errs);
+    // A test that cuts the connection on purpose passes a pattern for the errors it causes.
+    const real = expectErrors ? errs.filter((e) => !expectErrors.test(e)) : errs;
+    ok("no page errors", real.length === 0);
+    if (real.length) console.log(real);
   } catch (e) {
     console.log("ERROR", e.message.split("\n").slice(0, 8).join(" | "));
   } finally {
