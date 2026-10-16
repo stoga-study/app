@@ -26,8 +26,8 @@ export function OfflineBanner() {
       {online ? <RefreshCw className="size-5 flex-none text-brand" /> : <WifiOff className="size-5 flex-none text-brand" />}
       <span className="flex-1">
         {online
-          ? `Syncing ${pending} ${pending === 1 ? "answer" : "answers"}…`
-          : `You are offline. Saved cards, notes and quizzes still work.${pending ? ` ${pending} ${pending === 1 ? "answer" : "answers"} will sync when you reconnect.` : ""}`}
+          ? `Syncing ${pending} ${pending === 1 ? "change" : "changes"}…`
+          : `You are offline. Saved cards, notes and quizzes still work.${pending ? ` ${pending} ${pending === 1 ? "change" : "changes"} will sync when you reconnect.` : ""}`}
       </span>
       {online && pending > 0 && <button type="button" className="font-bold text-brand" onClick={() => void flush()}>Retry</button>}
     </div>
