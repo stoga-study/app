@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.6.1",
+      "date": "2026-10-16",
+      "title": "Quizzes offline, too",
+      "intro": "On the bus or somewhere without Wi-Fi? Keep studying.",
+      "highlights": [
+        {
+          "icon": "offline",
+          "title": "Take quizzes offline",
+          "text": "Answer practice quizzes with no connection. Your answers, score and mistakes sync on their own when you're back online."
+        },
+        {
+          "icon": "check",
+          "title": "Ready before you need it",
+          "text": "Your recent quizzes and study sets are saved on your device ahead of time, so they open even offline."
+        }
+      ]
+    },
+    {
       "version": "1.6.0",
       "date": "2026-10-16",
       "title": "Sturdier on a shaky connection",
