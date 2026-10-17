@@ -1345,6 +1345,50 @@ export type Database = {
           },
         ]
       }
+      share_links: {
+        Row: {
+          copies: number
+          created_at: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          source_id: string
+          token: string
+          user_id: string
+          with_file: boolean
+        }
+        Insert: {
+          copies?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          source_id: string
+          token: string
+          user_id?: string
+          with_file?: boolean
+        }
+        Update: {
+          copies?: number
+          created_at?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          source_id?: string
+          token?: string
+          user_id?: string
+          with_file?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "share_links_source_id_user_id_fkey"
+            columns: ["source_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       shared_sets: {
         Row: {
           content_hash: string
@@ -1422,6 +1466,7 @@ export type Database = {
           archived: boolean
           bytes: number | null
           content_hash: string | null
+          copied_from: string | null
           counted: boolean
           created_at: string
           error_code: string | null
@@ -1445,6 +1490,7 @@ export type Database = {
           archived?: boolean
           bytes?: number | null
           content_hash?: string | null
+          copied_from?: string | null
           counted?: boolean
           created_at?: string
           error_code?: string | null
@@ -1468,6 +1514,7 @@ export type Database = {
           archived?: boolean
           bytes?: number | null
           content_hash?: string | null
+          copied_from?: string | null
           counted?: boolean
           created_at?: string
           error_code?: string | null
@@ -1488,6 +1535,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sources_copied_from_fkey"
+            columns: ["copied_from"]
+            isOneToOne: false
+            referencedRelation: "share_links"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sources_subject_id_fkey"
             columns: ["subject_id"]
