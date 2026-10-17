@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.7.4",
+      "date": "2026-10-16",
+      "title": "Invite a classmate",
+      "intro": "Studying is easier with a friend.",
+      "highlights": [
+        {
+          "icon": "group",
+          "title": "A ready-made invite",
+          "text": "On any class page, or in a study group, tap Invite. A short message is ready to share, copy or text, and you can change it first."
+        },
+        {
+          "icon": "check",
+          "title": "Just a friendly invite",
+          "text": "Nothing is sent for you, and nobody earns anything for inviting."
+        }
+      ]
+    },
+    {
       "version": "1.7.3",
       "date": "2026-10-16",
       "title": "Report anything shared",
