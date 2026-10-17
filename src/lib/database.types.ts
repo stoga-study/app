@@ -1243,6 +1243,7 @@ export type Database = {
           recent: Json | null
           review_retention: number
           school: string | null
+          share_study_sets: boolean
           streak_days: number | null
           streak_pauses: string[]
           tutor_depth: Database["public"]["Enums"]["tutor_depth"]
@@ -1266,6 +1267,7 @@ export type Database = {
           recent?: Json | null
           review_retention?: number
           school?: string | null
+          share_study_sets?: boolean
           streak_days?: number | null
           streak_pauses?: string[]
           tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
@@ -1289,6 +1291,7 @@ export type Database = {
           recent?: Json | null
           review_retention?: number
           school?: string | null
+          share_study_sets?: boolean
           streak_days?: number | null
           streak_pauses?: string[]
           tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
@@ -1576,6 +1579,7 @@ export type Database = {
       shared_sets: {
         Row: {
           content_hash: string
+          contributor: string | null
           created_at: string
           gen_version: number
           kind: string
@@ -1586,6 +1590,7 @@ export type Database = {
         }
         Insert: {
           content_hash: string
+          contributor?: string | null
           created_at?: string
           gen_version: number
           kind: string
@@ -1596,6 +1601,7 @@ export type Database = {
         }
         Update: {
           content_hash?: string
+          contributor?: string | null
           created_at?: string
           gen_version?: number
           kind?: string
@@ -2041,6 +2047,7 @@ export type Database = {
         Returns: boolean
       }
       create_group: { Args: { p_name: string }; Returns: string }
+      delete_tutor_chats: { Args: never; Returns: number }
       duplicate_source: {
         Args: { p_source: string; p_subject: string }
         Returns: string
@@ -2133,6 +2140,7 @@ export type Database = {
           text: string
         }[]
       }
+      set_share_study_sets: { Args: { p_on: boolean }; Returns: number }
       store_byok: {
         Args: {
           p_base_url: string
