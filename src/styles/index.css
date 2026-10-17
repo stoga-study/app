@@ -235,21 +235,10 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .math-bar::after { content: ""; position: absolute; left: 0.06em; right: 0.06em; top: 0.17em; border-top: 0.075em solid currentColor; }
 .math-hat::after { content: "ˆ"; position: absolute; left: 50%; top: -0.02em; transform: translateX(-50%); font-weight: 400; line-height: 1; }
 
-/* The update card (UpdatePrompt): light and calm, in both themes. */
-.update-backdrop { background: color-mix(in srgb, var(--ink) 28%, transparent); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: fade-in 200ms ease both; }
-.update-card { animation: sheet-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) both; filter: drop-shadow(0 18px 40px rgb(0 0 0 / 0.18)); }
-.update-art {
-  background:
-    radial-gradient(60% 90% at 15% 0%, color-mix(in srgb, var(--hot) 22%, transparent), transparent 70%),
-    radial-gradient(55% 80% at 90% 10%, color-mix(in srgb, #8b9cf7 28%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--tint), var(--card));
-}
-.update-badge { background: var(--card); color: var(--brand); box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 18%, transparent), inset 0 0 0 1px var(--tint-line); animation: pop 420ms 120ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.update-close { background: var(--card); color: var(--ink-2); box-shadow: 0 4px 14px rgb(0 0 0 / 0.14); }
-.update-close:hover { color: var(--ink); }
-.update-primary { background: var(--primary); color: var(--on-fill); transition: background 150ms; }
-.update-primary:hover { background: var(--primary-deep); }
-.update-primary:disabled { opacity: 0.7; }
+/* The update card (UpdatePrompt): the brand's lesson card, sliding up like a feedback sheet. */
+.update-backdrop { background: color-mix(in srgb, var(--ink-panel) 55%, transparent); animation: fade-in 200ms ease-out both; }
+.update-card { animation: sheet-in 260ms ease-out both; }
+.update-tile { background: #FFFFFF; color: #720D19; box-shadow: 0 4px 0 #E8C9CF; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-html[data-motion="reduce"] .update-backdrop, html[data-motion="reduce"] .update-card, html[data-motion="reduce"] .update-badge { animation: none; }
-@media (prefers-reduced-motion: reduce) { .update-backdrop, .update-card, .update-badge { animation: none; } }
+html[data-motion="reduce"] .update-backdrop, html[data-motion="reduce"] .update-card { animation: none; }
+@media (prefers-reduced-motion: reduce) { .update-backdrop, .update-card { animation: none; } }

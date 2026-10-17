@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { compareVersions, type Release } from "@/lib/changelog";
 import { ReleaseIcon } from "@/components/ReleaseIcon";
+import { Button } from "@/components/ui/button";
 
 /** Screens where a reload would interrupt something (a review, a quiz, writing, an upload). */
 const BUSY = /^\/(review\/session|quiz\/|notes\/|upload|practice)/;
@@ -74,6 +75,8 @@ function UpdateCard({ release, onUpdate, onLater }: { release: Release | null; o
   }, [onLater]);
 
   const highlights = release?.highlights.slice(0, 3) ?? [];
+  // Built like the brand's lesson card (Brand Guidelines p. 11): a solid burgundy header with the seal's
+  // circles and a tilted tile, on a tactile white card. Burgundy only.
   return (
     <div className="update-backdrop fixed inset-0 z-[60] flex items-end justify-center p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center" onClick={onLater}>
       <section
@@ -83,43 +86,44 @@ function UpdateCard({ release, onUpdate, onLater }: { release: Release | null; o
         aria-describedby="update-intro"
         ref={dialog}
         tabIndex={-1}
-        className="update-card relative w-full max-w-[25rem] outline-none"
+        className="update-card card w-full max-w-[26rem] overflow-hidden !rounded-[1.75rem] outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <button type="button" onClick={onLater} aria-label="Close" className="update-close absolute -top-3 right-3 grid size-11 place-items-center rounded-full">
-          <X className="size-5" />
-        </button>
-        <div className="overflow-hidden rounded-[1.75rem] bg-card">
-          <div className="update-art grid place-items-center pt-9 pb-6">
-            <span className="update-badge grid size-[4.5rem] place-items-center rounded-full">
-              <ReleaseIcon name={highlights[0]?.icon ?? "check"} className="size-8" />
+        <header className="ink-panel burgundy !rounded-none px-6 pt-5 pb-7">
+          <span className="circle circle-big right-[-4.5rem] top-[-5rem] size-48" aria-hidden="true" />
+          <span className="circle circle-hot right-14 top-[6.5rem] size-3" aria-hidden="true" />
+          <div className="flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <span className="font-display text-[1.0625rem] font-bold tracking-[-0.02em]">Stoga.study</span>
+              {release && <span className="chip chip-dark !min-h-6 !px-2.5 !text-[0.75rem] tabular-nums">Version {release.version}</span>}
             </span>
-          </div>
-          <div className="flex flex-col items-center px-6 pb-6 text-center">
-            <p className="text-[0.8125rem] font-bold tracking-wide text-brand uppercase">{release ? `New in ${release.version}` : "Update ready"}</p>
-            <h2 id="update-title" className="mt-1 text-[1.5rem] leading-tight">{release?.title ?? "There's a new update"}</h2>
-            <p id="update-intro" className="mt-2 text-ink-2">{release?.intro ?? "A newer version of Stoga.study is ready, with fixes and improvements."}</p>
-            {highlights.length > 0 && (
-              <ul className="mt-5 flex w-full flex-col gap-2 text-left">
-                {highlights.map((h) => (
-                  <li key={h.title} className="flex items-center gap-3 rounded-[1rem] bg-soft px-3 py-2.5">
-                    <span className="grid size-8 flex-none place-items-center rounded-full bg-card text-brand"><ReleaseIcon name={h.icon} className="size-4" /></span>
-                    <span className="font-bold text-ink">{h.title}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <button
-              type="button"
-              disabled={updating}
-              onClick={() => { setUpdating(true); onUpdate(); }}
-              className="update-primary mt-6 min-h-12 w-full rounded-full px-6 font-bold"
-            >
-              {updating ? "Updating…" : "Update now"}
+            <button type="button" onClick={onLater} aria-label="Close" className="-mr-2 grid size-11 place-items-center rounded-full text-white/85 hover:bg-white/10 hover:text-white">
+              <X className="size-5" />
             </button>
-            <button type="button" onClick={onLater} className="mt-2 min-h-11 w-full rounded-full font-bold text-ink-2 hover:text-ink">Not now</button>
-            <p className="mt-1 text-[0.8125rem] text-muted">Not now? It goes in next time you leave the app.</p>
           </div>
+          <span className="update-tile tile mt-5"><ReleaseIcon name={highlights[0]?.icon ?? "check"} /></span>
+          <h2 id="update-title" className="mt-5 text-[1.625rem] leading-[1.1] tracking-[-0.02em] text-white">{release?.title ?? "A new version is ready"}</h2>
+          <p id="update-intro" className="ink-muted mt-2">{release?.intro ?? "Fixes and improvements, ready when you are."}</p>
+        </header>
+        <div className="px-6 pt-5 pb-6">
+          {highlights.length > 0 && (
+            <ul className="mb-6 flex flex-col gap-4">
+              {highlights.map((h) => (
+                <li key={h.title} className="flex items-start gap-3">
+                  <span className="tile soft !size-9 !rounded-[0.75rem] [&>svg]:!size-[1.125rem]"><ReleaseIcon name={h.icon} /></span>
+                  <span className="min-w-0">
+                    <span className="block font-bold text-ink">{h.title}</span>
+                    <span className="block text-[0.875rem] leading-snug text-muted">{h.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex flex-col gap-3">
+            <Button block disabled={updating} onClick={() => { setUpdating(true); onUpdate(); }}>{updating ? "Updating…" : "Update now"}</Button>
+            <Button block variant="secondary" onClick={onLater}>Not now</Button>
+          </div>
+          <p className="mt-3 text-center text-[0.8125rem] text-muted">Not now puts it in next time you close the app.</p>
         </div>
       </section>
     </div>
