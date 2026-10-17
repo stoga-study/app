@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.7.3",
+      "date": "2026-10-16",
+      "title": "Report anything shared",
+      "intro": "Keeping shared study sets kind and useful.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "A report button on everything shared",
+          "text": "Something in a group or a shared link not okay? Report it in two taps. Reports are private."
+        },
+        {
+          "icon": "weak",
+          "title": "Hidden fast",
+          "text": "When three different students report the same thing, it's hidden right away until a person takes a look."
+        },
+        {
+          "icon": "group",
+          "title": "Group owners can act",
+          "text": "Owners can still take things down at any time, and bring back something that was hidden by mistake."
+        }
+      ]
+    },
+    {
       "version": "1.7.2",
       "date": "2026-10-16",
       "title": "Edit together",
