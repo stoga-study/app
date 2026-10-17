@@ -1,10 +1,11 @@
-import { ArrowLeft, Copy, LogOut, Pencil, Plus, RefreshCw, Share2, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Copy, LogOut, Pencil, Plus, RefreshCw, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
 import { ReportShared } from "@/components/ReportShared";
+import { InviteClassmate } from "@/components/InviteClassmate";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
@@ -131,11 +132,6 @@ export function GroupPage() {
   const shared = new Set((sets.data ?? []).filter((x) => x.mine_shared).map((x) => x.title));
   const mySets = (sources.data ?? []).filter((x) => (x.status === "ready" || x.status === "ready_text") && !x.archived && !x.copied_from && !x.copied_from_set);
 
-  const invite = async () => {
-    const url = joinUrl(g.code);
-    if (navigator.share) await navigator.share({ title: `Join ${g.name} on Stoga.study`, text: `Join my study group with code ${g.code}`, url }).catch(() => {});
-    else await navigator.clipboard.writeText(url).then(() => toast("Invite link copied."), () => toast(url));
-  };
   const act = (p: Promise<unknown>, done: string) => p.then(() => { toast(done); return refresh(); }).catch((e) => toast(errText(e)));
 
   return (
@@ -148,7 +144,7 @@ export function GroupPage() {
         <p className="text-[0.9375rem] text-muted">Share the link or the code. Up to 40 people.</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <code className="rounded-xl bg-soft px-3 py-2 font-mono text-[1.25rem] tracking-[0.2em]">{g.code}</code>
-          <Button onClick={() => void invite()}><Share2 /> Invite</Button>
+          <InviteClassmate groupName={g.name} url={joinUrl(g.code)} label="Invite" />
           <Button variant="ghost" aria-label="Copy the code" onClick={() => navigator.clipboard.writeText(g.code).then(() => toast("Code copied."))}><Copy /></Button>
           {owner && <Button variant="ghost" onClick={() => act(resetCode(g.id), "New code made. The old one stops working.")}><RefreshCw /> New code</Button>}
         </div>

@@ -19,6 +19,7 @@ import { useCurrentUnit, useRenameUnit, useUnits, type Unit } from "@/lib/querie
 import { unitName } from "@/lib/units";
 import { toast } from "sonner";
 import { EventRow } from "@/components/EventRow";
+import { InviteClassmate } from "@/components/InviteClassmate";
 import { today } from "@/lib/calendar";
 import { isExam, useEvents } from "@/lib/queries/events";
 import { useReadiness } from "@/lib/queries/plan";
@@ -116,6 +117,13 @@ export default function Subject() {
           </section>
         );
       })()}
+      <section className="card card-dashed mb-8 flex flex-wrap items-center gap-3 p-5" aria-label="Study together">
+        <p className="min-w-[12rem] flex-1 text-[0.9375rem]"><b className="block">Studying {subject.name} with someone?</b><span className="text-muted">Invite a classmate, or start a study group to share study sets.</span></p>
+        <div className="flex flex-wrap gap-2">
+          <InviteClassmate className={subject.name} />
+          <Button asChild size="sm" variant="ghost"><Link to="/groups">Study groups</Link></Button>
+        </div>
+      </section>
       {!!units.data?.length && <NowStudying subjectId={subject.id} units={units.data} currentId={subject.current_unit_id} pinned={subject.current_unit_pinned} />}
       <h2 className="mb-3 text-[1.375rem]">Files and notes</h2>
       {tagCounts.length > 0 && (
