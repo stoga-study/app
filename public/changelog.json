@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.8.2",
+      "date": "2026-10-16",
+      "title": "Backup and restore",
+      "intro": "Your download is now a backup, too.",
+      "highlights": [
+        {
+          "icon": "repeat",
+          "title": "Restore from a backup",
+          "text": "In Settings > Your data, choose a zip from Download my data. Your classes, files, study sets, flashcards (with their review progress), notes and calendar come back."
+        },
+        {
+          "icon": "check",
+          "title": "Nothing gets overwritten",
+          "text": "Restore only adds what is missing. Restore twice and nothing doubles up. Use it to recover something you deleted, or to move to a new account."
+        }
+      ]
+    },
+    {
       "version": "1.8.1",
       "date": "2026-10-16",
       "title": "Take your work with you",
