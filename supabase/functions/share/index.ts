@@ -3,6 +3,8 @@
 // POST { action: "create", source_id, with_file? }   → { token, expires_at }   (owner only)
 // POST { action: "preview", token }                  → { title, by, kind, pages, counts, expires_at, mine, added_id }
 // POST { action: "add", token, subject_id }          → { source_id }           a private copy in the student's class
+// POST { action: "group_sets", group_id }            → { sets: [...] }         a group's shared sets (members only)
+// POST { action: "group_add", set_id, subject_id }   → { source_id }           copy a group's set (members only)
 //
 // Links work only for signed-in students, and only while not expired or turned off. The copy is made
 // with server rights from an explicit list of study-set fields: the sharer's own notes, progress,
@@ -13,6 +15,8 @@ import { corsHeaders, json } from "../_lib/cors.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const MAX_ACTIVE = 20;
+const SRC = "id, filename, original_filename, kind, bytes, page_count, status, options, steps, content_hash, storage_path, archived";
+const isMember = async (groupId: string, userId: string) => !!(await admin.from("group_members").select("user_id").eq("group_id", groupId).eq("user_id", userId).maybeSingle()).data;
 
 const token = () => {
   const b = crypto.getRandomValues(new Uint8Array(18));
@@ -24,7 +28,7 @@ async function liveLink(t: unknown) {
   if (typeof t !== "string" || !/^[A-Za-z0-9_-]{20,64}$/.test(t)) return null;
   const { data: link } = await admin.from("share_links").select("id, user_id, source_id, with_file, expires_at, revoked_at").eq("token", t).maybeSingle();
   if (!link || link.revoked_at || Date.parse(link.expires_at) < Date.now()) return null;
-  const { data: src } = await admin.from("sources").select("id, filename, original_filename, kind, bytes, page_count, status, options, steps, content_hash, storage_path, archived").eq("id", link.source_id).maybeSingle();
+  const { data: src } = await admin.from("sources").select(SRC).eq("id", link.source_id).maybeSingle();
   if (!src || src.archived || (src.status !== "ready" && src.status !== "ready_text")) return null;
   return { link, src };
 }
@@ -44,11 +48,12 @@ async function counts(sourceId: string) {
 }
 
 /** Copy the study set into the student's class. Rows are inserted as the student's own. */
-async function copyInto(userId: string, subjectId: string, l: NonNullable<Awaited<ReturnType<typeof liveLink>>>) {
-  const { src, link } = l;
+type Src = NonNullable<Awaited<ReturnType<typeof liveLink>>>["src"];
+async function copyInto(userId: string, subjectId: string, src: Src, o: { withFile: boolean; linkId?: string; setId?: string }) {
   const { data: made, error } = await admin.from("sources").insert({
     user_id: userId, subject_id: subjectId, filename: src.filename, original_filename: src.original_filename, kind: src.kind, bytes: src.bytes,
-    page_count: src.page_count, status: src.status, options: src.options, steps: src.steps, counted: true, content_hash: src.content_hash, copied_from: link.id,
+    page_count: src.page_count, status: src.status, options: src.options, steps: src.steps, counted: true, content_hash: src.content_hash,
+    copied_from: o.linkId ?? null, copied_from_set: o.setId ?? null,
   }).select("id").single();
   if (error) throw error;
   const id = made.id;
@@ -76,12 +81,12 @@ async function copyInto(userId: string, subjectId: string, l: NonNullable<Awaite
       if (e) throw e;
       await ins("quiz_questions", (await rows(admin.from("quiz_questions").select("position, prompt, options, answer_index, hint, explanation, topic, pages, quote").eq("quiz_id", q.id).eq("hidden", false))).map((r) => ({ ...r, user_id: userId, quiz_id: quiz.id })));
     }
-    if (link.with_file && src.storage_path) {
+    if (o.withFile && src.storage_path) {
       const path = `${userId}/${id}/${src.storage_path.split("/").pop()}`;
       const { error: e } = await admin.storage.from("sources").copy(src.storage_path, path);
       if (!e) await admin.from("sources").update({ storage_path: path }).eq("id", id);
     }
-    await admin.rpc("increment_share_copies", { p_link: link.id }).then(() => {}, () => {});
+    if (o.linkId) await admin.rpc("increment_share_copies", { p_link: o.linkId }).then(() => {}, () => {});
     return id;
   } catch (e) {
     // Never leave half a copy behind.
@@ -108,6 +113,42 @@ Deno.serve(async (req) => {
       return json(req, data);
     }
 
+    if (body.action === "group_sets") {
+      const groupId = String(body.group_id ?? "");
+      if (!(await isMember(groupId, student.userId))) return json(req, { error: "not_member" }, 403);
+      const { data: sets } = await admin.from("group_sets").select("id, source_id, shared_by, created_at").eq("group_id", groupId).order("created_at", { ascending: false }).limit(100);
+      const ids = (sets ?? []).map((x) => x.source_id);
+      const [{ data: srcs }, { data: members }, { data: mine }] = await Promise.all([
+        ids.length ? admin.from("sources").select("id, filename, kind, page_count, status, archived").in("id", ids) : Promise.resolve({ data: [] as { id: string; filename: string; kind: string; page_count: number; status: string; archived: boolean }[] }),
+        admin.from("group_members").select("user_id, display_name").eq("group_id", groupId),
+        admin.from("sources").select("id, copied_from_set").eq("user_id", student.userId).in("copied_from_set", (sets ?? []).map((x) => x.id).concat(["00000000-0000-0000-0000-000000000000"])),
+      ]);
+      const name = new Map((members ?? []).map((m) => [m.user_id, m.display_name]));
+      const out = [];
+      for (const x of sets ?? []) {
+        const src = (srcs ?? []).find((y) => y.id === x.source_id);
+        if (!src || src.archived || (src.status !== "ready" && src.status !== "ready_text")) continue;
+        out.push({
+          id: x.id, title: src.filename, kind: src.kind, pages: src.page_count, by: name.get(x.shared_by) ?? "A member", mine_shared: x.shared_by === student.userId,
+          counts: await counts(src.id), added_id: (mine ?? []).find((m) => m.copied_from_set === x.id)?.id ?? null, created_at: x.created_at,
+        });
+      }
+      return json(req, { sets: out });
+    }
+
+    if (body.action === "group_add") {
+      const { data: set } = await admin.from("group_sets").select("id, group_id, source_id, shared_by").eq("id", String(body.set_id ?? "")).maybeSingle();
+      if (!set || !(await isMember(set.group_id, student.userId))) return json(req, { error: "not_member" }, 403);
+      if (set.shared_by === student.userId) return json(req, { error: "own" }, 400);
+      const { data: subject } = await student.db.from("subjects").select("id").eq("id", String(body.subject_id ?? "")).maybeSingle();
+      if (!subject) return json(req, { error: "no_subject" }, 400);
+      const { data: added } = await admin.from("sources").select("id").eq("user_id", student.userId).eq("copied_from_set", set.id).limit(1).maybeSingle();
+      if (added) return json(req, { source_id: added.id, already: true });
+      const { data: src } = await admin.from("sources").select(SRC).eq("id", set.source_id).maybeSingle();
+      if (!src || src.archived) return json(req, { error: "gone" }, 404);
+      return json(req, { source_id: await copyInto(student.userId, subject.id, src as Src, { withFile: true, setId: set.id }) });
+    }
+
     const l = await liveLink(body.token);
     if (!l) return json(req, { error: "gone" }, 404);
 
@@ -129,7 +170,7 @@ Deno.serve(async (req) => {
       if (!subject) return json(req, { error: "no_subject" }, 400);
       const { data: added } = await admin.from("sources").select("id").eq("user_id", student.userId).eq("copied_from", l.link.id).limit(1).maybeSingle();
       if (added) return json(req, { source_id: added.id, already: true });
-      return json(req, { source_id: await copyInto(student.userId, subject.id, l) });
+      return json(req, { source_id: await copyInto(student.userId, subject.id, l.src, { withFile: l.link.with_file, linkId: l.link.id }) });
     }
     return json(req, { error: "bad_action" }, 400);
   } catch (e) {
