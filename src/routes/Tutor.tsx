@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowUp, BookOpen, FileText, Layers, ListChecks, MessageCircle, NotebookPen, Plus, WifiOff } from "lucide-react";
+import { ArrowLeft, ArrowUp, BookOpen, FileText, Layers, ListChecks, MessageCircle, NotebookPen, Plus, Trash2, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
@@ -13,6 +13,7 @@ import { useAllowance } from "@/lib/queries/sources";
 import { askTutor, citesNotes, displayText, HINT_LABEL, makeCardFromAnswer, modeOf, useThreadMessages, useThreads, useThreadScope, type ChatScope, type Citation, type ExplainContext, type SourceRef, type TutorMessage, type TutorMode } from "@/lib/tutor";
 import { unitName } from "@/lib/units";
 import { useOnline } from "@/lib/useOnline";
+import { useDeleteThread } from "@/lib/queries/privacy";
 import { dateFormat } from "@/lib/locale";
 
 const fmtWhen = (iso: string) => dateFormat({ month: "short", day: "numeric" }).format(new Date(iso));
@@ -45,20 +46,36 @@ export function TutorHome() {
             <section className="mt-8" aria-labelledby="recent">
               <h2 id="recent" className="mb-3 text-[1.375rem]">Recent conversations</h2>
               <ul className="card divide-y divide-line px-4">
-                {threads.data.slice(0, 8).map((t) => (
-                  <li key={t.id}>
-                    <Link to={`/tutor/${t.subject_id}?thread=${t.id}`} className="flex items-center gap-3 py-3 text-ink no-underline">
-                      <MessageCircle className="size-5 flex-none text-brand" aria-hidden="true" />
-                      <span className="min-w-0 flex-1"><span className="block truncate font-bold">{t.title}</span><span className="block text-[0.8125rem] text-muted">{name(t.subject_id)} · {fmtWhen(t.updated_at)}</span></span>
-                    </Link>
-                  </li>
-                ))}
+                {threads.data.map((t) => <ThreadRow key={t.id} t={t} className={name(t.subject_id)} />)}
               </ul>
             </section>
           )}
         </>
       )}
     </>
+  );
+}
+
+/** A recent conversation, with a way to delete it. */
+function ThreadRow({ t, className }: { t: { id: string; subject_id: string; title: string | null; updated_at: string }; className: string }) {
+  const del = useDeleteThread();
+  const [confirm, setConfirm] = useState(false);
+  if (confirm)
+    return (
+      <li role="alert" className="flex flex-wrap items-center gap-2 py-3">
+        <span className="min-w-0 flex-1">Delete “{t.title || "Conversation"}” for good?</span>
+        <Button size="sm" disabled={del.isPending} onClick={() => del.mutate(t.id, { onSuccess: () => toast.success("Conversation deleted"), onError: () => toast.error("Couldn't delete it. Try again.") })}>Delete</Button>
+        <Button size="sm" variant="secondary" onClick={() => setConfirm(false)}>Cancel</Button>
+      </li>
+    );
+  return (
+    <li className="flex items-center gap-2">
+      <Link to={`/tutor/${t.subject_id}?thread=${t.id}`} className="flex min-w-0 flex-1 items-center gap-3 py-3 text-ink no-underline">
+        <MessageCircle className="size-5 flex-none text-brand" aria-hidden="true" />
+        <span className="min-w-0 flex-1"><span className="block truncate font-bold">{t.title}</span><span className="block text-[0.8125rem] text-muted">{className} · {fmtWhen(t.updated_at)}</span></span>
+      </Link>
+      <Button size="sm" variant="ghost" aria-label={`Delete conversation: ${t.title || "Conversation"}`} onClick={() => setConfirm(true)}><Trash2 /></Button>
+    </li>
   );
 }
 
