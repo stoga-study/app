@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.8.3",
+      "date": "2026-10-16",
+      "title": "Privacy controls",
+      "intro": "More say over what is kept and what is shared.",
+      "highlights": [
+        {
+          "icon": "settings",
+          "title": "A Privacy section in Settings",
+          "text": "Delete all your tutor conversations, clear your coach chat on every device, or turn off sharing your study sets with classmates who upload the same file."
+        },
+        {
+          "icon": "select",
+          "title": "Delete one conversation",
+          "text": "Every recent tutor conversation now has a delete button."
+        },
+        {
+          "icon": "explain",
+          "title": "How your data is used",
+          "text": "A plain-words page on what the AI sees, what is kept, and what other students can and cannot see."
+        }
+      ]
+    },
+    {
       "version": "1.8.2",
       "date": "2026-10-16",
       "title": "Backup and restore",
