@@ -430,3 +430,7 @@ verify_jwt = false
 
 [functions.send-reminders]
 verify_jwt = false
+
+# Opened from a private link by someone without an account; the link itself is checked.
+[functions.support-view]
+verify_jwt = false
