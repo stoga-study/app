@@ -55,6 +55,9 @@ async function saveShared(sourceId: string, userId: string, key: string) {
   try {
     const { data: source } = await admin.from("sources").select("content_hash, kind, page_count").eq("id", sourceId).eq("user_id", userId).maybeSingle();
     if (!source?.content_hash) return;
+    // A student who turned off sharing (Settings > Privacy) never has their study sets offered to others.
+    const { data: profile } = await admin.from("profiles").select("share_study_sets").eq("user_id", userId).maybeSingle();
+    if (profile?.share_study_sets === false) return;
     const [notes, guide, cards, quizzes, summary, terms] = await Promise.all([
       admin.from("notes_sections").select("position, gen_part, title, body_md, pages").eq("source_id", sourceId).eq("hidden", false).order("position"),
       admin.from("guide_sections").select("position, title, body_md, minutes, pages").eq("source_id", sourceId).eq("hidden", false).order("position"),
@@ -74,7 +77,7 @@ async function saveShared(sourceId: string, userId: string, key: string) {
       summary: summary.data?.body_md ?? null, terms: terms.data ?? [],
     };
     await admin.from("shared_sets").upsert(
-      { content_hash: source.content_hash, gen_version: GEN_VERSION, options_key: key, kind: source.kind, page_count: source.page_count, payload },
+      { content_hash: source.content_hash, gen_version: GEN_VERSION, options_key: key, kind: source.kind, page_count: source.page_count, payload, contributor: userId },
       { onConflict: "content_hash,gen_version,options_key", ignoreDuplicates: true },
     );
   } catch (e) {
