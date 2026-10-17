@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.7.1",
+      "date": "2026-10-16",
+      "title": "Study groups",
+      "intro": "Study with a few classmates, without the group chat noise.",
+      "highlights": [
+        {
+          "icon": "group",
+          "title": "Invite only",
+          "text": "Start a group and invite classmates with a code or link, up to 40 people. Members see first names only. There's no chat."
+        },
+        {
+          "icon": "deck",
+          "title": "A shared library",
+          "text": "Share your study sets with the group. Anyone in it can add their own copy to their class."
+        },
+        {
+          "icon": "check",
+          "title": "You're in control",
+          "text": "Leave any time; what you shared leaves with you. The owner can remove people, take sets down and make a new code."
+        }
+      ]
+    },
+    {
       "version": "1.7.0",
       "date": "2026-10-16",
       "title": "Share a study set",
