@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.7.0",
+      "date": "2026-10-16",
+      "title": "Share a study set",
+      "intro": "Made a great study set? Send it to a classmate.",
+      "highlights": [
+        {
+          "icon": "choose",
+          "title": "A private link",
+          "text": "On a file's page, tap Share. The link works only for students signed in to Stoga.study, lasts 30 days, and you can turn it off any time."
+        },
+        {
+          "icon": "deck",
+          "title": "Add to my class",
+          "text": "Opening a link shows what's in the set. Add it and you get your own copy of the notes, flashcards, quizzes and guide, with cards starting fresh."
+        },
+        {
+          "icon": "check",
+          "title": "Private by design",
+          "text": "Only the study set is shared. Your own notes, progress and mistakes never are, and nothing anyone does with their copy comes back to you."
+        }
+      ]
+    },
+    {
       "version": "1.6.5",
       "date": "2026-10-16",
       "title": "Easier for everyone",
