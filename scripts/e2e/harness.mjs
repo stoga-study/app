@@ -67,6 +67,20 @@ export async function secondDevice(uid, { width = 1280, height = 900 } = {}) {
   return { p, close: () => browser.close() };
 }
 
+/** A second, separate student (their own account and browser). Call cleanup() when done. */
+export async function otherStudent(name = "other", { width = 390, height = 844 } = {}) {
+  const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: `e2e-${name}-${Date.now()}@example.com`, options: { redirectTo: APP + "/" } });
+  if (error) throw error;
+  const uid = data.user.id;
+  await admin.from("profiles").update({ onboarded: true, graduation_year: 2029, first_name: "Other", last_seen_version: "9.9.9" }).eq("user_id", uid);
+  const subject = (await admin.from("subjects").insert({ user_id: uid, name: "Biology", area: "Science", school_year: "2026-27", color_index: 1 }).select().single()).data;
+  const browser = await chromium.launch({ executablePath: CHROME });
+  const p = await (await browser.newContext({ viewport: { width, height } })).newPage();
+  await p.goto(data.properties.action_link, { waitUntil: "networkidle" });
+  await p.waitForURL((x) => !x.pathname.includes("verify") && !x.pathname.includes("welcome"));
+  return { p, uid, subject, cleanup: async () => { await browser.close(); await admin.auth.admin.deleteUser(uid); } };
+}
+
 /** Wait until a new build is live: the bundle's name changes from the one live when this started, and contains `text`. */
 export async function waitForNewBuild(text = "", ms = 900000) {
   const name = async () => /assets\/index-[^"]*\.js/.exec(await (await fetch(APP + "/")).text())?.[0];
