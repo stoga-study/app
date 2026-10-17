@@ -80,9 +80,10 @@ export async function restoreBackup(b: Backup, userId: string, onStep: (s: strin
     const blob = b.files.get(String(src.id));
     if (blob && r.source_id) {
       const path = `${userId}/${r.source_id}/${storageName(String(src.original_filename || src.filename || "file"))}`;
-      // Files come out of the zip without a type; the store only takes the kinds the app reads.
-      const contentType = STORAGE_TYPES[src.kind as keyof typeof STORAGE_TYPES] ?? "text/plain";
-      const up = await supabase.storage.from("sources").upload(path, blob, { upsert: true, contentType });
+      // Files come out of the zip without a type, and an upload takes the type from the file itself;
+      // the store only accepts the kinds the app reads.
+      const type = STORAGE_TYPES[src.kind as keyof typeof STORAGE_TYPES] ?? "text/plain";
+      const up = await supabase.storage.from("sources").upload(path, new Blob([blob], { type }), { upsert: true, contentType: type });
       if (!up.error) await supabase.from("sources").update({ storage_path: path }).eq("id", r.source_id);
       else skipped++;
     }
