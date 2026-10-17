@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 import { ErrorState, PageSkeleton } from "@/components/States";
+import { ReportShared } from "@/components/ReportShared";
 import { Button } from "@/components/ui/button";
 import { shortDate } from "@/lib/calendar";
 import { useSubjects } from "@/lib/queries/profile";
@@ -53,6 +54,7 @@ export default function SharedSet() {
         <h1 id="shared-title" className="mt-1 break-words text-[1.75rem]">{s.title}</h1>
         <p className="mt-1 text-[#F7EAEC]">{s.pages} {pageWord(s.kind, s.pages)}{s.with_file ? ", with the original file" : ""} · link works until {shortDate(s.expires_at.slice(0, 10))}</p>
       </div>
+      {!s.mine && <div className="mt-2 flex justify-end"><ReportShared type="share_link" id={s.id} onHidden={() => navigate("/")} /></div>}
       <ul className="card mt-4 grid gap-3 p-5 sm:grid-cols-2">
         {parts.map(([n, label, icon]) => <li key={label} className="flex items-center gap-3"><span className="tile soft">{icon}</span><span><b className="tabular">{n}</b> {label}</span></li>)}
       </ul>

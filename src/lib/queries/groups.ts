@@ -4,7 +4,7 @@ import { supabase } from "../supabase";
 import { ShareError } from "./share";
 
 export type GroupSet = {
-  id: string; title: string; kind: string; pages: number; by: string; mine_shared: boolean; created_at: string; added_id: string | null;
+  id: string; title: string; kind: string; pages: number; by: string; mine_shared: boolean; created_at: string; added_id: string | null; hidden: boolean;
   counts: { cards: number; notes: number; guide: number; terms: number; questions: number };
 };
 
@@ -130,5 +130,11 @@ export const editSetItem = (setId: string, itemType: "card" | "note_section", it
 export const undoSetChange = (changeId: string) => shareCall<{ undone: boolean }>({ action: "set_undo", change_id: changeId });
 export async function setLocked(setId: string, locked: boolean) {
   const { error } = await supabase.from("group_sets").update({ locked }).eq("id", setId);
+  if (error) throw new ShareError("unavailable");
+}
+
+/** A group owner brings back a set that reports hid. */
+export async function restoreGroupSet(setId: string) {
+  const { error } = await supabase.rpc("restore_group_set", { p_set: setId });
   if (error) throw new ShareError("unavailable");
 }

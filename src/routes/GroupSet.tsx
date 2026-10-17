@@ -5,6 +5,7 @@ import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 import { Markdown } from "@/components/Markdown";
 import { MathText } from "@/components/MathText";
+import { ReportShared } from "@/components/ReportShared";
 import { ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -49,6 +50,7 @@ export default function GroupSet() {
       <p className="mt-1 text-muted">The group's shared version. {d.can_edit ? "Anyone in the group can fix a card or improve a note; every change can be undone." : "It's locked, so only the person who shared it can change it."} Copies people already added don't change.</p>
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {d.locked && <span className="chip chip-neutral"><Lock /> Locked</span>}
+        {!d.mine && <ReportShared type="group_set" id={setId!} />}
         {d.can_lock && (
           <Button size="sm" variant="secondary" onClick={() => setLocked(setId!, !d.locked).then(() => { toast(d.locked ? "Unlocked: everyone can edit again." : "Locked: only the sharer can edit now."); return refresh(); }).catch(err)}>
             {d.locked ? <><LockOpen /> Unlock</> : <><Lock /> Lock editing</>}

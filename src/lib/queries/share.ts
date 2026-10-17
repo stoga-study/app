@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabase";
 
 export type SharePreview = {
-  title: string; by: string | null; kind: string; pages: number; with_file: boolean;
+  id: string; title: string; by: string | null; kind: string; pages: number; with_file: boolean;
   counts: { cards: number; notes: number; guide: number; terms: number; questions: number };
   expires_at: string; mine: boolean; added_id: string | null;
 };

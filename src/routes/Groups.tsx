@@ -4,10 +4,11 @@ import { Link, useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PageHeader } from "@/components/PageHeader";
+import { ReportShared } from "@/components/ReportShared";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
-import { addGroupSet, createGroup, joinGroup, joinUrl, peekGroup, removeMember, resetCode, shareToGroup, unshareFromGroup, useGroup, useGroups, useGroupSets, useRefreshGroups } from "@/lib/queries/groups";
+import { addGroupSet, restoreGroupSet, createGroup, joinGroup, joinUrl, peekGroup, removeMember, resetCode, shareToGroup, unshareFromGroup, useGroup, useGroups, useGroupSets, useRefreshGroups } from "@/lib/queries/groups";
 import { useSubjects } from "@/lib/queries/profile";
 import { ShareError } from "@/lib/queries/share";
 import { pageWord, useSources } from "@/lib/queries/sources";
@@ -185,6 +186,7 @@ export function GroupPage() {
               {sets.data.map((x) => (
                 <li key={x.id} className="card flex flex-col gap-2 p-4">
                   <b className="break-words">{x.title}</b>
+                  {x.hidden && <span className="chip chip-neutral self-start">Hidden after reports</span>}
                   <span className="text-[0.875rem] text-muted">Shared by {x.mine_shared ? "you" : x.by} · {x.counts.cards} cards · {x.counts.questions} quiz questions · {x.pages} {pageWord(x.kind, x.pages)}</span>
                   <div className="mt-auto flex flex-wrap gap-2">
                     <Button size="sm" variant="secondary" asChild><Link to={`/groups/${g.id}/sets/${x.id}`}><Pencil /> Open and edit</Link></Button>
@@ -196,6 +198,8 @@ export function GroupPage() {
                       <Button size="sm" disabled={!classFor} onClick={() => addGroupSet(x.id, classFor).then((r) => { toast("Added to your class."); navigate(`/sources/${r.source_id}`); }).catch(() => toast("We couldn't add it. Try again."))}><Plus /> Add to my class</Button>
                     )}
                     {owner && !x.mine_shared && <Button size="sm" variant="ghost" onClick={() => act(unshareFromGroup(x.id), "Taken down.")}><Trash2 /> Take down</Button>}
+                    {owner && x.hidden && <Button size="sm" variant="ghost" onClick={() => act(restoreGroupSet(x.id), "Restored for the group.")}>Restore</Button>}
+                    {!x.mine_shared && !x.hidden && <ReportShared type="group_set" id={x.id} compact onHidden={() => void refresh()} />}
                   </div>
                 </li>
               ))}
