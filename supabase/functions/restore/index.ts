@@ -5,10 +5,11 @@
 //        cards, quizzes, quiz_questions }                          → { source_id, existed, added, skipped }
 // POST { action: "rest", student_notes, events, event_units, cards, subjects, units, sources } → { added, skipped }
 //
-// Restore never overwrites. Every row keeps its id from the export unless that id is taken: if it's already
-// in this student's account the row is skipped (so restoring twice, or into the same account after deleting
-// a few things, only adds what's missing); if another account has it, the row gets a new id. Rows are built
-// from an explicit list of fields and always belong to the caller. Classes with the same name are merged.
+// Restore never overwrites. Every row keeps its id from the export unless another account has it; then it
+// gets an id worked out from the student and the original, so restoring the same backup again lands on the
+// same ids. A row whose id is already in this student's account is skipped, so restoring twice, or into the
+// same account after deleting a few things, only adds what's missing. Rows are built from an explicit list
+// of fields and always belong to the caller. Classes with the same name are merged.
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
@@ -30,24 +31,45 @@ const date = (v: unknown) => (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test
 /** Keep only the given fields that are present (so database defaults apply to the rest). */
 const pick = (o: Row) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null));
 
-/** Decide each row's id: its own if free, skipped if already this student's, new if someone else has it. */
-async function place(table: string, userId: string, rows: Row[]): Promise<{ ids: Ids; fresh: Row[]; mine: number }> {
-  const wanted = [...new Set(rows.map((r) => uuid(r.id)).filter((x): x is string => !!x))];
+/** A stable id for this student's copy of a row another account has (a name-based, version 5 style UUID). */
+async function derived(userId: string, old: string) {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`stoga-restore:${userId}:${old}`))).slice(0, 16);
+  h[6] = (h[6] & 0x0f) | 0x50;
+  h[8] = (h[8] & 0x3f) | 0x80;
+  const x = [...h].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return `${x.slice(0, 8)}-${x.slice(8, 12)}-${x.slice(12, 16)}-${x.slice(16, 20)}-${x.slice(20)}`;
+}
+
+async function owners(table: string, ids: string[]) {
   const owner = new Map<string, string>();
-  for (let i = 0; i < wanted.length; i += 200) {
-    const { data, error } = await admin.from(table).select("id, user_id").in("id", wanted.slice(i, i + 200));
+  for (let i = 0; i < ids.length; i += 200) {
+    const { data, error } = await admin.from(table).select("id, user_id").in("id", ids.slice(i, i + 200));
     if (error) throw error;
     for (const r of data ?? []) owner.set(r.id, r.user_id);
   }
+  return owner;
+}
+
+/** Decide each row's id: its own if free, a stable new one if another account has it; skip it if it's already this student's. */
+async function place(table: string, userId: string, rows: Row[]): Promise<{ ids: Ids; fresh: Row[]; mine: number }> {
+  const want = new Map<Row, string>();
+  const first = await owners(table, [...new Set(rows.map((r) => uuid(r.id)).filter((x): x is string => !!x))]);
+  for (const r of rows) {
+    const old = uuid(r.id);
+    if (old) want.set(r, first.has(old) && first.get(old) !== userId ? await derived(userId, old) : old);
+  }
+  const taken = new Map([...first, ...(await owners(table, [...new Set([...want.values()].filter((v) => !first.has(v)))]))]);
   const ids: Ids = {};
   const fresh: Row[] = [];
   let mine = 0;
   for (const r of rows) {
     const old = uuid(r.id);
-    if (old && owner.get(old) === userId) { ids[old] = old; mine++; continue; }
-    const id = old && !owner.has(old) && !ids[old] ? old : crypto.randomUUID();
-    if (old) ids[old] = id;
-    fresh.push({ ...r, id });
+    const id = want.get(r);
+    if (old && id && ids[old]) continue; // the same row twice in one backup
+    if (old && id && taken.get(id) === userId) { ids[old] = id; mine++; continue; }
+    const use = id && !taken.has(id) ? id : crypto.randomUUID();
+    if (old) ids[old] = use;
+    fresh.push({ ...r, id: use });
   }
   return { ids, fresh, mine };
 }
