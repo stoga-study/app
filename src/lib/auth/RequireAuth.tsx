@@ -11,7 +11,7 @@ export function RequireAuth() {
   if (loading) return <div className="mx-auto max-w-xl p-6"><PageSkeleton label="Checking your sign-in." /></div>;
   if (!session) {
     // A shared study set opened before signing up: remembered through sign-in and onboarding too.
-    if (location.pathname.startsWith("/s/")) {
+    if (location.pathname.startsWith("/s/") || location.pathname.startsWith("/join/")) {
       try {
         localStorage.setItem("stoga-pending-share", location.pathname);
       } catch {

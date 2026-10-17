@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, HeartHandshake, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, TrendingUp, Upload } from "lucide-react";
+import { BookOpen, CalendarDays, HeartHandshake, Users, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, TrendingUp, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
@@ -17,13 +17,14 @@ const MAIN: Item[] = [
   { to: "/subjects", label: "Subjects", icon: <BookOpen /> },
   { to: "/calendar", label: "Calendar", icon: <CalendarDays /> },
   { to: "/coach", label: "Coach", icon: <HeartHandshake /> },
+  { to: "/groups", label: "Groups", icon: <Users /> },
   { to: "/upload", label: "Upload", icon: <Upload /> },
   { to: "/tutor", label: "Tutor", icon: <MessageCircle /> },
   { to: "/review", label: "Review", icon: <Layers /> },
   { to: "/progress", label: "Progress", icon: <TrendingUp /> },
 ];
 // Phones get five tabs: Subjects and the coach live on Home there, and Progress is a button in the top bar.
-const TABS = MAIN.filter((i) => i.to !== "/subjects" && i.to !== "/progress" && i.to !== "/coach");
+const TABS = MAIN.filter((i) => i.to !== "/subjects" && i.to !== "/progress" && i.to !== "/coach" && i.to !== "/groups");
 
 const SECONDARY: Item[] = [
   { to: "/search", label: "Search", icon: <Search /> },

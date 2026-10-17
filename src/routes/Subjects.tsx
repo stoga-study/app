@@ -21,7 +21,7 @@ export default function Subjects() {
 
   return (
     <>
-      <PageHeader title="Subjects" end={<Button asChild variant="secondary" size="sm"><Link to="/classes">Edit classes</Link></Button>} />
+      <PageHeader title="Subjects" end={<div className="flex flex-wrap gap-2"><Button asChild variant="secondary" size="sm"><Link to="/groups">Study groups</Link></Button><Button asChild variant="secondary" size="sm"><Link to="/classes">Edit classes</Link></Button></div>} />
       {subjects.data!.length === 0 ? (
         <EmptyState icon={<BookOpen />} title="No classes yet" action={<Button asChild><Link to="/classes">Choose your classes</Link></Button>}>
           Pick your classes, then add notes to each one.

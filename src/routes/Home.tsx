@@ -36,7 +36,7 @@ function usePendingShare() {
   useEffect(() => {
     try {
       const p = localStorage.getItem("stoga-pending-share");
-      if (!p || !/^\/s\/[A-Za-z0-9_-]{20,64}$/.test(p)) return;
+      if (!p || !/^\/(s\/[A-Za-z0-9_-]{20,64}|join\/[A-Z0-9]{8})$/.test(p)) return;
       localStorage.removeItem("stoga-pending-share");
       navigate(p, { replace: true });
     } catch {
