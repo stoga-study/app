@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.8.1",
+      "date": "2026-10-16",
+      "title": "Take your work with you",
+      "intro": "Everything you have made here is yours. Download it any time.",
+      "highlights": [
+        {
+          "icon": "import",
+          "title": "Download your data",
+          "text": "Settings > Your data makes one zip: your notes and study sets as Markdown, your quizzes, and your original files if you want them."
+        },
+        {
+          "icon": "cards",
+          "title": "Flashcards for anywhere",
+          "text": "Every class gets its cards as a spreadsheet and as a file Anki can import."
+        },
+        {
+          "icon": "calendar",
+          "title": "Your calendar, too",
+          "text": "Tests, quizzes and homework come as a calendar file for Google, Apple or Outlook."
+        }
+      ]
+    },
+    {
       "version": "1.8.0",
       "date": "2026-10-16",
       "title": "See your allowance",
