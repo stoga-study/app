@@ -1920,6 +1920,45 @@ export type Database = {
           },
         ]
       }
+      support_links: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          label: string
+          last_viewed_at: string | null
+          relation: string
+          revoked_at: string | null
+          token: string
+          user_id: string
+          views: number
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label: string
+          last_viewed_at?: string | null
+          relation: string
+          revoked_at?: string | null
+          token: string
+          user_id?: string
+          views?: number
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          label?: string
+          last_viewed_at?: string | null
+          relation?: string
+          revoked_at?: string | null
+          token?: string
+          user_id?: string
+          views?: number
+        }
+        Relationships: []
+      }
       units: {
         Row: {
           created_at: string
@@ -2047,6 +2086,27 @@ export type Database = {
         Returns: boolean
       }
       create_group: { Args: { p_name: string }; Returns: string }
+      create_support_link: {
+        Args: { p_label: string; p_relation: string }
+        Returns: {
+          created_at: string
+          expires_at: string
+          id: string
+          label: string
+          last_viewed_at: string | null
+          relation: string
+          revoked_at: string | null
+          token: string
+          user_id: string
+          views: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "support_links"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_tutor_chats: { Args: never; Returns: number }
       duplicate_source: {
         Args: { p_source: string; p_subject: string }
@@ -2110,6 +2170,7 @@ export type Database = {
       }
       reset_group_code: { Args: { p_group: string }; Returns: string }
       restore_group_set: { Args: { p_set: string }; Returns: undefined }
+      revoke_support_link: { Args: { p_id: string }; Returns: undefined }
       search_everything: {
         Args: { p_limit?: number; p_query: string; p_subject?: string }
         Returns: {
