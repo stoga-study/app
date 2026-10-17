@@ -111,6 +111,33 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_votes: {
+        Row: {
+          choice: string
+          comment: string
+          created_at: string
+          survey: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          choice: string
+          comment?: string
+          created_at?: string
+          survey: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          choice?: string
+          comment?: string
+          created_at?: string
+          survey?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       calendar_feeds: {
         Row: {
           created_at: string
