@@ -24,14 +24,14 @@ export const until = async (fn, ms = 15000) => { for (let t = 0; t < ms; t += 50
  * Run `body({ p, uid, wh, errs })` as a fresh student with a Biology class; always cleans up.
  * `persistent: true` uses a normal (not incognito) browser profile, which Chrome needs for push.
  */
-export async function run(name, body, { width = 390, height = 844, persistent = false, expectErrors = null } = {}) {
+export async function run(name, body, { width = 390, height = 844, scale = 1, persistent = false, expectErrors = null } = {}) {
   const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: `e2e-${name}-${Date.now()}@example.com`, options: { redirectTo: APP + "/" } });
   if (error) throw error;
   const uid = data.user.id;
   const profileDir = persistent ? fs.mkdtempSync(path.join(os.tmpdir(), "stoga-chrome-")) : null;
   const ctx = persistent
-    ? await chromium.launchPersistentContext(profileDir, { executablePath: CHROME, viewport: { width, height } })
-    : await (await chromium.launch({ executablePath: CHROME })).newContext({ viewport: { width, height } });
+    ? await chromium.launchPersistentContext(profileDir, { executablePath: CHROME, viewport: { width, height }, deviceScaleFactor: scale })
+    : await (await chromium.launch({ executablePath: CHROME })).newContext({ viewport: { width, height }, deviceScaleFactor: scale });
   const errs = [];
   try {
     await admin.from("profiles").update({ onboarded: true, graduation_year: 2029, first_name: "Test", last_seen_version: "9.9.9" }).eq("user_id", uid);
