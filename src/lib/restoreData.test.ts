@@ -17,7 +17,7 @@ describe("readBackup", () => {
     const zip = new JSZip();
     zip.file("data.json", JSON.stringify({ ...data, files: { a: "files/cells.txt" } }));
     zip.file("files/cells.txt", "Cells make ATP.");
-    const blob = await zip.generateAsync({ type: "uint8array" });
+    const blob = await zip.generateAsync({ type: "arraybuffer" });
     const b = await readBackup(new File([blob], "stoga-study-2026-10-16.zip", { type: "application/zip" }));
     expect(await b.files.get("a")?.text()).toBe("Cells make ATP.");
   });
@@ -26,7 +26,7 @@ describe("readBackup", () => {
     await expect(readBackup(new File(["{}"], "x.json"))).rejects.toBeInstanceOf(BackupError);
     await expect(readBackup(new File(["not json"], "x.json"))).rejects.toBeInstanceOf(BackupError);
     await expect(readBackup(new File([JSON.stringify({ ...data, version: 2 })], "x.json"))).rejects.toThrow(/newer version/);
-    const zip = await new JSZip().file("notes.md", "x").generateAsync({ type: "uint8array" });
+    const zip = await new JSZip().file("notes.md", "x").generateAsync({ type: "arraybuffer" });
     await expect(readBackup(new File([zip], "x.zip"))).rejects.toThrow(/no data.json/);
   });
 });
