@@ -8,6 +8,7 @@ import { NotificationSettings } from "@/components/NotificationSettings";
 import { InstallCard } from "@/components/Install";
 import { AllowanceMeters } from "@/components/Allowance";
 import { DataExport } from "@/components/DataExport";
+import { PrivacySettings } from "@/components/PrivacySettings";
 import { useFaces } from "@/lib/queries/profile";
 import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
@@ -305,6 +306,8 @@ export default function Settings() {
       <Section id="allowance" title="Your allowance"><AllowanceMeters /></Section>
 
       <Section id="own-key" title="Your own key"><OwnKey /></Section>
+
+      <Section id="privacy" title="Privacy"><PrivacySettings /></Section>
 
       <Section id="data" title="Your data"><DataExport /></Section>
 
