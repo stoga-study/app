@@ -5,6 +5,9 @@
 // POST { action: "add", token, subject_id }          → { source_id }           a private copy in the student's class
 // POST { action: "group_sets", group_id }            → { sets: [...] }         a group's shared sets (members only)
 // POST { action: "group_add", set_id, subject_id }   → { source_id }           copy a group's set (members only)
+// POST { action: "set_items", set_id }               → the group's version of a set: cards, note sections, history
+// POST { action: "set_edit", set_id, item_type, item_id, fields } → edit one card or note section (members, unless locked)
+// POST { action: "set_undo", change_id }             → take a change back (unless it was changed again since)
 //
 // Links work only for signed-in students, and only while not expired or turned off. The copy is made
 // with server rights from an explicit list of study-set fields: the sharer's own notes, progress,
@@ -147,6 +150,73 @@ Deno.serve(async (req) => {
       const { data: src } = await admin.from("sources").select(SRC).eq("id", set.source_id).maybeSingle();
       if (!src || src.archived) return json(req, { error: "gone" }, 404);
       return json(req, { source_id: await copyInto(student.userId, subject.id, src as Src, { withFile: true, setId: set.id }) });
+    }
+
+    if (body.action === "set_items" || body.action === "set_edit" || body.action === "set_undo") {
+      // Which set, and is this student in its group?
+      let setId = String(body.set_id ?? "");
+      type Change = { id: string; set_id: string; item_type: string; item_id: string; before: Record<string, string>; after: Record<string, string>; undone_at: string | null };
+      let change: Change | null = null;
+      if (body.action === "set_undo") {
+        const { data } = await admin.from("group_set_changes").select("id, set_id, item_type, item_id, before, after, undone_at").eq("id", String(body.change_id ?? "")).maybeSingle();
+        if (!data) return json(req, { error: "not_found" }, 404);
+        change = data as unknown as Change;
+        setId = data.set_id;
+      }
+      const { data: set } = await admin.from("group_sets").select("id, group_id, source_id, shared_by, locked").eq("id", setId).maybeSingle();
+      if (!set || !(await isMember(set.group_id, student.userId))) return json(req, { error: "not_member" }, 403);
+      const { data: group } = await admin.from("groups").select("owner_id").eq("id", set.group_id).single();
+      const canEdit = !set.locked || set.shared_by === student.userId;
+      const { data: me } = await admin.from("group_members").select("display_name").eq("group_id", set.group_id).eq("user_id", student.userId).single();
+      const table = (t: string) => (t === "card" ? "cards" : "notes_sections");
+      const FIELDS: Record<string, { name: string; max: number }[]> = { card: [{ name: "front", max: 1000 }, { name: "back", max: 2000 }], note_section: [{ name: "title", max: 200 }, { name: "body_md", max: 20000 }] };
+
+      if (body.action === "set_items") {
+        const [{ data: src }, { data: cards }, { data: notes }, { data: history }] = await Promise.all([
+          admin.from("sources").select("filename").eq("id", set.source_id).single(),
+          admin.from("cards").select("id, front, back").eq("source_id", set.source_id).eq("hidden", false).order("created_at").limit(500),
+          admin.from("notes_sections").select("id, title, body_md").eq("source_id", set.source_id).eq("hidden", false).order("position").limit(200),
+          admin.from("group_set_changes").select("id, display_name, item_type, item_id, before, after, created_at, undone_at, undone_by").eq("set_id", set.id).order("created_at", { ascending: false }).limit(50),
+        ]);
+        return json(req, { title: src?.filename ?? "Study set", locked: set.locked, can_edit: canEdit, can_lock: set.shared_by === student.userId || group?.owner_id === student.userId, mine: set.shared_by === student.userId, cards, notes, history });
+      }
+
+      if (!canEdit) return json(req, { error: "locked" }, 403);
+
+      if (body.action === "set_edit") {
+        const type = String(body.item_type ?? "");
+        if (!FIELDS[type]) return json(req, { error: "bad_item" }, 400);
+        const { data: row } = await admin.from(table(type)).select("*").eq("id", String(body.item_id ?? "")).maybeSingle();
+        const item = row as Record<string, unknown> | null;
+        if (!item || item.source_id !== set.source_id) return json(req, { error: "not_found" }, 404);
+        const before: Record<string, string> = {}, after: Record<string, string> = {};
+        for (const f of FIELDS[type]) {
+          const v = body.fields?.[f.name];
+          const now = String(item[f.name] ?? "");
+          if (typeof v !== "string") continue;
+          const clean = v.trim().slice(0, f.max);
+          if (!clean && type === "card") return json(req, { error: "empty" }, 400);
+          if (clean === now) continue;
+          before[f.name] = now;
+          after[f.name] = clean;
+        }
+        if (!Object.keys(after).length) return json(req, { unchanged: true });
+        const { error } = await admin.from(table(type)).update({ ...after, ...(type === "card" ? { edited: true } : {}) }).eq("id", String(item.id));
+        if (error) throw error;
+        const { data: logged } = await admin.from("group_set_changes").insert({ set_id: set.id, user_id: student.userId, display_name: me?.display_name ?? "A member", item_type: type, item_id: String(item.id), before, after }).select("id").single();
+        return json(req, { change_id: logged?.id });
+      }
+
+      // set_undo: only if the item still says what the change made it say.
+      if (!change || change.undone_at) return json(req, { error: "already_undone" }, 400);
+      const { data: row } = await admin.from(table(change.item_type)).select("*").eq("id", change.item_id).maybeSingle();
+      const item = row as Record<string, unknown> | null;
+      if (!item) return json(req, { error: "not_found" }, 404);
+      if (Object.entries(change.after).some(([k, v]) => String(item[k] ?? "") !== v)) return json(req, { error: "changed_since" }, 409);
+      const { error } = await admin.from(table(change.item_type)).update(change.before).eq("id", change.item_id);
+      if (error) throw error;
+      await admin.from("group_set_changes").update({ undone_at: new Date().toISOString(), undone_by: me?.display_name ?? "A member" }).eq("id", change.id);
+      return json(req, { undone: true });
     }
 
     const l = await liveLink(body.token);
