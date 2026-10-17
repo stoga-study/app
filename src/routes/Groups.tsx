@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, LogOut, Plus, RefreshCw, Share2, Trash2, Users } from "lucide-react";
+import { ArrowLeft, Copy, LogOut, Pencil, Plus, RefreshCw, Share2, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -187,6 +187,7 @@ export function GroupPage() {
                   <b className="break-words">{x.title}</b>
                   <span className="text-[0.875rem] text-muted">Shared by {x.mine_shared ? "you" : x.by} · {x.counts.cards} cards · {x.counts.questions} quiz questions · {x.pages} {pageWord(x.kind, x.pages)}</span>
                   <div className="mt-auto flex flex-wrap gap-2">
+                    <Button size="sm" variant="secondary" asChild><Link to={`/groups/${g.id}/sets/${x.id}`}><Pencil /> Open and edit</Link></Button>
                     {x.mine_shared ? (
                       <Button size="sm" variant="ghost" onClick={() => act(unshareFromGroup(x.id), "Taken out of the group.")}>Stop sharing</Button>
                     ) : x.added_id ? (

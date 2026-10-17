@@ -103,3 +103,32 @@ export function useRefreshGroups() {
   const qc = useQueryClient();
   return () => Promise.all(["groups", "group", "group-sets"].map((k) => qc.invalidateQueries({ queryKey: [k] })));
 }
+
+export type SetChange = { id: string; display_name: string; item_type: "card" | "note_section"; item_id: string; before: Record<string, string>; after: Record<string, string>; created_at: string; undone_at: string | null; undone_by: string | null };
+export type SetItems = {
+  title: string; locked: boolean; can_edit: boolean; can_lock: boolean; mine: boolean;
+  cards: { id: string; front: string; back: string }[];
+  notes: { id: string; title: string; body_md: string }[];
+  history: SetChange[];
+};
+
+async function shareCall<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke<T>("share", { body });
+  if (error || !data) {
+    const j = await (error as { context?: Response } | null)?.context?.json?.().catch(() => null);
+    throw new ShareError(j?.error ?? "unavailable");
+  }
+  return data;
+}
+
+/** The group's version of a shared set: its cards and note sections, and who changed what. */
+export function useSetItems(setId: string | undefined) {
+  return useQuery({ queryKey: ["set-items", setId], enabled: !!setId, queryFn: () => shareCall<SetItems>({ action: "set_items", set_id: setId }) });
+}
+export const editSetItem = (setId: string, itemType: "card" | "note_section", itemId: string, fields: Record<string, string>) =>
+  shareCall<{ change_id?: string; unchanged?: boolean }>({ action: "set_edit", set_id: setId, item_type: itemType, item_id: itemId, fields });
+export const undoSetChange = (changeId: string) => shareCall<{ undone: boolean }>({ action: "set_undo", change_id: changeId });
+export async function setLocked(setId: string, locked: boolean) {
+  const { error } = await supabase.from("group_sets").update({ locked }).eq("id", setId);
+  if (error) throw new ShareError("unavailable");
+}

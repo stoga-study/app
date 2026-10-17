@@ -24,6 +24,7 @@ import Coach from "./routes/Coach";
 import Recap from "./routes/Recap";
 import SharedSet from "./routes/SharedSet";
 import Groups, { GroupPage, JoinGroup } from "./routes/Groups";
+import GroupSet from "./routes/GroupSet";
 import { CustomizeCoach, YourFace } from "./routes/Customize";
 import PracticeTest from "./routes/PracticeTest";
 import ExamPrep, { ReviewPack } from "./routes/ExamPrep";
@@ -88,6 +89,7 @@ export const router = createBrowserRouter([
           { path: "s/:token", element: <SharedSet /> },
           { path: "groups", element: <Groups /> },
           { path: "groups/:id", element: <GroupPage /> },
+          { path: "groups/:id/sets/:setId", element: <GroupSet /> },
           { path: "join/:code", element: <JoinGroup /> },
           { path: "coach/customize", element: <CustomizeCoach /> },
           { path: "settings/face", element: <YourFace /> },
