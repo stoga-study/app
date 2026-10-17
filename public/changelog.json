@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.8.0",
+      "date": "2026-10-16",
+      "title": "See your allowance",
+      "intro": "Know exactly what's left, and when it comes back.",
+      "highlights": [
+        {
+          "icon": "retention",
+          "title": "Every limit, in one place",
+          "text": "Tutor and coach messages, study sets, scanned pages, answer checks and how much one file can make, on Plans and in Settings."
+        },
+        {
+          "icon": "choose",
+          "title": "Your own key",
+          "text": "Using your own AI key? See how much it was used this month, right next to your settings."
+        }
+      ]
+    },
+    {
       "version": "1.7.4",
       "date": "2026-10-16",
       "title": "Invite a classmate",
