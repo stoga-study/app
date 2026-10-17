@@ -62,7 +62,8 @@ export default function GroupSet() {
         <button type="button" role="tab" aria-selected={tab === "cards"} className="pill-option" onClick={() => setTab("cards")}>Cards · {d.cards.length}</button>
         <button type="button" role="tab" aria-selected={tab === "notes"} className="pill-option" onClick={() => setTab("notes")}>Notes · {d.notes.length}</button>
       </div>
-      <ul className="mt-3 flex flex-col gap-2" role="tabpanel">
+      <div role="tabpanel">
+      <ul className="mt-3 flex flex-col gap-2">
         {tab === "cards" && d.cards.map((c) => (
           <li key={c.id} className="card p-4">
             {editing === c.id ? (
@@ -100,6 +101,7 @@ export default function GroupSet() {
           </li>
         ))}
       </ul>
+      </div>
 
       <section className="card mt-6 p-5" aria-labelledby="history-h">
         <h2 id="history-h" className="text-[1.25rem]">Changes</h2>
