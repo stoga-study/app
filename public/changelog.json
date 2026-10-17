@@ -3,16 +3,16 @@
     {
       "version": "1.8.4",
       "date": "2026-10-16",
-      "title": "A friendlier update card",
-      "intro": "Updates now come as a light card with the new things in it, so they are easy to read.",
+      "title": "A clearer update card",
+      "intro": "Updates now arrive as a Stoga.study card that says what's new, in our own colours.",
       "highlights": [
         {
           "icon": "check",
-          "title": "See what is new at a glance",
-          "text": "The card shows the update and its best parts. Tap Update now, or Not now and it goes in next time you leave the app."
+          "title": "What's new, at a glance",
+          "text": "The card names the update and its main changes. Tap Update now, or Not now and it goes in next time you close the app."
         },
         {
-          "icon": "focus",
+          "icon": "wait",
           "title": "Never in the way",
           "text": "It waits until you finish a review, quiz, note or upload before it shows up."
         }
