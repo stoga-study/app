@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.8.4",
+      "date": "2026-10-16",
+      "title": "A friendlier update card",
+      "intro": "Updates now come as a light card with the new things in it, so they are easy to read.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "See what is new at a glance",
+          "text": "The card shows the update and its best parts. Tap Update now, or Not now and it goes in next time you leave the app."
+        },
+        {
+          "icon": "focus",
+          "title": "Never in the way",
+          "text": "It waits until you finish a review, quiz, note or upload before it shows up."
+        }
+      ]
+    },
+    {
       "version": "1.8.3",
       "date": "2026-10-16",
       "title": "Privacy controls",
