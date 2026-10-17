@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.7.2",
+      "date": "2026-10-16",
+      "title": "Edit together",
+      "intro": "Make a group's study set better, together.",
+      "highlights": [
+        {
+          "icon": "type",
+          "title": "Everyone can improve it",
+          "text": "In a study group, open a shared set to fix a card or improve a note section. The change shows up for everyone in the group."
+        },
+        {
+          "icon": "history",
+          "title": "Every change, with a name",
+          "text": "See who changed what and when, and undo any change. An undo never wipes out someone's newer edit."
+        },
+        {
+          "icon": "pin",
+          "title": "Lock it when it's right",
+          "text": "Whoever shared the set, or the group's owner, can lock it so only the sharer can edit."
+        }
+      ]
+    },
+    {
       "version": "1.7.1",
       "date": "2026-10-16",
       "title": "Study groups",
