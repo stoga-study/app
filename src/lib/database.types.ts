@@ -815,6 +815,7 @@ export type Database = {
         Row: {
           created_at: string
           group_id: string
+          hidden_at: string | null
           id: string
           locked: boolean
           shared_by: string
@@ -823,6 +824,7 @@ export type Database = {
         Insert: {
           created_at?: string
           group_id: string
+          hidden_at?: string | null
           id?: string
           locked?: boolean
           shared_by?: string
@@ -831,6 +833,7 @@ export type Database = {
         Update: {
           created_at?: string
           group_id?: string
+          hidden_at?: string | null
           id?: string
           locked?: boolean
           shared_by?: string
@@ -1534,6 +1537,42 @@ export type Database = {
           },
         ]
       }
+      share_reports: {
+        Row: {
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reporter_id: string
+          resolved_at: string | null
+          status: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reporter_id?: string
+          resolved_at?: string | null
+          status?: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string
+          resolved_at?: string | null
+          status?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: []
+      }
       shared_sets: {
         Row: {
           content_hash: string
@@ -2053,7 +2092,17 @@ export type Database = {
         }
         Returns: undefined
       }
+      report_shared: {
+        Args: {
+          p_details?: string
+          p_reason: string
+          p_target: string
+          p_type: string
+        }
+        Returns: boolean
+      }
       reset_group_code: { Args: { p_group: string }; Returns: string }
+      restore_group_set: { Args: { p_set: string }; Returns: undefined }
       search_everything: {
         Args: { p_limit?: number; p_query: string; p_subject?: string }
         Returns: {
