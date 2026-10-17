@@ -1,9 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Archive, CalendarDays, Copy, ArrowRight, Camera, ClipboardList, Shuffle, TrendingUp, PenLine, UserCheck, Search, Tag, Flame, Gauge, History, Check, CheckSquare, CloudOff, Columns2, FolderOpen, FolderTree, Gift, Layers, ListChecks, NotebookPen, Pin, Sparkles, Wand2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { ArrowRight, Check } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { Brand } from "@/components/Brand";
 import { PageHeader } from "@/components/PageHeader";
+import { ReleaseIcon } from "@/components/ReleaseIcon";
 import { PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/session";
@@ -12,16 +12,6 @@ import { useProfile } from "@/lib/queries/profile";
 import { supabase } from "@/lib/supabase";
 import { dateFormat } from "@/lib/locale";
 
-const ICONS: Record<string, ReactNode> = {
-  choose: <Wand2 />, amount: <ListChecks />, more: <Layers />, free: <Gift />, photo: <Camera />,
-  unit: <FolderOpen />, group: <FolderTree />, pin: <Pin />,
-  notes: <NotebookPen />, side: <Columns2 />, checklist: <CheckSquare />, offline: <CloudOff />,
-  continue: <History />, weak: <Flame />, retention: <Gauge />,
-  browse: <Search />, tag: <Tag />, deck: <Layers />, select: <CheckSquare />,
-  type: <PenLine />, check: <Sparkles />, self: <UserCheck />, review: <Layers />,
-  mastery: <TrendingUp />, unitquiz: <Shuffle />, summary: <ClipboardList />,
-  archive: <Archive />, copy: <Copy />, calendar: <CalendarDays />,
-};
 const fmtDate = (iso: string) => dateFormat({ month: "long", day: "numeric", year: "numeric" }).format(new Date(`${iso}T12:00:00`));
 
 function ReleaseBody({ r, big }: { r: Release; big?: boolean }) {
@@ -30,7 +20,7 @@ function ReleaseBody({ r, big }: { r: Release; big?: boolean }) {
       <ul className={big ? "grid gap-3 sm:grid-cols-2" : "flex flex-col gap-3"}>
         {r.highlights.map((h) => (
           <li key={h.title} className="card flex items-start gap-4 p-5">
-            <span className="tile soft flex-none">{ICONS[h.icon] ?? <Sparkles />}</span>
+            <span className="tile soft flex-none"><ReleaseIcon name={h.icon} /></span>
             <span>
               <span className="block font-display text-[1.125rem] font-bold">{h.title}</span>
               <span className="mt-1 block text-ink-2">{h.text}</span>
