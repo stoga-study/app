@@ -761,11 +761,62 @@ export type Database = {
           },
         ]
       }
+      group_set_changes: {
+        Row: {
+          after: Json
+          before: Json
+          created_at: string
+          display_name: string
+          id: string
+          item_id: string
+          item_type: string
+          set_id: string
+          undone_at: string | null
+          undone_by: string | null
+          user_id: string
+        }
+        Insert: {
+          after: Json
+          before: Json
+          created_at?: string
+          display_name: string
+          id?: string
+          item_id: string
+          item_type: string
+          set_id: string
+          undone_at?: string | null
+          undone_by?: string | null
+          user_id: string
+        }
+        Update: {
+          after?: Json
+          before?: Json
+          created_at?: string
+          display_name?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          set_id?: string
+          undone_at?: string | null
+          undone_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_set_changes_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "group_sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_sets: {
         Row: {
           created_at: string
           group_id: string
           id: string
+          locked: boolean
           shared_by: string
           source_id: string
         }
@@ -773,6 +824,7 @@ export type Database = {
           created_at?: string
           group_id: string
           id?: string
+          locked?: boolean
           shared_by?: string
           source_id: string
         }
@@ -780,6 +832,7 @@ export type Database = {
           created_at?: string
           group_id?: string
           id?: string
+          locked?: boolean
           shared_by?: string
           source_id?: string
         }
