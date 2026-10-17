@@ -50,10 +50,10 @@ export default function Privacy() {
           <li>Download everything as a zip, any time.</li>
           <li>Delete your account and everything in it.</li>
         </ul>
-        <p>All of these are in <Link to="/settings#privacy">Settings</Link>.</p>
+        <p>All of these are in <Link to="/settings#privacy" className="underline">Settings</Link>.</p>
       </Part>
 
-      <p className="mt-6 text-[0.875rem] text-muted">Stoga.study is in a private beta. This page explains how the app works today in plain words; it isn't a legal policy. Questions? <Link to="/feedback?from=privacy">Send feedback</Link>.</p>
+      <p className="mt-6 text-[0.875rem] text-muted">Stoga.study is in a private beta. This page explains how the app works today in plain words; it isn't a legal policy. Questions? <Link to="/feedback?from=privacy" className="underline">Send feedback</Link>.</p>
     </>
   );
 }

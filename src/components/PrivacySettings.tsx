@@ -69,7 +69,7 @@ function TutorChats() {
       <b>Tutor conversations</b>
       <p className="text-[0.875rem] text-muted">
         {n ? `You have ${n === 1 ? "1 conversation" : `${n} conversations`}. ` : "You have no saved conversations. "}
-        Delete one at a time from <Link to="/tutor">the tutor</Link>, or all of them here.
+        Delete one at a time from <Link to="/tutor" className="underline">the tutor</Link>, or all of them here.
       </p>
       {!!n && (confirm ? (
         <div role="alert" className="flex flex-wrap items-center gap-2">
