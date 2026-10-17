@@ -1,6 +1,7 @@
 // Bring back an export (Settings > Your data). The server adds what's missing and never changes or
 // removes anything already in the account (see supabase/functions/restore).
 import { EXPORT_FORMAT, type ExportData } from "./exportData";
+import { STORAGE_TYPES } from "./queries/sources";
 import { supabase } from "./supabase";
 
 type Row = Record<string, unknown>;
@@ -79,7 +80,9 @@ export async function restoreBackup(b: Backup, userId: string, onStep: (s: strin
     const blob = b.files.get(String(src.id));
     if (blob && r.source_id) {
       const path = `${userId}/${r.source_id}/${storageName(String(src.original_filename || src.filename || "file"))}`;
-      const up = await supabase.storage.from("sources").upload(path, blob, { upsert: true, contentType: blob.type || undefined });
+      // Files come out of the zip without a type; the store only takes the kinds the app reads.
+      const contentType = STORAGE_TYPES[src.kind as keyof typeof STORAGE_TYPES] ?? "text/plain";
+      const up = await supabase.storage.from("sources").upload(path, blob, { upsert: true, contentType });
       if (!up.error) await supabase.from("sources").update({ storage_path: path }).eq("id", r.source_id);
       else skipped++;
     }

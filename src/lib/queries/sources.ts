@@ -74,7 +74,7 @@ export class UploadLimitError extends Error {
   }
 }
 
-const STORAGE_TYPES = {
+export const STORAGE_TYPES = {
   pdf: "application/pdf",
   docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   text: "text/plain",
