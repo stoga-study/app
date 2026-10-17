@@ -9,7 +9,17 @@ export function RequireAuth() {
   const { session, loading } = useAuth();
   const location = useLocation();
   if (loading) return <div className="mx-auto max-w-xl p-6"><PageSkeleton label="Checking your sign-in." /></div>;
-  if (!session) return <Navigate to="/welcome" replace state={{ from: location.pathname }} />;
+  if (!session) {
+    // A shared study set opened before signing up: remembered through sign-in and onboarding too.
+    if (location.pathname.startsWith("/s/")) {
+      try {
+        localStorage.setItem("stoga-pending-share", location.pathname);
+      } catch {
+        /* the sign-in redirect still remembers it */
+      }
+    }
+    return <Navigate to="/welcome" replace state={{ from: location.pathname }} />;
+  }
   return <Outlet />;
 }
 

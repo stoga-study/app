@@ -1,6 +1,6 @@
 import { ArrowRight, BookOpen, FileText, Layers, ListChecks, NotebookPen, Upload } from "lucide-react";
-import { useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link, useNavigate } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { LEVEL_LABEL, type Level } from "@/lib/catalog";
@@ -30,7 +30,23 @@ function today() {
   return dateFormat({ weekday: "long", month: "long", day: "numeric" }).format(new Date());
 }
 
+/** A share link opened before signing up: once in, go back to it (once). */
+function usePendingShare() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    try {
+      const p = localStorage.getItem("stoga-pending-share");
+      if (!p || !/^\/s\/[A-Za-z0-9_-]{20,64}$/.test(p)) return;
+      localStorage.removeItem("stoga-pending-share");
+      navigate(p, { replace: true });
+    } catch {
+      /* nothing remembered */
+    }
+  }, [navigate]);
+}
+
 export default function Home() {
+  usePendingShare();
   const profile = useProfile();
   const subjects = useSubjects();
   const all = useAllSubjects();

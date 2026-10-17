@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Archive, ArchiveRestore, ArrowLeft, Check, Copy, ExternalLink, FileText, MessageCircle, NotebookPen, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, Check, Copy, ExternalLink, Share2, FileText, MessageCircle, NotebookPen, Pencil, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { StudySetChooser } from "@/components/StudySetChooser";
 import { Button } from "@/components/ui/button";
 import { NoteList } from "@/components/NoteList";
 import { UnitPicker } from "@/components/UnitPicker";
+import { SharePanel } from "@/components/SharePanel";
 import { useSubjects } from "@/lib/queries/profile";
 import { cleanTag, duplicateSource, isPaged, openOriginal, pageWord, useDeleteSource, useRenameSource, useSource, useSourcePages, useUpdateSource } from "@/lib/queries/sources";
 import { useAuth } from "@/lib/auth/session";
@@ -43,6 +44,7 @@ export default function SourcePage() {
   const [tagDraft, setTagDraft] = useState("");
   const [copying, setCopying] = useState<string | null>(null);
   const [copyBusy, setCopyBusy] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
   const qc = useQueryClient();
@@ -302,6 +304,10 @@ export default function SourcePage() {
         <Button variant="ghost" disabled={update.isPending} onClick={() => setArchived(!s.archived)}>
           {s.archived ? <><ArchiveRestore /> Restore</> : <><Archive /> Archive</>}
         </Button>
+        {(s.status === "ready_text" || ready) && !sharing && (
+          <Button variant="ghost" onClick={() => setSharing(true)}><Share2 /> Share</Button>
+        )}
+        {sharing && <SharePanel sourceId={s.id} title={s.filename} onClose={() => setSharing(false)} />}
         {copying !== null && (
           <div className="card flex w-full flex-wrap items-center gap-3 p-4">
             <label htmlFor="copy-to" className="font-bold">Copy to</label>
