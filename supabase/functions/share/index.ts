@@ -119,7 +119,11 @@ Deno.serve(async (req) => {
     if (body.action === "group_sets") {
       const groupId = String(body.group_id ?? "");
       if (!(await isMember(groupId, student.userId))) return json(req, { error: "not_member" }, 403);
-      const { data: sets } = await admin.from("group_sets").select("id, source_id, shared_by, created_at").eq("group_id", groupId).order("created_at", { ascending: false }).limit(100);
+      const { data: grp } = await admin.from("groups").select("owner_id").eq("id", groupId).single();
+      const isOwner = grp?.owner_id === student.userId;
+      const { data: allSets } = await admin.from("group_sets").select("id, source_id, shared_by, created_at, hidden_at").eq("group_id", groupId).order("created_at", { ascending: false }).limit(100);
+      // Sets hidden by reports leave the library; the group's owner still sees them, to restore.
+      const sets = (allSets ?? []).filter((x) => !x.hidden_at || isOwner);
       const ids = (sets ?? []).map((x) => x.source_id);
       const [{ data: srcs }, { data: members }, { data: mine }] = await Promise.all([
         ids.length ? admin.from("sources").select("id, filename, kind, page_count, status, archived").in("id", ids) : Promise.resolve({ data: [] as { id: string; filename: string; kind: string; page_count: number; status: string; archived: boolean }[] }),
@@ -133,15 +137,16 @@ Deno.serve(async (req) => {
         if (!src || src.archived || (src.status !== "ready" && src.status !== "ready_text")) continue;
         out.push({
           id: x.id, title: src.filename, kind: src.kind, pages: src.page_count, by: name.get(x.shared_by) ?? "A member", mine_shared: x.shared_by === student.userId,
-          counts: await counts(src.id), added_id: (mine ?? []).find((m) => m.copied_from_set === x.id)?.id ?? null, created_at: x.created_at,
+          counts: await counts(src.id), added_id: (mine ?? []).find((m) => m.copied_from_set === x.id)?.id ?? null, created_at: x.created_at, hidden: !!x.hidden_at,
         });
       }
       return json(req, { sets: out });
     }
 
     if (body.action === "group_add") {
-      const { data: set } = await admin.from("group_sets").select("id, group_id, source_id, shared_by").eq("id", String(body.set_id ?? "")).maybeSingle();
+      const { data: set } = await admin.from("group_sets").select("id, group_id, source_id, shared_by, hidden_at").eq("id", String(body.set_id ?? "")).maybeSingle();
       if (!set || !(await isMember(set.group_id, student.userId))) return json(req, { error: "not_member" }, 403);
+      if (set.hidden_at) return json(req, { error: "hidden" }, 403);
       if (set.shared_by === student.userId) return json(req, { error: "own" }, 400);
       const { data: subject } = await student.db.from("subjects").select("id").eq("id", String(body.subject_id ?? "")).maybeSingle();
       if (!subject) return json(req, { error: "no_subject" }, 400);
@@ -163,9 +168,11 @@ Deno.serve(async (req) => {
         change = data as unknown as Change;
         setId = data.set_id;
       }
-      const { data: set } = await admin.from("group_sets").select("id, group_id, source_id, shared_by, locked").eq("id", setId).maybeSingle();
+      const { data: set } = await admin.from("group_sets").select("id, group_id, source_id, shared_by, locked, hidden_at").eq("id", setId).maybeSingle();
       if (!set || !(await isMember(set.group_id, student.userId))) return json(req, { error: "not_member" }, 403);
       const { data: group } = await admin.from("groups").select("owner_id").eq("id", set.group_id).single();
+      // Hidden after reports: only the group's owner can look, until it's reviewed.
+      if (set.hidden_at && group?.owner_id !== student.userId) return json(req, { error: "hidden" }, 403);
       const canEdit = !set.locked || set.shared_by === student.userId;
       const { data: me } = await admin.from("group_members").select("display_name").eq("group_id", set.group_id).eq("user_id", student.userId).single();
       const table = (t: string) => (t === "card" ? "cards" : "notes_sections");
@@ -229,7 +236,7 @@ Deno.serve(async (req) => {
         admin.from("sources").select("id").eq("user_id", student.userId).eq("copied_from", l.link.id).limit(1).maybeSingle(),
       ]);
       return json(req, {
-        title: l.src.filename, by: by?.first_name?.split(" ")[0] ?? null, kind: l.src.kind, pages: l.src.page_count, with_file: l.link.with_file && !!l.src.storage_path,
+        id: l.link.id, title: l.src.filename, by: by?.first_name?.split(" ")[0] ?? null, kind: l.src.kind, pages: l.src.page_count, with_file: l.link.with_file && !!l.src.storage_path,
         counts: c, expires_at: l.link.expires_at, mine: l.link.user_id === student.userId, added_id: added?.id ?? null,
       });
     }
