@@ -3,7 +3,8 @@
    today's 390px screen at the same scale as the screenshots beside it. Fonts are self-hosted (see the route). */
 
 .bp-phone { width: 300px; max-width: 100%; aspect-ratio: 390 / 844; flex: none; border-radius: 34px; padding: 7px; background: #0B0809; box-shadow: 0 0 0 1px #2B2427, 0 18px 40px -22px rgb(0 0 0 / 0.5); scroll-snap-align: center; }
-.bp-phone > img, .bp-phone > .bpn { width: 100%; height: 100%; border-radius: 28px; display: block; object-fit: cover; overflow: hidden; }
+.bp-phone > img, .bp-phone > .bpn { width: 100%; height: 100%; border-radius: 28px; overflow: hidden; }
+.bp-phone > img { display: block; object-fit: cover; }
 
 .bpn {
   --n-bg: #F7F6F5; --n-surface: #FFFFFF; --n-ink: #1C1718; --n-muted: #6B6466; --n-line: #E8E4E3; --n-line-strong: #CFC8C7;
