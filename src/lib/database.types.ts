@@ -2184,6 +2184,20 @@ export type Database = {
         Args: { card_ids: string[]; tag: string }
         Returns: undefined
       }
+      usage_meters: {
+        Args: never
+        Returns: {
+          cap_cards: number
+          cap_guide: number
+          cap_quiz: number
+          checks: number
+          checks_limit: number
+          own_calls: number
+          own_tokens: number
+          scan_limit: number
+          scan_pages: number
+        }[]
+      }
     }
     Enums: {
       plan: "essential" | "independent" | "unlimited"
