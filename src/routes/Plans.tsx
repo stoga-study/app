@@ -1,11 +1,10 @@
 import { Check, Heart, KeyRound, Plug } from "lucide-react";
 import { Link } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
+import { AllowanceMeters } from "@/components/Allowance";
 import { PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
 import { useProfile } from "@/lib/queries/profile";
-import { useAllowance } from "@/lib/queries/sources";
-import { dateFormat } from "@/lib/locale";
 
 const PLANS = [
   { id: "essential", name: "Essential", price: "Free", desc: "Normal study usage for a full course load.", points: ["50 tutor messages a day", "10 study sets a month (saving files is free)", "Every feature, same quality of answers"] },
@@ -13,24 +12,10 @@ const PLANS = [
   { id: "unlimited", name: "Unlimited", price: "$10 a month", desc: "Heavy use with plain-language fair use. Helps keep Essential free.", points: ["No daily or monthly caps", "A parent or guardian pays", "We email before limiting anything"] },
 ] as const;
 
-const fmt = (iso: string) => dateFormat({ month: "long", day: "numeric" }).format(new Date(iso));
-
-function Meter({ label, used, limit, note }: { label: string; used: number; limit: number | null; note: string }) {
-  return (
-    <div>
-      <div className="flex items-baseline justify-between gap-3"><span>{label}</span><b className="tabular">{limit == null ? "No limit" : `${used} of ${limit}`}</b></div>
-      {limit != null && <div className="bar mt-2" role="img" aria-label={`${label}: ${used} of ${limit}`}><span style={{ width: `${Math.min(100, (used / limit) * 100)}%` }} /></div>}
-      <p className="mt-1 text-[0.8125rem] text-muted">{note}</p>
-    </div>
-  );
-}
-
 export default function Plans() {
   const profile = useProfile();
-  const allowance = useAllowance();
-  if (profile.isPending || allowance.isPending) return <PageSkeleton />;
+  if (profile.isPending) return <PageSkeleton />;
   const plan = profile.data?.plan ?? "essential";
-  const tutor = allowance.data?.tutor_message, uploads = allowance.data?.upload;
 
   return (
     <>
@@ -38,9 +23,7 @@ export default function Plans() {
 
       <section className="card mb-6 flex flex-col gap-5 p-5" aria-labelledby="allow">
         <h2 id="allow" className="text-[1.25rem]">Your allowance</h2>
-        {tutor && <Meter label="Tutor messages today" used={tutor.used} limit={tutor.limit} note={`Resets at midnight.`} />}
-        {uploads && <Meter label="Study sets this month" used={uploads.used} limit={uploads.limit} note={`Resets on ${fmt(uploads.resetsAt)}.`} />}
-        <p className="text-[0.9375rem] text-muted">At a limit, your cards, notes and quizzes still work. Only new tutor answers and study sets wait. You can still save files.</p>
+        <AllowanceMeters />
       </section>
 
       <div className="grid gap-4 md:grid-cols-3">

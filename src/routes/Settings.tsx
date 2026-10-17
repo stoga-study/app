@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Face } from "@/components/Face";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { InstallCard } from "@/components/Install";
+import { AllowanceMeters } from "@/components/Allowance";
 import { useFaces } from "@/lib/queries/profile";
 import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
@@ -299,6 +300,8 @@ export default function Settings() {
       <Section id="review" title="Flashcard reviews"><RetentionChoice /></Section>
 
       <Section id="tutor" title="AI tutor"><DepthChoice /></Section>
+
+      <Section id="allowance" title="Your allowance"><AllowanceMeters /></Section>
 
       <Section id="own-key" title="Your own key"><OwnKey /></Section>
 
