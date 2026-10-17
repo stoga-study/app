@@ -29,6 +29,8 @@ export type ExportData = {
   notes_sections: Row[]; guide_sections: Row[]; key_terms: Row[]; summaries: Row[];
   cards: Row[]; quizzes: Row[]; quiz_questions: Row[];
   student_notes: Row[]; events: Row[]; event_units: Row[]; goals: Row[];
+  /** Which file in the zip's files/ folder is each source's original (when included). */
+  files?: Record<string, string>;
 };
 
 export async function collectData(onStep: (s: string) => void): Promise<ExportData> {
@@ -115,11 +117,15 @@ export async function buildExport(opts: { includeFiles: boolean; onStep: (s: str
   if (opts.includeFiles) {
     const withFiles = d.sources.filter((x) => x.storage_path);
     const namer = uniqueNamer();
+    d.files = {};
     for (let i = 0; i < withFiles.length; i++) {
       const x = withFiles[i];
       opts.onStep(`Original files (${i + 1} of ${withFiles.length})`);
       const { data } = await supabase.storage.from("sources").download(s(x.storage_path));
-      if (data) zip.file(`files/${namer(safeName(s(x.original_filename) || s(x.filename), "file"))}`, data);
+      if (!data) continue;
+      const name = `files/${namer(safeName(s(x.original_filename) || s(x.filename), "file"))}`;
+      zip.file(name, data);
+      d.files[s(x.id)] = name;
     }
   }
 
