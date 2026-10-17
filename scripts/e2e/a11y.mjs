@@ -11,7 +11,11 @@ await run("a11y", async ({ p, uid, wh }) => {
   const qz = (await admin.from("quizzes").insert({ user_id: uid, source_id: src.id, subject_id: wh.id, title: "Cells quiz" }).select().single()).data;
   await admin.from("quiz_questions").insert({ user_id: uid, quiz_id: qz.id, position: 0, prompt: "What makes ATP?", options: ["Mitochondria", "Nucleus", "Ribosome", "Wall"], answer_index: 0, explanation: "x", pages: [1] });
   const ev = (await admin.from("events").insert({ user_id: uid, subject_id: wh.id, kind: "test", title: "Cells test", due_on: new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10) }).select().single()).data;
-  const screens = ["/", "/subjects", `/subjects/${wh.id}`, `/sources/${src.id}`, "/calendar", "/calendar?view=plan", `/exam/${ev.id}`, "/coach", "/coach/customize", "/progress", "/review", `/quiz/${qz.id}`, "/upload", "/search?q=cells", "/settings", "/changelog", "/tutor"];
+  const g = (await admin.from("groups").insert({ owner_id: uid, name: "AP Bio", code: "AXTEST" + "ABCDEFGH"[Date.now() % 8] + "Z" }).select().single()).data;
+  await admin.from("group_members").insert({ group_id: g.id, user_id: uid, display_name: "Test" });
+  const gs = (await admin.from("group_sets").insert({ group_id: g.id, source_id: src.id, shared_by: uid }).select().single()).data;
+  const link = (await admin.from("share_links").insert({ user_id: uid, source_id: src.id, token: `axtest${Date.now()}abcdefghijk` }).select().single()).data;
+  const screens = ["/groups", `/groups/${g.id}`, `/groups/${g.id}/sets/${gs.id}`, `/s/${link.token}`, "/", "/subjects", `/subjects/${wh.id}`, `/sources/${src.id}`, "/calendar", "/calendar?view=plan", `/exam/${ev.id}`, "/coach", "/coach/customize", "/progress", "/review", `/quiz/${qz.id}`, "/upload", "/search?q=cells", "/settings", "/changelog", "/tutor"];
   const all = new Map();
   for (const theme of ["light", "dark"]) {
     await p.evaluate((t) => localStorage.setItem("stoga-theme", t), theme);
