@@ -732,6 +732,98 @@ export type Database = {
           },
         ]
       }
+      group_members: {
+        Row: {
+          display_name: string
+          group_id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          display_name: string
+          group_id: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          display_name?: string
+          group_id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_sets: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          shared_by: string
+          source_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          shared_by?: string
+          source_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          shared_by?: string
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_sets_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_sets_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+          owner_id?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+        }
+        Relationships: []
+      }
       guide_sections: {
         Row: {
           body_md: string
@@ -1467,6 +1559,7 @@ export type Database = {
           bytes: number | null
           content_hash: string | null
           copied_from: string | null
+          copied_from_set: string | null
           counted: boolean
           created_at: string
           error_code: string | null
@@ -1491,6 +1584,7 @@ export type Database = {
           bytes?: number | null
           content_hash?: string | null
           copied_from?: string | null
+          copied_from_set?: string | null
           counted?: boolean
           created_at?: string
           error_code?: string | null
@@ -1515,6 +1609,7 @@ export type Database = {
           bytes?: number | null
           content_hash?: string | null
           copied_from?: string | null
+          copied_from_set?: string | null
           counted?: boolean
           created_at?: string
           error_code?: string | null
@@ -1540,6 +1635,13 @@ export type Database = {
             columns: ["copied_from"]
             isOneToOne: false
             referencedRelation: "share_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sources_copied_from_set_fkey"
+            columns: ["copied_from_set"]
+            isOneToOne: false
+            referencedRelation: "group_sets"
             referencedColumns: ["id"]
           },
           {
@@ -1846,17 +1948,30 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_group: { Args: { p_name: string }; Returns: string }
       duplicate_source: {
         Args: { p_source: string; p_subject: string }
         Returns: string
       }
+      increment_share_copies: { Args: { p_link: string }; Returns: undefined }
       is_archived: {
         Args: { p_source: string; p_subject: string }
         Returns: boolean
       }
+      is_group_member: { Args: { p_group: string }; Returns: boolean }
+      join_group: { Args: { p_code: string }; Returns: string }
       merge_decks: {
         Args: { from_deck: string; into_deck: string }
         Returns: undefined
+      }
+      new_group_code: { Args: never; Returns: string }
+      peek_group: {
+        Args: { p_code: string }
+        Returns: {
+          joined: boolean
+          members: number
+          name: string
+        }[]
       }
       period_end: { Args: { p_period: string }; Returns: string }
       period_start: { Args: { p_period: string }; Returns: string }
@@ -1885,6 +2000,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      reset_group_code: { Args: { p_group: string }; Returns: string }
       search_everything: {
         Args: { p_limit?: number; p_query: string; p_subject?: string }
         Returns: {
