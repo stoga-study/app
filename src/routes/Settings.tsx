@@ -7,6 +7,7 @@ import { Face } from "@/components/Face";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { InstallCard } from "@/components/Install";
 import { AllowanceMeters } from "@/components/Allowance";
+import { DataExport } from "@/components/DataExport";
 import { useFaces } from "@/lib/queries/profile";
 import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
@@ -304,6 +305,8 @@ export default function Settings() {
       <Section id="allowance" title="Your allowance"><AllowanceMeters /></Section>
 
       <Section id="own-key" title="Your own key"><OwnKey /></Section>
+
+      <Section id="data" title="Your data"><DataExport /></Section>
 
       <LinkRow to="/plans" icon={<Heart />} title="Plans and funding" sub={profile.data?.plan === "independent" ? "Independent, your own key" : profile.data?.plan === "unlimited" ? "Unlimited" : "Essential, free"} />
       <LinkRow to="/feedback?from=settings" icon={<MessageSquare />} title="Send feedback" sub="Report a problem or suggest an idea" />
