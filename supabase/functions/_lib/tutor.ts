@@ -219,3 +219,69 @@ export function checkCitations(text: string, sources: Src[]) {
   const tidy = plainMath(cleaned).replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/ +([.,;:])/g, "$1").trim();
   return { cleaned: tidy, used };
 }
+
+// ---------------------------------------------------------------------------
+// Guards: rules the server enforces on the answer itself, whatever the model. For these turns the answer is
+// collected before it is sent, checked, rewritten once if it breaks the rule, and replaced if it still does.
+// ---------------------------------------------------------------------------
+
+export const wordCount = (s: string) => (s.replace(/\[S\d+ p\.\d+\]/g, "").match(/[\p{L}\p{N}][\p{L}\p{N}'’.-]*/gu) ?? []).length;
+
+const WORK = "essay|paper|lab report|report|homework|assignment|worksheet|answers|paragraph|response|reflection|summary|story|poem|speech|letter";
+const WRITE_MY = new RegExp(`\\b(write|do|finish|complete|make|type)\\b[^.?!]{0,40}\\b(my|an?|the|this)\\b[^.?!]{0,30}\\b(${WORK})\\b`, "i");
+const HAND_IN = /\b(turn(ed)? (it )?in|hand (it )?in|submit|due\b|for (a|my) grade|graded|\d{2,4}[- ]words?)\b/i;
+
+/** The student asks the tutor to write work they will hand in. */
+export function asksForGradedWork(question: string) {
+  return WRITE_MY.test(question) && (HAND_IN.test(question) || new RegExp(`\\bmy\\b[^.?!]{0,20}\\b(${WORK})\\b`, "i").test(question));
+}
+export const GRADED_LIMIT = 150;
+export const GRADED_FIX = `Your last reply wrote too much of the work itself. Rewrite it now in exactly this shape: one kind sentence saying you will not write work they hand in; then an outline of 4 or 5 bullets, each under 12 words, drawn from their notes; then one sentence offering feedback on their draft. Under 110 words in total. No paragraphs of the essay or report.`;
+export const GRADED_FALLBACK = `I can't write work you'll hand in, but I can help you write it yourself. Start with an outline: your main point, two or three reasons from your notes, and an example for each. Write a first draft, paste it here, and I'll give you feedback on it.`;
+
+const FILLER = new Set("the a an of is are was were be to in on for and or but with that this it its as by at from not no always never true false which what does do make makes".split(" "));
+const tokens = (s: string) => (s.toLowerCase().match(/[\p{L}\p{N}][\p{L}\p{N}̀-ͯ]*/gu) ?? []).filter((w) => !FILLER.has(w) && (w.length > 2 || /[^\x00-\x7f]/.test(w)));
+
+/** The answer choices in a multiple-choice question ("A) … B) … C) …"), or none. */
+export function choiceOptions(text: string): string[] {
+  const parts = text.split(/(?:^|\s)\(?([A-E])\)\s+/);
+  const out: string[] = [];
+  for (let i = 1; i + 1 < parts.length; i += 2) out.push(parts[i + 1].trim().replace(/[\s.;,]+$/, ""));
+  return out.length >= 2 ? out : [];
+}
+
+/**
+ * Two-word phrases from the choices that a hint must not use: each phrase belongs to exactly one choice and
+ * is not in the question itself, so saying it points at that choice.
+ */
+export function givingAwayPhrases(question: string): string[] {
+  const options = choiceOptions(question);
+  if (!options.length) return [];
+  const stem = new Set(tokens(question.split(/(?:^|\s)\(?A\)\s+/)[0] ?? ""));
+  const pairsOf = (o: string) => { const t = tokens(o); return t.slice(1).map((w, i) => `${t[i]} ${w}`); };
+  const all = options.map(pairsOf);
+  const out = new Set<string>();
+  all.forEach((pairs, i) => {
+    for (const p of pairs) {
+      if (all.some((other, j) => j !== i && other.includes(p))) continue;
+      if (p.split(" ").every((w) => stem.has(w))) continue;
+      out.add(p);
+    }
+  });
+  return [...out];
+}
+
+/** The phrases from `phrases` that appear in a hint (word by word, ignoring filler words). */
+export function phrasesUsed(hint: string, phrases: string[]) {
+  const t = tokens(hint);
+  const pairs = new Set(t.slice(1).map((w, i) => `${t[i]} ${w}`));
+  return phrases.filter((p) => pairs.has(p));
+}
+export const hintFix = (used: string[]) => `Your hint used wording from the answer choices (${used.map((u) => `"${u}"`).join(", ")}), which gives the answer away. Rewrite the hint without those words or their meaning: point to the idea in their notes and ask one guiding question. Under 60 words.`;
+
+/** Last resort for a hint that still gives the answer away: drop the sentences that do, keep a question. */
+export function safeHint(hint: string, used: string[]) {
+  const sentences = hint.split(/(?<=[.?!])\s+/).filter((s) => !phrasesUsed(s, used).length);
+  const kept = sentences.join(" ").trim();
+  return kept && /\?/.test(kept) ? kept : `${kept ? `${kept} ` : ""}Look back at what your notes say about this idea. Which choice matches it, and why do the others not?`.trim();
+}

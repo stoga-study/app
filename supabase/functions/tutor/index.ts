@@ -10,7 +10,7 @@ import { corsHeaders, json } from "../_lib/cors.ts";
 import { LLM_FAST_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort, type OwnProvider } from "../_lib/llm.ts";
 import { ownProvider } from "../_lib/byok.ts";
 import { cleanText } from "../_lib/study.ts";
-import { checkCitations, CRISIS_LINE, guessMode, MODES, obviousMode, ROUTER_SCHEMA, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
+import { asksForGradedWork, checkCitations, CRISIS_LINE, givingAwayPhrases, GRADED_FALLBACK, GRADED_FIX, GRADED_LIMIT, guessMode, hintFix, MODES, obviousMode, phrasesUsed, ROUTER_SCHEMA, safeHint, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, wordCount, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 setUsageLogger((row) => admin.from("ai_usage").insert(row));
@@ -21,6 +21,35 @@ type Scope = { sourceId: string | null; unitId: string | null };
 
 /** Rank the subject's pages for these words (any of them), as the student, so RLS applies. Narrowed to
  * one file or one unit when the conversation is scoped to it. */
+/** Read an OpenAI-style SSE answer to the end, passing each piece of text to `onDelta` as it arrives. */
+// deno-lint-ignore no-explicit-any
+async function readAnswer(res: Response, onDelta?: (text: string) => void): Promise<{ text: string; usage: any }> {
+  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = "", text = "";
+  // deno-lint-ignore no-explicit-any
+  let usage: any = null;
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += value;
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (payload === "[DONE]") continue;
+      const chunk = JSON.parse(payload);
+      if (chunk?.usage) usage = chunk.usage;
+      const delta = chunk?.choices?.[0]?.delta?.content;
+      if (typeof delta !== "string" || !delta) continue;
+      text += delta;
+      onDelta?.(delta);
+    }
+  }
+  return { text, usage };
+}
+
 async function retrieve(db: SupabaseClient, subjectId: string, words: string[], scope: Scope) {
   if (!words.length) return [];
   const { data, error } = await db.rpc("search_pages", {
@@ -254,6 +283,12 @@ Deno.serve(async (req) => {
       { role: "user", content: userTurn(blocks, question, depthOverride ?? (wantsWorked ? "worked" : body.followup ? (level === 3 ? 3 : 2) : false)) },
     ];
 
+    // Guarded turns (see _lib/tutor.ts): the answer is checked before the student sees it.
+    const gradedWork = feeling !== "crisis" && asksForGradedWork(question);
+    const problemText = body.followup ? [...history].reverse().find((t) => t.role === "user" && givingAwayPhrases(t.content).length)?.content ?? question : question;
+    const banned = mode === "hint" && level < 3 && !wantsWorked ? givingAwayPhrases(problemText) : [];
+    const guarded = gradedWork || banned.length > 0;
+
     // Small talk is quick; a full worked explanation gets more thinking.
     const effort: Effort = feeling === "crisis" ? "normal" : mode === "chat" ? "light" : mode === "hint" && level === 3 ? "deep" : "normal";
     let res: Response;
@@ -282,31 +317,31 @@ Deno.serve(async (req) => {
         send(controller, "meta", { thread_id: threadId, sources: publicSources, uncovered: sources.length === 0, model });
         send(controller, "mode", { mode });
         let full = "";
-        // deno-lint-ignore no-explicit-any
-        let usage: any = null;
         try {
-          const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
-          let buf = "";
-          for (;;) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buf += value;
-            let nl;
-            while ((nl = buf.indexOf("\n")) >= 0) {
-              const line = buf.slice(0, nl).trim();
-              buf = buf.slice(nl + 1);
-              if (!line.startsWith("data:")) continue;
-              const payload = line.slice(5).trim();
-              if (payload === "[DONE]") continue;
-              const chunk = JSON.parse(payload);
-              if (chunk?.usage) usage = chunk.usage;
-              const delta = chunk?.choices?.[0]?.delta?.content;
-              if (typeof delta !== "string" || !delta) continue;
-              full += delta;
-              send(controller, "delta", { text: delta });
+          if (!guarded) {
+            const out = await readAnswer(res, (d) => send(controller, "delta", { text: d }));
+            full = out.text;
+            await recordUsage({ feature: "tutor", userId: student.userId, byok: !!own }, model, out.usage);
+          } else {
+            const first = await readAnswer(res);
+            await recordUsage({ feature: "tutor", userId: student.userId, byok: !!own }, model, first.usage);
+            full = first.text;
+            const broken = (text: string) => !text.trim() || (gradedWork ? wordCount(text) > GRADED_LIMIT : phrasesUsed(text, banned).length > 0);
+            if (broken(full)) {
+              // One rewrite with the exact correction, then a safe answer if the rule is still broken.
+              const fix = gradedWork ? GRADED_FIX : hintFix(phrasesUsed(full, banned));
+              try {
+                const again = await llmStream({ messages: [...messages, { role: "assistant", content: full }, { role: "user", content: fix }] as { role: "system" | "user" | "assistant"; content: string }[], effort: "normal", maxTokens: 400, own });
+                const second = await readAnswer(again.res);
+                await recordUsage({ feature: "tutor_guard", userId: student.userId, byok: !!own }, again.model, second.usage);
+                full = second.text;
+              } catch (e) {
+                console.error("tutor guard rewrite", e instanceof Error ? e.message : e);
+              }
+              if (broken(full)) full = gradedWork ? GRADED_FALLBACK : safeHint(full, phrasesUsed(full, banned));
             }
+            send(controller, "delta", { text: full });
           }
-          await recordUsage({ feature: "tutor", userId: student.userId, byok: !!own }, model, usage);
           const checked = checkCitations(full, sources);
           // The crisis line is never left to chance.
           const cleaned = feeling === "crisis" && !/\b988\b/.test(checked.cleaned) ? `${checked.cleaned}\n\n${CRISIS_LINE}` : checked.cleaned;
