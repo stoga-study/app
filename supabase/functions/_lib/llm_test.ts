@@ -21,9 +21,9 @@ function fakeFetch(answer: (c: Call) => Response) {
 }
 const ok = (content: string) => new Response(JSON.stringify({ choices: [{ message: { content } }], usage: {} }), { status: 200 });
 
-Deno.test("Mercury gets reasoning effort and max_tokens", () => {
-  assertEquals(profile("mercury-2.5", "light", 500, "https://api.inceptionlabs.ai/v1"), { reasoning_effort: "low", max_tokens: 2500 });
-  assertEquals(profile("mercury-2.5", "deep", 500, "https://api.inceptionlabs.ai/v1").reasoning_effort, "high");
+Deno.test("Mercury gets reasoning effort, and room for its reasoning", () => {
+  assertEquals(profile("mercury-2.5", "light", 500, "https://api.inceptionlabs.ai/v1"), { reasoning_effort: "low", max_tokens: 1500 });
+  assertEquals(profile("mercury-2.5", "deep", 500, "https://api.inceptionlabs.ai/v1"), { reasoning_effort: "high", max_tokens: 8500 });
 });
 
 Deno.test("text calls go to Mercury", async () => {

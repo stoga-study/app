@@ -127,9 +127,11 @@ export function profile(model: string, effort: Effort, maxTokens: number, baseUr
     const headroom = { light: 1000, normal: 4000, deep: 8000 }[effort];
     return { reasoning_effort, [tokenParam]: maxTokens + headroom };
   }
-  // Inception's Mercury (diffusion models): reasoning effort low, medium or high.
+  // Inception's Mercury (diffusion models): reasoning effort low, medium or high. Its hidden reasoning also
+  // counts against the token limit, so leave room for it as for GPT.
   if (/mercury/i.test(model)) {
-    return { reasoning_effort: { light: "low", normal: "medium", deep: "high" }[effort], [tokenParam]: maxTokens + 2000 };
+    const headroom = { light: 1000, normal: 4000, deep: 8000 }[effort];
+    return { reasoning_effort: { light: "low", normal: "medium", deep: "high" }[effort], [tokenParam]: maxTokens + headroom };
   }
   const out: Body = { temperature: 0.3, [tokenParam]: maxTokens + 2000 };
   if (/gpt-oss/i.test(model)) out.reasoning_effort = effort === "deep" ? "medium" : "low";
