@@ -71,7 +71,7 @@ try {
   let history = [];
   async function say(text) {
     for (let attempt = 0; attempt < 6; attempt++) {
-      const res = await fetch(`${URL_}/functions/v1/coach`, { method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: PUB, "Content-Type": "application/json" }, body: JSON.stringify({ message: text, history, today }) });
+      const res = await fetch(`${URL_}/functions/v1/${process.env.COACH_FN ?? "coach"}`, { method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: PUB, "Content-Type": "application/json" }, body: JSON.stringify({ message: text, history, today }) });
       if (!res.headers.get("content-type")?.includes("event-stream")) {
         const j = await res.json().catch(() => ({}));
         if (j.error === "busy") { await sleep(20000); continue; }

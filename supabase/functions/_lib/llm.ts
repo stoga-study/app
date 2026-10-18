@@ -16,11 +16,22 @@
 import { normalizeBase } from "./url.ts";
 export { safeBaseUrl } from "./url.ts";
 
-export const LLM_BASE_URL = normalizeBase(Deno.env.get("LLM_BASE_URL") ?? "https://api.openai.com/v1");
-export const LLM_MODEL = Deno.env.get("LLM_MODEL") ?? "gpt-6-luna";
+export let LLM_BASE_URL = normalizeBase(Deno.env.get("LLM_BASE_URL") ?? "https://api.openai.com/v1");
+export let LLM_MODEL = Deno.env.get("LLM_MODEL") ?? "gpt-6-luna";
 /** For quick decisions (routing a message, naming a file). Defaults to the main model. */
-export const LLM_FAST_MODEL = Deno.env.get("LLM_FAST_MODEL") ?? LLM_MODEL;
-const PLATFORM_KEY = Deno.env.get("LLM_API_KEY") ?? Deno.env.get("OPENAI_API_KEY");
+export let LLM_FAST_MODEL = Deno.env.get("LLM_FAST_MODEL") ?? LLM_MODEL;
+let PLATFORM_KEY = Deno.env.get("LLM_API_KEY") ?? Deno.env.get("OPENAI_API_KEY");
+
+/**
+ * Point this function's platform calls at another model, for a staging copy of a function (for example
+ * tutor-staging on Mercury) that the test suites can try while students stay on the configured model.
+ */
+export function setPlatform(p: { baseUrl: string; apiKey: string; model: string }) {
+  LLM_BASE_URL = normalizeBase(p.baseUrl);
+  PLATFORM_KEY = p.apiKey;
+  LLM_MODEL = p.model;
+  LLM_FAST_MODEL = p.model;
+}
 const OPENAI_BASE = "https://api.openai.com/v1";
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
 /** OpenAI model for images and for the fallback, when the platform model is another provider's. */

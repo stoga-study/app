@@ -25,7 +25,7 @@ const seconds = [];
 async function ask(token, body) {
   const started = Date.now();
   for (let attempt = 0; attempt < 12; attempt++) {
-    const res = await fetch(`${URL_}/functions/v1/tutor`, { method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: PUB, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const res = await fetch(`${URL_}/functions/v1/${process.env.TUTOR_FN ?? "tutor"}`, { method: "POST", headers: { Authorization: `Bearer ${token}`, apikey: PUB, "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (!res.headers.get("content-type")?.includes("event-stream")) {
       const j = await res.json().catch(() => ({}));
       if (j.error === "busy" || j.error === "unavailable") {
