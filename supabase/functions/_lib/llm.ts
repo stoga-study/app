@@ -9,6 +9,10 @@
 // strict JSON mode). `profile()` translates one set of intentions per model family, and for providers
 // other than OpenAI `send()` steps down to simpler requests when one is refused. Prompts and answer checks
 // stay the same; the tutor test suite (scripts/tutor-eval) is the gate before switching platform models.
+//
+// When the platform model is not OpenAI's (for example Inception's Mercury), two things stay on OpenAI with
+// OPENAI_API_KEY: reading images (Mercury is text-only), and a fallback if the platform provider fails or its
+// credit runs out, so a student gets an answer either way. A student's own key never falls back.
 import { normalizeBase } from "./url.ts";
 export { safeBaseUrl } from "./url.ts";
 
@@ -17,6 +21,10 @@ export const LLM_MODEL = Deno.env.get("LLM_MODEL") ?? "gpt-6-luna";
 /** For quick decisions (routing a message, naming a file). Defaults to the main model. */
 export const LLM_FAST_MODEL = Deno.env.get("LLM_FAST_MODEL") ?? LLM_MODEL;
 const PLATFORM_KEY = Deno.env.get("LLM_API_KEY") ?? Deno.env.get("OPENAI_API_KEY");
+const OPENAI_BASE = "https://api.openai.com/v1";
+const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
+/** OpenAI model for images and for the fallback, when the platform model is another provider's. */
+const OPENAI_MODEL = Deno.env.get("LLM_FALLBACK_MODEL") ?? "gpt-6-luna";
 
 /** A student's own OpenAI-compatible API (Independent plan). */
 export type OwnProvider = { apiKey: string; baseUrl: string; model: string };
@@ -85,6 +93,24 @@ function target(own: OwnProvider | undefined, model: string | undefined): Target
   return { baseUrl: LLM_BASE_URL, apiKey: PLATFORM_KEY, model: model ?? LLM_MODEL };
 }
 
+/** OpenAI, to try when a platform call to another provider fails. Null for a student's own key, or when already on OpenAI. */
+function fallbackFor(t: Target, own: OwnProvider | undefined): Target | null {
+  if (own || isOpenAI(t.baseUrl) || !OPENAI_KEY) return null;
+  return { baseUrl: OPENAI_BASE, apiKey: OPENAI_KEY, model: OPENAI_MODEL };
+}
+
+/** Run a platform call, and if its provider fails, run it once more on OpenAI. */
+async function withFallback<T>(t: Target, own: OwnProvider | undefined, call: (t: Target) => Promise<T>, skip = false): Promise<T> {
+  try {
+    return await call(t);
+  } catch (e) {
+    const fb = skip ? null : fallbackFor(t, own);
+    if (!fb) throw e;
+    console.warn("llm fallback to OpenAI", t.model, e instanceof Error ? e.message.slice(0, 200) : e);
+    return call(fb);
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Request settings
 // ---------------------------------------------------------------------------
@@ -100,6 +126,10 @@ export function profile(model: string, effort: Effort, maxTokens: number, baseUr
     // Hidden reasoning counts against the token limit, so leave room for it.
     const headroom = { light: 1000, normal: 4000, deep: 8000 }[effort];
     return { reasoning_effort, [tokenParam]: maxTokens + headroom };
+  }
+  // Inception's Mercury (diffusion models): reasoning effort low, medium or high.
+  if (/mercury/i.test(model)) {
+    return { reasoning_effort: { light: "low", normal: "medium", deep: "high" }[effort], [tokenParam]: maxTokens + 2000 };
   }
   const out: Body = { temperature: 0.3, [tokenParam]: maxTokens + 2000 };
   if (/gpt-oss/i.test(model)) out.reasoning_effort = effort === "deep" ? "medium" : "low";
@@ -191,7 +221,10 @@ export async function llmJson<T>(opts: {
   flex?: boolean;
   usage?: UsageMeta;
 }): Promise<T> {
-  const t = target(opts.own, opts.model);
+  return withFallback(target(opts.own, opts.model), opts.own, (t) => jsonOnce<T>(t, opts), opts.noRetry);
+}
+
+async function jsonOnce<T>(t: Target, opts: Parameters<typeof llmJson>[0]): Promise<T> {
   const flex = !!opts.flex && !opts.own && isOpenAI(t.baseUrl);
   const body = {
     model: t.model,
@@ -233,7 +266,10 @@ export async function llmJson<T>(opts: {
  * OCR model (OCR_MODEL, default the main model), which must accept images.
  */
 export async function llmReadImage(opts: { dataUrl: string; prompt: string; usage?: UsageMeta; timeoutMs?: number }): Promise<string> {
-  const t = target(undefined, Deno.env.get("OCR_MODEL") ?? LLM_MODEL);
+  // A platform model from another provider may not read images (Mercury is text-only): use OpenAI for these.
+  const t = isOpenAI(LLM_BASE_URL) || !OPENAI_KEY
+    ? target(undefined, Deno.env.get("OCR_MODEL") ?? LLM_MODEL)
+    : { baseUrl: OPENAI_BASE, apiKey: OPENAI_KEY, model: Deno.env.get("OCR_MODEL") ?? OPENAI_MODEL };
   const body = {
     model: t.model,
     messages: [{ role: "user", content: [{ type: "text", text: opts.prompt }, { type: "image_url", image_url: { url: opts.dataUrl, detail: "high" } }] }],
@@ -260,14 +296,15 @@ export async function llmReadImage(opts: { dataUrl: string; prompt: string; usag
 
 /** Start a streamed answer. The caller reads OpenAI-style SSE chunks from `res.body`. Returns the model used too. */
 export async function llmStream(opts: { messages: Message[]; effort?: Effort; maxTokens?: number; own?: OwnProvider; timeoutMs?: number; model?: string }) {
-  const t = target(opts.own, opts.model);
-  // include_usage adds a last chunk with the token counts, for recordUsage().
-  const res = await send(t, { model: t.model, messages: opts.messages, stream: true, stream_options: { include_usage: true }, ...profile(t.model, opts.effort ?? "normal", opts.maxTokens ?? 1500, t.baseUrl) }, opts.timeoutMs ?? 90_000);
-  if (!res.ok || !res.body) {
-    const text = (await res.text().catch(() => "")).slice(0, 500);
-    throw new LLMError(res.status, text, retryAfterOf(res));
-  }
-  return { res, model: t.model };
+  return withFallback(target(opts.own, opts.model), opts.own, async (t) => {
+    // include_usage adds a last chunk with the token counts, for recordUsage().
+    const res = await send(t, { model: t.model, messages: opts.messages, stream: true, stream_options: { include_usage: true }, ...profile(t.model, opts.effort ?? "normal", opts.maxTokens ?? 1500, t.baseUrl) }, opts.timeoutMs ?? 90_000);
+    if (!res.ok || !res.body) {
+      const text = (await res.text().catch(() => "")).slice(0, 500);
+      throw new LLMError(res.status, text, retryAfterOf(res));
+    }
+    return { res, model: t.model };
+  });
 }
 
 /** Models a provider lists that look most like what the student typed (same maker first, then shared name parts). */
