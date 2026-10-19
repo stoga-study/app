@@ -1,9 +1,10 @@
-import { Check, Heart, KeyRound, Plug } from "lucide-react";
+import { Check, KeyRound, Plug } from "lucide-react";
 import { Link } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { AllowanceMeters } from "@/components/Allowance";
 import { PageSkeleton } from "@/components/States";
 import { Button } from "@/components/ui/button";
+import { FundingLedger } from "@/components/FundingLedger";
 import { useProfile } from "@/lib/queries/profile";
 
 const PLANS = [
@@ -50,15 +51,15 @@ export default function Plans() {
         })}
       </div>
 
-      <section className="ink-panel burgundy mt-6 p-6" aria-labelledby="funding">
-        <span className="circle circle-big right-[-5rem] top-[-6rem] size-60" aria-hidden="true" />
-        <p className="chip chip-dark">Sample figures until launch</p>
-        <h2 id="funding" className="mt-3 text-[1.5rem]">Free for every student, kept going by the Stoga community</h2>
-        <p className="mt-2 max-w-xl text-muted">Unlimited plans and optional donations cover the AI costs. We publish every month's costs and funding on stoga.study, so you can see exactly where the money goes.</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button asChild variant="inverse"><a href="https://stoga.study/plans#funding" target="_blank" rel="noopener"><Heart /> See funding</a></Button>
+      <section className="card mt-6 flex flex-col gap-4 p-6" aria-labelledby="funding">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="funding" className="text-[1.5rem]">Costs and funding</h2>
+            <p className="mt-1 max-w-xl text-muted">What Stoga.study really costs to run each month, and how it's paid for. Nothing here is an estimate.</p>
+          </div>
+          <Button asChild variant="secondary" size="sm"><Link to="/donate">About donating</Link></Button>
         </div>
-        <p className="mt-3 text-[0.8125rem] text-muted">Donations open once payments are connected.</p>
+        <FundingLedger />
       </section>
     </>
   );
