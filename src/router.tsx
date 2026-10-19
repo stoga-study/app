@@ -42,6 +42,8 @@ import Donate from "./routes/Donate";
 import SupportView from "./routes/SupportView";
 import Requests from "./routes/Requests";
 import Testimonial from "./routes/Testimonial";
+import PublicUpdates from "./routes/PublicUpdates";
+import KnownIssues from "./routes/KnownIssues";
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +51,9 @@ export const router = createBrowserRouter([
     children: [
   // Opened by a parent, guardian, tutor or counselor from a student's link: no account needed.
   { path: "support/:token", element: <SupportView /> },
+  // Public pages, linked from stoga.study: no sign-in needed.
+  { path: "updates", element: <PublicUpdates /> },
+  { path: "known-issues", element: <KnownIssues /> },
   {
     element: <RedirectIfSignedIn />,
     children: [
