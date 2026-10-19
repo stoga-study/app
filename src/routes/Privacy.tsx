@@ -25,7 +25,7 @@ export default function Privacy() {
           <li><b>The coach:</b> what you ask, plus your classes, upcoming calendar and a summary of your progress, so it can plan with you.</li>
           <li><b>Checking an answer:</b> your answer and the notes it's checked against.</li>
         </ul>
-        <p>The AI runs on OpenAI's models, through their service for apps. OpenAI's terms for that service say what's sent isn't used to train their models. If you use your own key, your requests go to the AI service you chose, under its terms.</p>
+        <p>Most features run on Mercury, a model from Inception. Reading photos and scanned pages runs on OpenAI, and if Mercury is ever unavailable, your request goes to OpenAI instead. We've turned off Inception's setting that lets it train on what we send, and OpenAI's terms for its service for apps say what's sent isn't used to train their models. If you use your own key, your requests go to the AI service you chose, under its terms.</p>
       </Part>
 
       <Part title="What's kept">
