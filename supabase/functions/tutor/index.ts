@@ -10,7 +10,7 @@ import { corsHeaders, json } from "../_lib/cors.ts";
 import { LLM_FAST_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort, type OwnProvider } from "../_lib/llm.ts";
 import { ownProvider } from "../_lib/byok.ts";
 import { cleanText } from "../_lib/study.ts";
-import { asksForCode, asksForGradedWork, checkCitations, CODE_FALLBACK, CODE_FIX, hasCode, isCodeClass, withoutCode, CRISIS_LINE, givingAwayPhrases, GRADED_FALLBACK, GRADED_FIX, GRADED_LIMIT, guessMode, hintFix, MODES, obviousMode, phrasesUsed, ROUTER_SCHEMA, safeHint, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, wordCount, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
+import { HINT_JUDGE_SCHEMA, hintJudgeMessages, hintRewrite, asksForCode, asksForGradedWork, checkCitations, CODE_FALLBACK, CODE_FIX, hasCode, isCodeClass, withoutCode, CRISIS_LINE, givingAwayPhrases, GRADED_FALLBACK, GRADED_FIX, GRADED_LIMIT, guessMode, hintFix, MODES, obviousMode, phrasesUsed, ROUTER_SCHEMA, safeHint, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, wordCount, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 setUsageLogger((row) => admin.from("ai_usage").insert(row));
@@ -346,6 +346,26 @@ Deno.serve(async (req) => {
                   : gradedWork && wordCount(plain) > GRADED_LIMIT ? GRADED_FALLBACK
                   : banned.length > 0 && phrasesUsed(plain, banned).length > 0 ? safeHint(plain, phrasesUsed(plain, banned))
                   : plain || CODE_FALLBACK;
+              }
+            }
+            // Multiple-choice hints get a second look, for give-aways that paraphrase a choice instead of repeating it.
+            if (banned.length > 0) {
+              const judge = (hint: string) => llmJson<{ gives_away: boolean; why: string }>({
+                model: LLM_FAST_MODEL, schemaName: "hint_check", schema: HINT_JUDGE_SCHEMA as unknown as Record<string, unknown>, messages: hintJudgeMessages(problemText, hint),
+                effort: "light", maxTokens: 120, timeoutMs: 10_000, noRetry: true, own, usage: { feature: "tutor_guard", userId: student.userId, byok: !!own },
+              }).catch(() => ({ gives_away: false, why: "" }));
+              const verdict = await judge(full);
+              if (verdict.gives_away) {
+                try {
+                  const again = await llmStream({ messages: [...messages, { role: "assistant", content: full }, { role: "user", content: hintRewrite(verdict.why) }] as { role: "system" | "user" | "assistant"; content: string }[], effort: "normal", maxTokens: 300, own });
+                  const second = await readAnswer(again.res);
+                  await recordUsage({ feature: "tutor_guard", userId: student.userId, byok: !!own }, again.model, second.usage);
+                  const rewritten = second.text.trim();
+                  full = rewritten && !phrasesUsed(rewritten, banned).length && !(await judge(rewritten)).gives_away ? rewritten : safeHint("", []);
+                } catch (e) {
+                  console.error("tutor hint judge rewrite", e instanceof Error ? e.message : e);
+                  full = safeHint("", []);
+                }
               }
             }
             send(controller, "delta", { text: full });

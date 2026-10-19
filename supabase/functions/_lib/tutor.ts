@@ -309,3 +309,16 @@ export function withoutCode(text: string) {
 }
 export const CODE_FIX = `Rewrite your reply with no code, HTML, CSS or markup of any kind. In one sentence, say you help with the class material in plain words here, then help with what they actually need in words (for example, an outline of 4 or 5 short bullets they fill in themselves). Under 120 words.`;
 export const CODE_FALLBACK = `I don't write code or web pages here, but I can help with the work itself in plain words. Tell me what you're working on, and I'll help you plan it or give feedback on your draft.`;
+
+/** A second look at a multiple-choice hint, for give-aways that don't repeat the choices' words. */
+export const HINT_JUDGE_SCHEMA = {
+  type: "object",
+  properties: { gives_away: { type: "boolean" }, why: { type: "string" } },
+  required: ["gives_away", "why"],
+  additionalProperties: false,
+} as const;
+export const hintJudgeMessages = (question: string, hint: string) => [
+  { role: "system" as const, content: `You check hints for a multiple-choice question. A hint gives the answer away if it names a choice or its letter, rules choices out until one is left, or points to the specific rule, fact or wording that matches one choice, so a student could pick it without thinking (for example "look at the rule about large samples" when one choice is about large samples). A hint that only points to the general topic or a page and asks a real question does not give it away. Reply with JSON.` },
+  { role: "user" as const, content: `Question:\n${question}\n\nHint:\n${hint}` },
+];
+export const hintRewrite = (why: string) => `Your hint points too directly at one answer choice (${why.slice(0, 160)}). Rewrite it so it points only to the general idea or the page in their notes and asks one real question the student must think about. Do not mention the specific rule, fact or wording that matches any one choice. Under 50 words.`;
