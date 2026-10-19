@@ -10,7 +10,7 @@ const POINTS: [string, string][] = [
 
 export default function Welcome() {
   return (
-    <SetupFrame title="Made by a Pioneer, for every Pioneer.">
+    <SetupFrame title="Turn your notes into flashcards and quizzes.">
       <section className="flex flex-col gap-4 md:pt-6 lg:pt-12" aria-labelledby="welcome-title">
         <p className="eyebrow">Free for every Conestoga student</p>
         <h1 id="welcome-title" className="text-[2.5rem] leading-[1.03] tracking-[-0.02em] md:text-[3.5rem] lg:text-[3rem]">Study smarter from your own notes.</h1>
