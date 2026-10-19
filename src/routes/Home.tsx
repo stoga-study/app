@@ -21,6 +21,7 @@ import { GoalsStrip, RecapCard } from "@/components/Goals";
 import { StreakCard } from "@/components/Streak";
 import { MilestoneCard } from "@/components/Milestones";
 import { InstallCard } from "@/components/Install";
+import { SurveyCard } from "@/components/SurveyCard";
 import { showRecapCard, weekOf } from "@/lib/goals";
 import { today as todayIso } from "@/lib/calendar";
 import { weekStart } from "@/lib/locale";
@@ -83,6 +84,7 @@ export default function Home() {
       <StreakCard />
       <GoalsStrip />
       <CoachCard />
+      <SurveyCard />
       <InstallCard where="home" />
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
