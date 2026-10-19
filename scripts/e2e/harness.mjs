@@ -46,7 +46,7 @@ export async function run(name, body, { width = 390, height = 844, scale = 1, pe
     : await (await chromium.launch({ executablePath: CHROME })).newContext({ viewport: { width, height }, deviceScaleFactor: scale });
   const errs = [];
   try {
-    await admin.from("profiles").update({ onboarded: true, graduation_year: 2029, first_name: "Test", last_seen_version: "9.9.9" }).eq("user_id", uid);
+    await admin.from("profiles").update({ onboarded: true, graduation_year: 2029, first_name: "Test", last_seen_version: "9.9.9", tour_seen_at: new Date().toISOString() }).eq("user_id", uid);
     const wh = (await admin.from("subjects").insert({ user_id: uid, name: "Biology", area: "Science", school_year: "2026-27", color_index: 1 }).select().single()).data;
     const p = ctx.pages()[0] ?? (await ctx.newPage());
     p.on("pageerror", (e) => errs.push(String(e)));
@@ -89,7 +89,7 @@ export async function otherStudent(name = "other", { width = 390, height = 844 }
   const { data, error } = await admin.auth.admin.generateLink({ type: "magiclink", email: `e2e-${name}-${Date.now()}@example.com`, options: { redirectTo: APP + "/" } });
   if (error) throw error;
   const uid = data.user.id;
-  await admin.from("profiles").update({ onboarded: true, graduation_year: 2029, first_name: "Other", last_seen_version: "9.9.9" }).eq("user_id", uid);
+  await admin.from("profiles").update({ onboarded: true, graduation_year: 2029, first_name: "Other", last_seen_version: "9.9.9", tour_seen_at: new Date().toISOString() }).eq("user_id", uid);
   const subject = (await admin.from("subjects").insert({ user_id: uid, name: "Biology", area: "Science", school_year: "2026-27", color_index: 1 }).select().single()).data;
   const browser = await chromium.launch({ executablePath: CHROME });
   const ctx = await browser.newContext({ viewport: { width, height } });
