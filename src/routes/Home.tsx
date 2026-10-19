@@ -87,10 +87,10 @@ export default function Home() {
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
         <section className="ink-panel burgundy p-6" aria-labelledby="due-title">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-56" aria-hidden="true" />
-          <p id="due-title" className="text-[0.9375rem] text-[#F7EAEC]">Flashcards due today</p>
+          <p id="due-title" className="text-[0.9375rem] text-muted">Flashcards due today</p>
           <div className="mt-1 flex flex-wrap items-end gap-x-5 gap-y-2">
             <p className="big-num text-[6rem]">{due.isPending ? "–" : due.data?.count ?? 0}</p>
-            <p className="max-w-[16rem] pb-2 text-[0.9375rem] text-[#F7EAEC]">
+            <p className="max-w-[16rem] pb-2 text-[0.9375rem] text-muted">
               {due.data && due.data.count > 0
                 ? `${reviewMinutes(due.data.count)} across ${joinNames(dueNames)}.`
                 : due.data && due.data.total > 0

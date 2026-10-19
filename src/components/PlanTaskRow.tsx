@@ -19,9 +19,11 @@ export function PlanTaskRow({ t, today }: { t: PlanTask; today: boolean }) {
           aria-checked={t.done}
           aria-label={`${t.done ? "Mark not done" : "Mark done"}: ${t.title}`}
           onClick={() => toggle.mutate({ key: t.key, done: !t.done })}
-          className={cn("grid size-11 flex-none place-items-center rounded-full border-2 [&_svg]:size-5", t.done ? "border-primary bg-primary text-[var(--on-fill)]" : "border-line-strong bg-card text-transparent")}
+          className="-ml-2.5 grid size-11 flex-none place-items-center rounded-full"
         >
-          <Check />
+          <span className={cn("grid size-[1.375rem] place-items-center rounded-full border-[1.5px] [&_svg]:size-3.5", t.done ? "border-primary bg-primary text-[var(--on-fill)]" : "border-line-strong bg-card text-transparent")}>
+            <Check />
+          </span>
         </button>
       ) : (
         <span className="tile soft flex-none" aria-hidden="true">{ICON[t.kind]}</span>

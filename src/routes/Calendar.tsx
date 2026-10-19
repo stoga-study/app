@@ -131,7 +131,7 @@ export default function Calendar() {
       {nextTest && (
         <section className="ink-panel burgundy mb-6 p-6" aria-labelledby="next-test">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-52" aria-hidden="true" />
-          <p id="next-test" className="text-[0.9375rem] text-[#F7EAEC]">Next {kindMeta(nextTest.kind).label.toLowerCase()}</p>
+          <p id="next-test" className="text-[0.9375rem] text-muted">Next {kindMeta(nextTest.kind).label.toLowerCase()}</p>
           {daysBetween(now, nextTest.due_on) === 0 ? (
             <p className="big-num mt-1 text-[3.5rem]">Today</p>
           ) : (
@@ -142,7 +142,7 @@ export default function Calendar() {
           )}
           <button type="button" onClick={() => open(nextTest)} className="mt-2 block text-left">
             <span className="block text-[1.25rem] font-bold">{nextTest.title}</span>
-            <span className="block text-[0.9375rem] text-[#F7EAEC]">{[className(nextTest.subject_id), unitNames(nextTest).join(", "), shortDate(nextTest.due_on)].filter(Boolean).join(" · ")}</span>
+            <span className="block text-[0.9375rem] text-muted">{[className(nextTest.subject_id), unitNames(nextTest).join(", "), shortDate(nextTest.due_on)].filter(Boolean).join(" · ")}</span>
           </button>
           {nextTest.subject_id && (
             <Button asChild variant="inverse" size="sm" className="mt-4">
@@ -158,7 +158,7 @@ export default function Calendar() {
                 {r.units.length > 0 && (
                   <ul className="flex flex-col gap-1.5 border-t border-white/15 pt-3" aria-label="By unit">
                     {r.units.map((u) => (
-                      <li key={u.id} className="flex flex-wrap items-center gap-2 text-[0.9375rem]"><b className="min-w-[5rem]">{u.name}</b>{u.r ? <ReadinessBadge r={u.r} onDark /> : <span className="text-[#F7EAEC]">Nothing to study yet</span>}</li>
+                      <li key={u.id} className="flex flex-wrap items-center gap-2 text-[0.9375rem]"><b className="min-w-[5rem]">{u.name}</b>{u.r ? <ReadinessBadge r={u.r} onDark /> : <span className="text-muted">Nothing to study yet</span>}</li>
                     ))}
                   </ul>
                 )}

@@ -54,11 +54,11 @@ export default function Plans() {
         <span className="circle circle-big right-[-5rem] top-[-6rem] size-60" aria-hidden="true" />
         <p className="chip chip-dark">Sample figures until launch</p>
         <h2 id="funding" className="mt-3 text-[1.5rem]">Free for every student, kept going by the Stoga community</h2>
-        <p className="mt-2 max-w-xl text-[#F7EAEC]">Unlimited plans and optional donations cover the AI costs. We publish every month's costs and funding on stoga.study, so you can see exactly where the money goes.</p>
+        <p className="mt-2 max-w-xl text-muted">Unlimited plans and optional donations cover the AI costs. We publish every month's costs and funding on stoga.study, so you can see exactly where the money goes.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button asChild variant="inverse"><a href="https://stoga.study/plans#funding" target="_blank" rel="noopener"><Heart /> See funding</a></Button>
         </div>
-        <p className="mt-3 text-[0.8125rem] text-[#F7EAEC]">Donations open once payments are connected.</p>
+        <p className="mt-3 text-[0.8125rem] text-muted">Donations open once payments are connected.</p>
       </section>
     </>
   );

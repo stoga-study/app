@@ -534,9 +534,9 @@ export default function Upload() {
             onDragOver={(e) => { e.preventDefault(); setOver(true); }}
             onDragLeave={() => setOver(false)}
             onDrop={(e) => { e.preventDefault(); setOver(false); onFile(e.dataTransfer.files?.[0]); }}
-            className={`flex w-full flex-col items-center gap-2 rounded-[1.5rem] border-2 border-dashed px-5 py-12 text-center ${over ? "border-hot bg-tint" : "border-tint-line bg-tint"}`}
+            className={`flex w-full flex-col items-center gap-2 rounded-[1rem] border border-dashed px-5 py-12 text-center ${over ? "border-primary bg-tint" : "border-line-strong bg-card hover:bg-soft"}`}
           >
-            <UploadIcon className="size-8 text-brand" />
+            <UploadIcon className="size-7 text-muted" />
             <span className="font-display text-[1.375rem] font-bold">Choose or drop a file</span>
             <span className="text-[0.9375rem] text-muted">PDF (scans too), Word (.docx), slides (.pptx), text or a photo of notes. Up to {MAX_BYTES / 1024 / 1024} MB.</span>
           </button>

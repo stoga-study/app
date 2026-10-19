@@ -249,7 +249,7 @@ export default function Coach() {
                 type="button"
                 disabled={!online}
                 onClick={() => void send(s.text)}
-                className="rise card flex items-center gap-3 !rounded-[1rem] px-4 py-3 text-left font-bold !shadow-none transition-transform hover:-translate-y-0.5 hover:!border-primary [&_svg]:size-5 [&_svg]:flex-none [&_svg]:text-brand"
+                className="rise card flex items-center gap-3 !rounded-[0.875rem] px-4 py-3 text-left font-medium transition-colors hover:!border-line-strong hover:bg-soft [&>svg]:hidden"
                 style={{ animationDelay: `${120 + i * 50}ms` }}
               >
                 {s.icon}

@@ -162,7 +162,7 @@ export default function SourcePage() {
         {editing === null ? (
           <div className="mt-1 flex items-start gap-2">
             <h1 id="source-title" className="max-w-[30rem] break-words text-[1.75rem]">{s.filename}</h1>
-            <button type="button" onClick={() => setEditing(s.filename)} aria-label="Rename" className="mt-1 grid size-10 flex-none place-items-center rounded-full text-[#F7EAEC] hover:bg-white/10">
+            <button type="button" onClick={() => setEditing(s.filename)} aria-label="Rename" className="mt-1 grid size-10 flex-none place-items-center rounded-full text-muted hover:bg-white/10">
               <Pencil className="size-5" />
             </button>
           </div>

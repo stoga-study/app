@@ -136,7 +136,7 @@ export function SetView({ source, pagesSlot, onRegenerateGuide, regenerating }: 
           [<BookOpen key="g" />, d.guide.length, `study guide sections${minutes ? `, about ${minutes} minutes` : ""}`],
           [<BookMarked key="t" />, d.terms.length, "key terms"],
         ] as [ReactNode, number, string][]).filter(([, n]) => n > 0).map(([icon, n, label], i) => (
-          <li key={i} className="flex items-center gap-3 py-3 [&_svg]:size-5 [&_svg]:text-brand">
+          <li key={i} className="flex items-center gap-3 py-3 [&>svg]:hidden">
             {icon}
             <span><b className="tabular">{n as number}</b> {label as string}</span>
           </li>

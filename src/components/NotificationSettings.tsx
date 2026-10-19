@@ -48,7 +48,7 @@ export function NotificationSettings() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-3">
-        <p className="flex-1">{on ? "Reminders are on for this device." : "Get a gentle reminder in the evening, a heads-up the night before a test, and the odd check-in from your coach. Never more than one a day."}</p>
+        <p className="min-w-[15rem] flex-1">{on ? "Reminders are on for this device." : "Get a gentle reminder in the evening, a heads-up the night before a test, and the odd check-in from your coach. Never more than one a day."}</p>
         {on ? (
           <>
             <Button variant="secondary" size="sm" disabled={busy} onClick={() => { setBusy(true); sendTest().then((n) => toast(n ? "Sent. It should arrive in a moment." : "Couldn't reach this device. Try turning notifications off and on.")).catch(() => toast("We couldn't send a test.")).finally(() => setBusy(false)); }}>Send a test</Button>

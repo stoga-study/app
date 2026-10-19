@@ -28,7 +28,7 @@ export function ReportButton({ itemType, itemId, subjectId, className }: { itemT
 
   if (!open)
     return (
-      <Button type="button" variant="ghost" size="sm" className={className} onClick={() => setOpen(true)}>
+      <Button type="button" variant="ghost" size="sm" className={`!text-muted hover:!bg-soft hover:!text-ink ${className ?? ""}`} onClick={() => setOpen(true)}>
         <Flag /> Something wrong here?
       </Button>
     );

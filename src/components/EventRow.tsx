@@ -28,16 +28,18 @@ export function EventRow({ e, className, unitNames, onOpen, showWhen, readiness 
           aria-checked={done}
           aria-label={`${done ? "Mark not done" : "Mark done"}: ${e.title}`}
           onClick={() => toggle.mutate({ id: e.id, done: !done })}
-          className={cn("grid size-11 flex-none place-items-center rounded-full border-2 [&_svg]:size-5", done ? "border-primary bg-primary text-[var(--on-fill)]" : "border-line-strong bg-card text-transparent")}
+          className="-ml-2.5 grid size-11 flex-none place-items-center rounded-full"
         >
-          <Check />
+          <span className={cn("grid size-[1.375rem] place-items-center rounded-full border-[1.5px] [&_svg]:size-3.5", done ? "border-primary bg-primary text-[var(--on-fill)]" : "border-line-strong bg-card text-transparent")}>
+            <Check />
+          </span>
         </button>
       ) : (
         <span className={cn("tile soft flex-none", e.kind === "test" && "!bg-primary !text-[var(--on-fill)]")} aria-hidden="true">{meta.icon}</span>
       )}
       <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-        <span className={cn("block truncate font-bold", done && "text-muted line-through")}>{e.title}</span>
-        <span className="block truncate text-[0.875rem] text-muted"><span className="font-bold">{meta.label}</span>{sub && ` · ${sub}`}</span>
+        <span className={cn("block truncate font-semibold", done && "text-muted line-through")}>{e.title}</span>
+        <span className="block truncate text-[0.875rem] text-muted"><span className="font-medium">{meta.label}</span>{sub && ` · ${sub}`}</span>
         {readiness && !done && <span className="mt-1 block"><ReadinessBadge r={readiness} compact /></span>}
       </button>
     </li>

@@ -35,9 +35,9 @@ export default function Recap() {
 
       <div className="ink-panel burgundy mt-5 p-6">
         <span className="circle circle-big right-[-4rem] top-[-5rem] size-52" aria-hidden="true" />
-        <p className="text-[#F7EAEC]">Studied</p>
+        <p className="text-muted">Studied</p>
         <p className="big-num text-[4.5rem]">{r.activity}</p>
-        <p className="text-[#F7EAEC]">
+        <p className="text-muted">
           cards, answers and questions over {r.days} day{r.days === 1 ? "" : "s"}
           {r.change != null && r.change !== 0 && `, ${Math.abs(Math.round(r.change * 100))}% ${r.change > 0 ? "more" : "less"} than the week before`}.
         </p>
@@ -45,7 +45,7 @@ export default function Recap() {
           {days.map((d) => (
             <div key={d} className="flex flex-1 flex-col items-center gap-1">
               <div className="w-full rounded-t-[4px] bg-white/85" style={{ height: `${Math.max(3, ((totals.get(d)?.activity ?? 0) / max) * 56)}px`, opacity: totals.get(d)?.activity ? 1 : 0.25 }} />
-              <span className="text-[0.75rem] text-[#F7EAEC]">{dateFormat({ weekday: "narrow" }).format(new Date(`${d}T12:00:00`))}</span>
+              <span className="text-[0.75rem] text-muted">{dateFormat({ weekday: "narrow" }).format(new Date(`${d}T12:00:00`))}</span>
             </div>
           ))}
         </div>

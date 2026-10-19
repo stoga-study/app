@@ -51,20 +51,20 @@ export default function ExamPrep() {
       </Link>
       <section className="ink-panel burgundy p-6" aria-labelledby="exam-title">
         <span className="circle circle-big right-[-4rem] top-[-5rem] size-52" aria-hidden="true" />
-        <p className="text-[0.9375rem] text-[#F7EAEC]">{[subject?.name, unitNames.join(", ")].filter(Boolean).join(" · ") || "Test"}</p>
+        <p className="text-[0.9375rem] text-muted">{[subject?.name, unitNames.join(", ")].filter(Boolean).join(" · ") || "Test"}</p>
         <h1 id="exam-title" className="mt-1 text-[2rem]">{e.title}</h1>
         <p className="big-num mt-3 text-[4rem]">
           {left > 0 ? left : left === 0 ? "Today" : "Done"}
           {left > 0 && <span className="ml-2 font-body text-[1.125rem] tracking-normal">{left === 1 ? "day to go" : "days to go"}</span>}
         </p>
-        <p className="text-[#F7EAEC]">{shortDate(e.due_on)}{e.due_time ? ` · ${timeText(e.due_time)}` : ""}</p>
+        <p className="text-muted">{shortDate(e.due_on)}{e.due_time ? ` · ${timeText(e.due_time)}` : ""}</p>
         {r?.overall && left >= 0 && (
           <div className="mt-4 flex flex-col gap-2">
             <ReadinessBadge r={r.overall} onDark />
             {r.units.length > 0 && (
               <ul className="flex flex-col gap-1.5 border-t border-white/15 pt-3" aria-label="By unit">
                 {r.units.map((u) => (
-                  <li key={u.id} className="flex flex-wrap items-center gap-2 text-[0.9375rem]"><b className="min-w-[5rem]">{u.name}</b>{u.r ? <ReadinessBadge r={u.r} onDark /> : <span className="text-[#F7EAEC]">Nothing to study yet</span>}</li>
+                  <li key={u.id} className="flex flex-wrap items-center gap-2 text-[0.9375rem]"><b className="min-w-[5rem]">{u.name}</b>{u.r ? <ReadinessBadge r={u.r} onDark /> : <span className="text-muted">Nothing to study yet</span>}</li>
                 ))}
               </ul>
             )}

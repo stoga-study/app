@@ -366,11 +366,11 @@ function Results({ subjectId, eventId, unitIds, results, seconds, q, c, onAgain 
     <section className="mx-auto flex max-w-2xl flex-col gap-4" aria-label="Your results">
       <div className="ink-panel burgundy p-6">
         <span className="circle circle-big right-[-4rem] top-[-5rem] size-52" aria-hidden="true" />
-        <p className="text-[0.9375rem] text-[#F7EAEC]">Practice test score</p>
+        <p className="text-[0.9375rem] text-muted">Practice test score</p>
         <p className="big-num mt-1 text-[5rem]">{score.pct}%</p>
-        <p className="text-[#F7EAEC]">{score.points % 1 ? score.points.toFixed(1) : score.points} of {score.total} · {clock(seconds)} taken</p>
+        <p className="text-muted">{score.points % 1 ? score.points.toFixed(1) : score.points} of {score.total} · {clock(seconds)} taken</p>
         {(missedMc > 0 || missedSa > 0) && (
-          <p className="mt-3 text-[0.9375rem] text-[#F7EAEC]">
+          <p className="mt-3 text-[0.9375rem] text-muted">
             {[missedMc ? `${missedMc} choice question${missedMc === 1 ? "" : "s"} went to mistake review` : null, missedSa ? `${missedSa} ${missedSa === 1 ? "card comes" : "cards come"} back in your next review` : null].filter(Boolean).join(", and ")}.
           </p>
         )}

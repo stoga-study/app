@@ -262,7 +262,7 @@ export default function ReviewSession() {
           </div>
         </form>
       ) : (
-        <div className={`card flex min-h-64 w-full flex-col gap-3 p-6 ${flipped ? "!border-tint-line !bg-tint" : ""}`}>
+        <div className={`card flex min-h-64 w-full flex-col gap-3 p-6 ${flipped ? "!border-line-strong" : ""}`}>
           <button type="button" onClick={() => setFlipped((f) => !f)} aria-live="polite" className="flex flex-1 flex-col gap-3 text-left">
             <span className="chip self-start !text-[0.8125rem]">{flipped ? "Answer" : "Question"}</span>
             <span className={flipped ? "text-[1.125rem] text-ink" : "font-display text-[1.5rem] font-bold leading-tight"}>{flipped ? <MathText text={card.back} /> : <MathText text={card.front} />}</span>

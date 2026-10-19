@@ -68,7 +68,6 @@ export default function Review() {
               const inUnit = unit && queue.data ? inScope(queue.data, { subjectId: id, unitId: unit.id }).length : 0;
               return (
                 <li key={id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3">
-                  <Layers className="size-5 text-brand" aria-hidden="true" />
                   <span className="min-w-0 flex-1">
                     <span className="block font-bold">{name(id)}</span>
                     {unit && inUnit > 0 && <span className="block text-[0.875rem] text-muted">{inUnit} from {unitName(unit)}</span>}
@@ -177,7 +176,7 @@ function SizePicker({ value, onChange }: { value: SessionSize; onChange: (v: Ses
           role="radio"
           aria-checked={value === o}
           onClick={() => onChange(o)}
-          className={`min-h-9 rounded-full px-3 text-[0.875rem] font-bold ${value === o ? "bg-white text-[#2A0A10]" : "text-[#F7EAEC]"}`}
+          className={`min-h-9 rounded-full px-3 text-[0.875rem] font-bold ${value === o ? "bg-white text-[#2A0A10]" : "text-muted"}`}
         >
           {SESSION_LABEL[o]}
         </button>

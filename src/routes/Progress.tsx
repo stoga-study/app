@@ -78,9 +78,9 @@ export default function Progress() {
       <div className="grid gap-4 md:grid-cols-2">
         <section className="ink-panel burgundy p-6" aria-labelledby="week">
           <span className="circle circle-big right-[-4rem] top-[-5rem] size-52" aria-hidden="true" />
-          <p id="week" className="text-[0.9375rem] text-[#F7EAEC]">Studied this week</p>
+          <p id="week" className="text-[0.9375rem] text-muted">Studied this week</p>
           <p className="big-num mt-1 text-[5rem]">{weekActivity}</p>
-          <p className="text-[#F7EAEC]">
+          <p className="text-muted">
             {weekActivity ? `cards, answers and questions across ${weekDays} day${weekDays === 1 ? "" : "s"}` : "Nothing yet this week. Ten minutes today is a great start."}
           </p>
           <div className="mt-4 flex h-16 items-end gap-2" role="img" aria-label={`Each day this week: ${thisWeek.map((c) => c.total.activity).join(", ")}`}>
@@ -89,7 +89,7 @@ export default function Progress() {
               return (
                 <div key={c.day} className="flex flex-1 flex-col items-center gap-1">
                   <div className="w-full rounded-t-[4px] bg-white/85" style={{ height: `${Math.max(3, (c.total.activity / max) * 44)}px`, opacity: c.future ? 0 : c.total.activity ? 1 : 0.25 }} />
-                  <span className="text-[0.75rem] text-[#F7EAEC]">{dateFormat({ weekday: "narrow" }).format(new Date(`${c.day}T12:00:00`))}</span>
+                  <span className="text-[0.75rem] text-muted">{dateFormat({ weekday: "narrow" }).format(new Date(`${c.day}T12:00:00`))}</span>
                 </div>
               );
             })}

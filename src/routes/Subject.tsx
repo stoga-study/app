@@ -1,4 +1,4 @@
-import { Archive, ArrowLeft, CalendarDays, Plus, Check, NotebookPen, ChevronRight, FileText, Layers, ListChecks, MessageCircle, Pencil, Pin, PinOff, Upload } from "lucide-react";
+import { Archive, ArrowLeft, CalendarDays, Plus, Check, NotebookPen, ChevronRight, FileText, Pencil, Pin, PinOff, Upload } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
@@ -74,7 +74,7 @@ export default function Subject() {
         return (
           <div className="mb-8 grid gap-3 sm:grid-cols-3">
             <div className="card flex flex-col gap-2 p-5">
-              <span className="flex items-center gap-2 font-bold"><Layers className="size-5 text-brand" /> Flashcards</span>
+              <span className="font-display text-[1.1875rem] font-medium">Flashcards</span>
               <span className="text-muted">{n ? `${n} due, ${reviewMinutes(n).toLowerCase()}` : "Nothing due right now"}</span>
               <MasteryChip m={classMastery} />
               <span className="mt-auto flex flex-wrap gap-2">
@@ -83,14 +83,14 @@ export default function Subject() {
               </span>
             </div>
             <div className="card flex flex-col gap-2 p-5">
-              <span className="flex items-center gap-2 font-bold"><ListChecks className="size-5 text-brand" /> Practice quizzes</span>
+              <span className="font-display text-[1.1875rem] font-medium">Practice quizzes</span>
               {mine.length ? mine.slice(0, 3).map((q) => (
                 <Link key={q.id} to={`/quiz/${q.id}`} className="text-[0.9375rem] font-bold">{q.title}{q.last ? <span className="font-normal text-muted tabular">, last {q.last.correct}/{q.last.total}</span> : null}</Link>
               )) : <span className="text-muted">Each study set adds one.</span>}
               {mine.length > 0 && <Button asChild size="sm" variant="secondary" className="mt-auto self-start"><Link to={`/practice-test?subject=${subject.id}`}>Timed practice test</Link></Button>}
             </div>
             <div className="card flex flex-col gap-2 p-5">
-              <span className="flex items-center gap-2 font-bold"><MessageCircle className="size-5 text-brand" /> AI tutor</span>
+              <span className="font-display text-[1.1875rem] font-medium">AI tutor</span>
               <span className="text-muted">Hints first, from your own notes.</span>
               <Button asChild size="sm" variant="secondary" className="mt-auto self-start"><Link to={`/tutor/${subject.id}`}>Ask a question</Link></Button>
             </div>
