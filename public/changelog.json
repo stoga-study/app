@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "1.8.6",
+      "date": "2026-10-18",
+      "title": "A quieter update notice on computers",
+      "intro": "On a laptop or desktop, updates now show as a small notice in the corner.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "Nothing gets covered",
+          "text": "On a computer, the update notice sits in the corner and doesn't dim the screen or interrupt what you're doing. Phones keep the full card."
+        }
+      ]
+    },
+    {
       "version": "1.8.5",
       "date": "2026-10-18",
       "title": "A new AI model, with firmer rules",
