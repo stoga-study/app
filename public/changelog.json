@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.9.4",
+      "date": "2026-10-19",
+      "title": "Share what you think",
+      "intro": "If Stoga.study has helped you, you can share a quote for the website. Completely optional.",
+      "highlights": [
+        {
+          "icon": "choose",
+          "title": "You choose how you're named",
+          "text": "Your first name and grade, just your grade, or anonymously. It needs your OK and a parent's or guardian's."
+        },
+        {
+          "icon": "check",
+          "title": "Checked first, and yours to withdraw",
+          "text": "Every quote is read before it's used, and you can take it back any time in Settings."
+        }
+      ]
+    },
+    {
       "version": "1.9.3",
       "date": "2026-10-19",
       "title": "Quick, optional questions",
