@@ -2087,6 +2087,30 @@ export type Database = {
         }
         Relationships: []
       }
+      survey_responses: {
+        Row: {
+          answers: Json
+          created_at: string
+          dismissed: boolean
+          survey_id: string
+          user_id: string
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          dismissed?: boolean
+          survey_id: string
+          user_id?: string
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          dismissed?: boolean
+          survey_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       units: {
         Row: {
           created_at: string
