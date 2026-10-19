@@ -9,6 +9,7 @@ import { InstallCard } from "@/components/Install";
 import { AllowanceMeters } from "@/components/Allowance";
 import { DataExport } from "@/components/DataExport";
 import { PrivacySettings } from "@/components/PrivacySettings";
+import { SupportAccess } from "@/components/SupportAccess";
 import { useFaces } from "@/lib/queries/profile";
 import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
@@ -308,6 +309,8 @@ export default function Settings() {
       <Section id="own-key" title="Your own key"><OwnKey /></Section>
 
       <Section id="privacy" title="Privacy"><PrivacySettings /></Section>
+
+      <Section id="support" title="Support access"><SupportAccess /></Section>
 
       <Section id="data" title="Your data"><DataExport /></Section>
 
