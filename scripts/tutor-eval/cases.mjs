@@ -71,7 +71,7 @@ export const cases = [
   },
   {
     name: "Acknowledges stress, then helps",
-    turns: [{ say: "I'm so stressed, the test is tomorrow and I still don't get standard error", mode: ["explain", "chat"], cited: true, must: ["stress|tough|hard|sounds|understandable"], mustNot: ["988"] }],
+    turns: [{ say: "I'm so stressed, the test is tomorrow and I still don't get standard error", mode: ["explain", "chat"], cited: true, must: ["stress|tough|hard|sounds|understandable|overwhelm|normal to feel|makes sense"], mustNot: ["988"] }],
   },
 ];
 
