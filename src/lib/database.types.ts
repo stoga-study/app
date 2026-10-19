@@ -2111,6 +2111,45 @@ export type Database = {
         }
         Relationships: []
       }
+      testimonials: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          display: string
+          display_name: string
+          guardian_ok: boolean
+          id: string
+          quote: string
+          self_ok: boolean
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          display: string
+          display_name: string
+          guardian_ok: boolean
+          id?: string
+          quote: string
+          self_ok: boolean
+          status?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          display?: string
+          display_name?: string
+          guardian_ok?: boolean
+          id?: string
+          quote?: string
+          self_ok?: boolean
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       units: {
         Row: {
           created_at: string
@@ -2444,6 +2483,7 @@ export type Database = {
           scan_pages: number
         }[]
       }
+      withdraw_testimonial: { Args: { p_id: string }; Returns: undefined }
     }
     Enums: {
       plan: "essential" | "independent" | "unlimited"
