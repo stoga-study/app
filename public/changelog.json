@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "1.9.3",
+      "date": "2026-10-19",
+      "title": "Quick, optional questions",
+      "intro": "Now and then, a small card on Home asks two or three questions. Skip it any time.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "After your first week, and after a test",
+          "text": "How it's going, and whether Stoga.study helped. \"Not now\" hides it for good."
+        }
+      ]
+    },
+    {
       "version": "1.9.2",
       "date": "2026-10-19",
       "title": "A quick tour for new students",
