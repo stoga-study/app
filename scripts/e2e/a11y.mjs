@@ -15,7 +15,7 @@ await run("a11y", async ({ p, uid, wh }) => {
   await admin.from("group_members").insert({ group_id: g.id, user_id: uid, display_name: "Test" });
   const gs = (await admin.from("group_sets").insert({ group_id: g.id, source_id: src.id, shared_by: uid }).select().single()).data;
   const link = (await admin.from("share_links").insert({ user_id: uid, source_id: src.id, token: `axtest${Date.now()}abcdefghijk` }).select().single()).data;
-  const screens = ["/groups", `/groups/${g.id}`, `/groups/${g.id}/sets/${gs.id}`, `/s/${link.token}`, "/", "/subjects", `/subjects/${wh.id}`, `/sources/${src.id}`, "/calendar", "/calendar?view=plan", `/exam/${ev.id}`, "/coach", "/coach/customize", "/progress", "/review", `/quiz/${qz.id}`, "/upload", "/search?q=cells", "/settings", "/changelog", "/tutor", "/privacy"];
+  const screens = ["/groups", `/groups/${g.id}`, `/groups/${g.id}/sets/${gs.id}`, `/s/${link.token}`, "/", "/subjects", `/subjects/${wh.id}`, `/sources/${src.id}`, "/calendar", "/calendar?view=plan", `/exam/${ev.id}`, "/coach", "/coach/customize", "/progress", "/review", `/quiz/${qz.id}`, "/upload", "/search?q=cells", "/settings", "/changelog", "/tutor", "/privacy", "/requests", "/testimonial", "/donate"];
   const all = new Map();
   for (const theme of ["light", "dark"]) {
     await p.evaluate((t) => localStorage.setItem("stoga-theme", t), theme);

@@ -114,7 +114,7 @@ function Summary({ s, label, expires }: { s: SupportSummary; label: string; expi
         <section className="card p-5 md:p-6" aria-labelledby="classes-h">
           <h2 id="classes-h" className="text-[1.25rem]">By class</h2>
           <p className="mt-1 text-[0.875rem] text-muted">Practice this week (flashcards, quiz questions and tutor questions), and how many quiz answers were right over the last 30 days.</p>
-          <div className="mt-2 overflow-x-auto">
+          <div className="mt-2 overflow-x-auto" tabIndex={0} role="region" aria-label="Practice and quizzes by class">
             <table className="w-full text-left text-[0.9375rem]">
               <thead><tr className="border-b border-line text-[0.8125rem] text-muted"><th scope="col" className="py-2 pr-3 font-medium">Class</th><th scope="col" className="py-2 pr-3 text-right font-medium">This week</th><th scope="col" className="py-2 text-right font-medium">Quizzes, 30 days</th></tr></thead>
               <tbody className="tabular">

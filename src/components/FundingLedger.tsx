@@ -33,7 +33,7 @@ export function FundingLedger({ donateLink = true }: { donateLink?: boolean }) {
           </div>
         </div>
       )}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Costs and funding by month">
         <table className="w-full min-w-[30rem] text-left text-[0.9375rem]">
           <caption className="sr-only">Costs and funding by month</caption>
           <thead>
