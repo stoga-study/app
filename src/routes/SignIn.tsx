@@ -1,8 +1,8 @@
-import { ArrowLeft, Mail } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
-import { Seal } from "@/components/Brand";
 import { Button } from "@/components/ui/button";
+import { SetupFrame } from "@/components/SetupFrame";
 import { supabase } from "@/lib/supabase";
 
 const RESEND_SECONDS = 60;
@@ -89,7 +89,7 @@ export default function SignIn() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-6 px-5 pt-[calc(1.25rem+env(safe-area-inset-top))] pb-8">
+    <SetupFrame steps={["Sign in", "Your name", "Your grade", "Your classes"]} current={0}>
       <div className="flex items-center gap-2">
         {sentTo ? (
           <button type="button" onClick={() => { setSentTo(null); setCode(""); setError(null); }} className="grid size-11 place-items-center rounded-full" aria-label="Use a different email">
@@ -100,13 +100,12 @@ export default function SignIn() {
             <ArrowLeft className="size-5" />
           </Link>
         )}
-        <Seal size={32} />
       </div>
 
       {!sentTo ? (
-        <form onSubmit={onEmail} noValidate className="flex flex-col gap-5">
+        <form onSubmit={onEmail} noValidate className="flex flex-col gap-5 md:max-w-md">
           <div>
-            <h1 className="text-[2rem]">Sign in with your email</h1>
+            <h1 className="text-[2rem] md:text-[2.5rem]">Sign in with your email</h1>
             <p className="mt-2 text-muted">We will email you a sign-in link and a code. No password to remember.</p>
           </div>
           <div className="flex flex-col gap-1.5">
@@ -130,10 +129,9 @@ export default function SignIn() {
           <Button type="submit" block disabled={busy}>{busy ? "Sending…" : "Email me a sign-in link"}</Button>
         </form>
       ) : (
-        <form onSubmit={onCode} noValidate className="flex flex-col gap-5">
-          <span className="tile soft"><Mail /></span>
+        <form onSubmit={onCode} noValidate className="flex flex-col gap-5 md:max-w-md">
           <div>
-            <h1 className="text-[2rem]">Check your email</h1>
+            <h1 className="text-[2rem] md:text-[2.5rem]">Check your email</h1>
             <p className="mt-2 text-ink-2">
               We sent a link to <b className="break-all">{sentTo}</b>.{" "}
               {EMAIL_HAS_CODE ? "Tap it to sign in, or enter the 6-digit code here." : "Tap it to sign in. This screen updates on its own once you have."}
@@ -170,6 +168,6 @@ export default function SignIn() {
           <p className="text-center text-[0.875rem] text-muted">Not there? Check your spam or promotions folder.</p>
         </form>
       )}
-    </main>
+    </SetupFrame>
   );
 }

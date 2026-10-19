@@ -82,7 +82,7 @@ export function ClassPicker({ grade, value, onChange }: { grade: Grade | null; v
       {groups.map((g) => (
         <section key={g.dept} id={`dept-${g.dept}`} aria-labelledby={`dept-h-${g.dept}`} className="scroll-mt-4">
           <h2 id={`dept-h-${g.dept}`} className="eyebrow mb-2">{g.dept}</h2>
-          <ul className="flex flex-col gap-2">
+          <ul className="grid items-start gap-2 lg:grid-cols-2">
             {g.courses.map((course) => {
               const picked = course.id in value;
               const chosen = value[course.id];
