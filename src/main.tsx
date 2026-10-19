@@ -1,7 +1,11 @@
-import "@fontsource/atkinson-hyperlegible/400.css";
-import "@fontsource/atkinson-hyperlegible/700.css";
-import "@fontsource/bricolage-grotesque/600.css";
-import "@fontsource/bricolage-grotesque/700.css";
+import "@fontsource/newsreader/latin-400.css";
+import "@fontsource/newsreader/latin-500.css";
+import "@fontsource/newsreader/latin-400-italic.css";
+import "@fontsource/geist/latin-400.css";
+import "@fontsource/geist/latin-500.css";
+import "@fontsource/geist/latin-600.css";
+import "@fontsource/geist-mono/latin-400.css";
+import "@fontsource/geist-mono/latin-500.css";
 import "./styles/index.css";
 
 import { QueryClient } from "@tanstack/react-query";
