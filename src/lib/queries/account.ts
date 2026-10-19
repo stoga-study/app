@@ -116,7 +116,3 @@ export function useUpdateName() {
   });
 }
 
-export async function sendFeedback(f: { kind: "bug" | "idea" | "testimonial"; body: string; page: string; consent: boolean }) {
-  const { error } = await supabase.from("feedback").insert({ kind: f.kind, body: f.body.trim().slice(0, 4000), page: f.page.slice(0, 200), consent_to_publish: f.consent });
-  if (error) throw error;
-}

@@ -9,6 +9,8 @@ import { useOfflinePrefetch } from "@/lib/offline/prefetch";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { useFaces } from "@/lib/queries/profile";
 import { Face } from "./Face";
+import { FeedbackHost } from "./FeedbackHost";
+import { openFeedback } from "@/lib/feedback";
 
 type Item = { to: string; label: string; icon: ReactNode; end?: boolean };
 
@@ -29,7 +31,6 @@ const TABS = MAIN.filter((i) => i.to !== "/subjects" && i.to !== "/progress" && 
 const SECONDARY: Item[] = [
   { to: "/search", label: "Search", icon: <Search /> },
   { to: "/plans", label: "Plans and funding", icon: <Heart /> },
-  { to: "/feedback", label: "Send feedback", icon: <MessageSquare /> },
   { to: "/settings", label: "Settings", icon: <Settings /> },
 ];
 
@@ -68,6 +69,9 @@ export function Shell({ aside }: { aside?: ReactNode }) {
         </nav>
         <div className="mt-auto flex flex-col gap-1">
           {aside}
+          <button type="button" onClick={() => openFeedback()} className="flex min-h-10 items-center gap-3 rounded-[0.625rem] px-3 text-left text-[0.9375rem] font-medium text-ink-2 hover:bg-soft [&_svg]:size-[1.125rem] [&_svg]:text-muted">
+            <MessageSquare /> Send feedback
+          </button>
           {SECONDARY.map((i) => <SideLink key={i.to} item={i} />)}
         </div>
       </aside>
@@ -79,6 +83,14 @@ export function Shell({ aside }: { aside?: ReactNode }) {
             <Brand descriptor={false} />
           </NavLink>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => openFeedback()}
+              aria-label="Send feedback"
+              className="grid size-10 place-items-center rounded-full border border-line bg-card text-ink-2 [&_svg]:size-[1.125rem]"
+            >
+              <MessageSquare />
+            </button>
             <NavLink
               to="/progress"
               aria-label="Progress"
@@ -104,6 +116,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
         </header>
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[70rem] flex-1 px-5 pb-28 pt-5 outline-none md:px-8 lg:px-12 lg:pb-12 lg:pt-8">
           <OfflineBanner />
+          <FeedbackHost />
           <KeyboardShortcuts />
           <Outlet />
         </main>

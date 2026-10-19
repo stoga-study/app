@@ -3,7 +3,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useSearchParams } from "react-router";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { sendFeedback } from "@/lib/queries/account";
+import { sendFeedback } from "@/lib/feedback";
 
 type Kind = "bug" | "idea" | "testimonial";
 const KINDS: [Kind, string, ReactNode, string][] = [
