@@ -7,7 +7,10 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { LLM_FAST_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort, type OwnProvider } from "../_lib/llm.ts";
+import { LLM_FAST_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, useModelFrom, type Effort, type OwnProvider } from "../_lib/llm.ts";
+
+// The tutor can run on its own model (TUTOR_MODEL), separately from the coach and the rest.
+useModelFrom("TUTOR_MODEL");
 import { ownProvider } from "../_lib/byok.ts";
 import { cleanText } from "../_lib/study.ts";
 import { HINT_JUDGE_SCHEMA, hintJudgeMessages, hintRewrite, asksForCode, asksForGradedWork, checkCitations, CODE_FALLBACK, CODE_FIX, hasCode, isCodeClass, withoutCode, CRISIS_LINE, givingAwayPhrases, GRADED_FALLBACK, GRADED_FIX, GRADED_LIMIT, guessMode, hintFix, MODES, obviousMode, phrasesUsed, ROUTER_SCHEMA, safeHint, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, wordCount, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";

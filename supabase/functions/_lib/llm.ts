@@ -32,6 +32,18 @@ export function setPlatform(p: { baseUrl: string; apiKey: string; model: string 
   LLM_MODEL = p.model;
   LLM_FAST_MODEL = p.model;
 }
+
+/**
+ * One function on its own model from the same provider: the tutor reads TUTOR_MODEL (for example mercury-3)
+ * while everything else keeps LLM_MODEL. Unset, nothing changes.
+ */
+export function useModelFrom(envName: string) {
+  const m = Deno.env.get(envName)?.trim();
+  if (m) {
+    LLM_MODEL = m;
+    LLM_FAST_MODEL = m;
+  }
+}
 const OPENAI_BASE = "https://api.openai.com/v1";
 const OPENAI_KEY = Deno.env.get("OPENAI_API_KEY");
 /** OpenAI model for images and for the fallback, when the platform model is another provider's. */

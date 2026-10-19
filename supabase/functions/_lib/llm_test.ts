@@ -60,3 +60,12 @@ Deno.test("images go to OpenAI, since Mercury reads text only", async () => {
   assertEquals(await llmReadImage({ dataUrl: "data:image/png;base64,AA==", prompt: "read" }), "page text");
   assertEquals(calls.map((c) => [c.url, c.key, c.model]), [["https://api.openai.com/v1/chat/completions", "openai-test", "gpt-6-luna"]]);
 });
+
+Deno.test("TUTOR_MODEL puts one function on its own model, same provider and key", async () => {
+  const { useModelFrom } = await import("./llm.ts");
+  Deno.env.set("TUTOR_MODEL", "mercury-3");
+  useModelFrom("TUTOR_MODEL");
+  const calls = fakeFetch(() => ok('{"a":3}'));
+  await llmJson({ messages: [{ role: "user", content: "hi" }], schemaName: "x", schema: {} });
+  assertEquals(calls.map((c) => [c.url, c.key, c.model]), [["https://api.inceptionlabs.ai/v1/chat/completions", "inception-test", "mercury-3"]]);
+});
