@@ -67,3 +67,15 @@ describe("coach answer clean-up", () => {
     expect(withoutLists(reply)).toBe("That sounds like a lot.\n\nOpen your notes for five minutes.");
   });
 });
+
+import { missingAction } from "../../supabase/functions/_lib/coach";
+
+describe("coach: asked to make something, and didn't", () => {
+  it("notices cards or a note that weren't saved", () => {
+    expect(missingAction("make me 5 flashcards about cell organelles from my bio notes", new Set())).toMatch(/make_cards/);
+    expect(missingAction("make me 5 flashcards about cell organelles from my bio notes", new Set(["make_cards"]))).toBeNull();
+    expect(missingAction("can you write my study plan for the chem test down as a note", new Set())).toMatch(/write_note/);
+    expect(missingAction("what does the mitochondria do", new Set())).toBeNull();
+    expect(missingAction("how am i doing in bio so far?", new Set())).toBeNull();
+  });
+});

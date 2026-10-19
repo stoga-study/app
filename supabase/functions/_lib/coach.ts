@@ -306,3 +306,17 @@ export function withoutRefs(text: string, names: Map<string, string>) {
 export const listLines = (text: string) => text.split("\n").filter((l) => /^\s*([-•*]|\d+[.)])\s+/.test(l)).length;
 export const STRESSED_FIX = `Rewrite your reply: they are stressed. One genuine sentence that acknowledges how they feel, then ONE small concrete step they can do now. No list, no bullets, under 60 words.`;
 export const withoutLists = (text: string) => text.split("\n").filter((l) => !/^\s*([-•*]|\d+[.)])\s+/.test(l) && !/:\s*$/.test(l.trim())).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+
+/**
+ * Something the student plainly asked the coach to make that planning ended without (for example cards written
+ * into the reply instead of saved). The coach gets one more round with this exact instruction.
+ */
+export function missingAction(message: string, made: Set<string>): string | null {
+  if (!made.has("make_cards") && /\b(make|create|give|write|generate)\b[^.?!]{0,40}\b(flash ?cards?|cards)\b/i.test(message)) {
+    return "They asked you to make flashcards. Call make_cards now, with the cards made from what you found in their material, so they are saved as real cards. Don't write the cards in your reply.";
+  }
+  if (!made.has("write_note") && /\b(write|save|put|jot)\b[^.?!]{0,60}\b(notes?|down)\b/i.test(message)) {
+    return "They asked you to save this as a note. Call write_note now, so it is saved to their notes. Don't only write it in your reply.";
+  }
+  return null;
+}

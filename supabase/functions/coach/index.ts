@@ -18,7 +18,7 @@ import { cleanText } from "../_lib/study.ts";
 import { wellbeing } from "../_lib/tutor.ts";
 import {
   addDays, answerSystem, cleanCards, cleanTitle, contextText, crisisReply, isIsoDate, isTime, MAX_ROUNDS, parseCalls, READ_TOOLS, STEP_SCHEMA, stepLabel,
-  stepSystem, toLanguage, toPersona, validKind, type Call, type Ctx, actionProblem, datesInMessage, datesNote, withoutRefs, listLines, STRESSED_FIX, withoutLists
+  stepSystem, toLanguage, toPersona, validKind, type Call, type Ctx, actionProblem, datesInMessage, datesNote, withoutRefs, listLines, STRESSED_FIX, withoutLists, missingAction
 } from "../_lib/coach.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -391,7 +391,11 @@ Deno.serve(async (req) => {
       // to plan well (Mercury) get it; GPT plans fine at the lightest setting.
       const dates = datesNote(datesInMessage(message, loaded.ctx.today));
       const planEffort = !own && /mercury/i.test(LLM_MODEL) ? "normal" : "light";
-      for (let round = 0; round < MAX_ROUNDS; round++) {
+      // Tools that actually ran, and whether the coach was already reminded of something it was asked to make.
+      const made = new Set<string>();
+      let reminded = false;
+      let maxRounds = MAX_ROUNDS;
+      for (let round = 0; round < maxRounds; round++) {
         const out = await llmJson<{ calls: { tool: string; args: string }[] }>({
           schemaName: "coach_step", schema: STEP_SCHEMA, own, effort: planEffort, maxTokens: 2500, timeoutMs: 40_000,
           usage: { feature: "coach_step", userId: student.userId, byok: !!own },
@@ -405,7 +409,16 @@ Deno.serve(async (req) => {
           ],
         });
         const planned = parseCalls(out.calls, seen);
-        if (!planned.length) break;
+        if (!planned.length) {
+          // Asked to make something, but planning ended without it: one more round, saying exactly what's missing.
+          const missing = reminded ? null : missingAction(message, made);
+          if (!missing) break;
+          reminded = true;
+          maxRounds = Math.max(maxRounds, round + 2);
+          rounds.push({ role: "assistant", content: JSON.stringify({ calls: [] }) });
+          rounds.push({ role: "user", content: missing });
+          continue;
+        }
         const results: string[] = [];
         // Actions that don't fit what the student asked are skipped (never shown) and explained to the planner.
         // Looking something up this round counts: reads run before writes.
@@ -437,6 +450,7 @@ Deno.serve(async (req) => {
         }));
         for (const c of writes) {
           const r = await write(student.db, c, loaded);
+          if (r.action?.ok !== false) made.add(c.tool);
           results.push(`${c.tool}: ${r.text}`);
           if (r.action) {
             done.push(`${r.action.ok ? "" : "FAILED: "}${r.action.summary}`);
