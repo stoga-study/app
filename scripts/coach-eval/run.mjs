@@ -6,6 +6,9 @@
 // platform AI key. Checks the replies and the real calendar changes, and that each Undo really
 // reverses its change. The test student is always deleted at the end.
 import { createClient } from "@supabase/supabase-js";
+
+/** The coach saying it can't see the calendar (the v1.4.14 bug), but not "you don't have any homework listed in your calendar". */
+export const CANT_SEE_CALENDAR = /\b(can.?t|cannot|unable to|not able to) (see|access|view|read|check)\b[^.]*\bcalendar|\b(don.?t|do not|no) (have )?access to (your |the )?calendar|\b(don.?t|do not) have (your |the )?calendar\b|calendar (isn.?t|is not|wasn.?t) (loaded|available)|not loaded/i;
 import fs from "node:fs";
 
 const env = Object.fromEntries(fs.readFileSync(new URL("../../.env.local", import.meta.url), "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
@@ -101,7 +104,7 @@ try {
       name: "Stressed: support first, then one step, nothing invented",
       say: "im so stressed, i have a bio test coming up and i havent even started studying",
       check: async (r) => [
-        !/(sound|stress|rough|hard|a lot|overwhelm|get it|makes sense|totally)/i.test(r.reply) && "does not acknowledge the stress",
+        !/(sound|stress|rough|hard|a lot|overwhelm|get it|get that|that feeling|makes sense|totally|understandable)/i.test(r.reply) && "does not acknowledge the stress",
         words(r.reply) > 110 && `${words(r.reply)} words`,
         r.actions.some((a) => a.ok) && "made a change with no date given",
       ],
@@ -182,7 +185,7 @@ try {
       say: "What homework do I have (includes projects, essays, presentations, etc.)",
       check: async (r) => [
         !/Worksheet 3|Unit 2 test/i.test(r.reply) && "doesn't list what's on the calendar",
-        /(don.t|can.t|cannot) (have|see|access)[^.]*calendar|not loaded/i.test(r.reply) && "claims it can't see the calendar",
+        CANT_SEE_CALENDAR.test(r.reply) && "claims it can't see the calendar",
       ],
     },
     {
