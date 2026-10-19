@@ -2,7 +2,6 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { compareVersions, type Release } from "@/lib/changelog";
-import { ReleaseIcon } from "@/components/ReleaseIcon";
 import { Button } from "@/components/ui/button";
 
 /** Screens where a reload would interrupt something (a review, a quiz, writing, an upload). */
@@ -86,10 +85,9 @@ function UpdateCard({ release, onUpdate, onLater }: { release: Release | null; o
   }, [onLater]);
 
   const highlights = release?.highlights.slice(0, 3) ?? [];
-  // Built like the brand's lesson card (Brand Guidelines p. 11): a solid burgundy header with the seal's
-  // circles and a tilted tile, on a tactile white card. Burgundy only.
+  // Brand v2: a quiet bottom sheet (BRAND.md). The version in mono, the title in the serif, what's new as a hairline list.
   return (
-    <div className="update-backdrop fixed inset-0 z-[60] flex items-end justify-center p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center" onClick={onLater}>
+    <div className="update-backdrop fixed inset-0 z-[60] flex items-end justify-center p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]" onClick={onLater}>
       <section
         role="dialog"
         aria-modal="true"
@@ -97,45 +95,33 @@ function UpdateCard({ release, onUpdate, onLater }: { release: Release | null; o
         aria-describedby="update-intro"
         ref={dialog}
         tabIndex={-1}
-        className="update-card card w-full max-w-[26rem] overflow-hidden !rounded-[1.75rem] outline-none"
+        className="update-card card w-full max-w-[28rem] !rounded-[1.375rem] px-5 pt-2 pb-5 outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="ink-panel burgundy !rounded-none px-6 pt-5 pb-7">
-          <span className="circle circle-big right-[-4.5rem] top-[-5rem] size-48" aria-hidden="true" />
-          <span className="circle circle-hot right-14 top-[6.5rem] size-3" aria-hidden="true" />
-          <div className="flex items-center justify-between gap-3">
-            <span className="flex items-center gap-2">
-              <span className="font-display text-[1.0625rem] font-bold tracking-[-0.02em]">Stoga.study</span>
-              {release && <span className="chip chip-dark !min-h-6 !px-2.5 !text-[0.75rem] tabular-nums">Version {release.version}</span>}
-            </span>
-            <button type="button" onClick={onLater} aria-label="Close" className="-mr-2 grid size-11 place-items-center rounded-full text-white/85 hover:bg-white/10 hover:text-white">
-              <X className="size-5" />
-            </button>
-          </div>
-          <span className="update-tile tile mt-5"><ReleaseIcon name={highlights[0]?.icon ?? "check"} /></span>
-          <h2 id="update-title" className="mt-5 text-[1.625rem] leading-[1.1] tracking-[-0.02em] text-white">{release?.title ?? "A new version is ready"}</h2>
-          <p id="update-intro" className="ink-muted mt-2">{release?.intro ?? "Fixes and improvements, ready when you are."}</p>
-        </header>
-        <div className="px-6 pt-5 pb-6">
-          {highlights.length > 0 && (
-            <ul className="mb-6 flex flex-col gap-4">
-              {highlights.map((h) => (
-                <li key={h.title} className="flex items-start gap-3">
-                  <span className="tile soft !size-9 !rounded-[0.75rem] [&>svg]:!size-[1.125rem]"><ReleaseIcon name={h.icon} /></span>
-                  <span className="min-w-0">
-                    <span className="block font-bold text-ink">{h.title}</span>
-                    <span className="block text-[0.875rem] leading-snug text-muted">{h.text}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="flex flex-col gap-3">
-            <Button block disabled={updating} onClick={() => { setUpdating(true); onUpdate(); }}>{updating ? "Updating…" : "Update now"}</Button>
-            <Button block variant="secondary" onClick={onLater}>Not now</Button>
-          </div>
-          <p className="mt-3 text-center text-[0.8125rem] text-muted">Not now puts it in next time you close the app.</p>
+        <span className="mx-auto mb-3 block h-1 w-9 rounded-full bg-line-strong" aria-hidden="true" />
+        <div className="flex items-center justify-between gap-3">
+          <p className="eyebrow">{release ? `Update ready · ${release.version}` : "Update ready"}</p>
+          <button type="button" onClick={onLater} aria-label="Close" className="-mr-2 grid size-9 place-items-center rounded-full text-muted hover:bg-soft hover:text-ink">
+            <X className="size-4" />
+          </button>
         </div>
+        <h2 id="update-title" className="mt-1 text-[1.625rem] leading-[1.1]">{release?.title ?? "A new version is ready"}</h2>
+        <p id="update-intro" className="mt-2 text-[0.9375rem] text-ink-2">{release?.intro ?? "Fixes and improvements, ready when you are."}</p>
+        {highlights.length > 0 && (
+          <ul className="mt-4 flex flex-col">
+            {highlights.map((h) => (
+              <li key={h.title} className="border-t border-line py-2.5">
+                <b className="block text-[0.9375rem] font-semibold">{h.title}</b>
+                <span className="block text-[0.8125rem] leading-snug text-muted">{h.text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="mt-4 flex flex-col gap-2">
+          <Button block disabled={updating} onClick={() => { setUpdating(true); onUpdate(); }}>{updating ? "Updating…" : "Update now"}</Button>
+          <Button block variant="ghost" className="!text-ink-2" onClick={onLater}>Not now</Button>
+        </div>
+        <p className="mt-1 text-center text-[0.8125rem] text-muted">Not now puts it in next time you close the app.</p>
       </section>
     </div>
   );

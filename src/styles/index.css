@@ -254,10 +254,9 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .math-bar::after { content: ""; position: absolute; left: 0.06em; right: 0.06em; top: 0.17em; border-top: 0.075em solid currentColor; }
 .math-hat::after { content: "ˆ"; position: absolute; left: 50%; top: -0.02em; transform: translateX(-50%); font-weight: 400; line-height: 1; }
 
-/* The update card (UpdatePrompt): the brand's lesson card, sliding up like a feedback sheet. */
-.update-backdrop { background: color-mix(in srgb, var(--ink-panel) 55%, transparent); animation: fade-in 200ms ease-out both; }
+/* The update prompt (UpdatePrompt): a bottom sheet on phones, a corner notice on desktop. */
+.update-backdrop { background: rgb(15 10 12 / 0.45); animation: fade-in 200ms ease-out both; }
 .update-card { animation: sheet-in 260ms ease-out both; }
-.update-tile { background: #FFFFFF; color: #720D19; box-shadow: 0 4px 0 #E8C9CF; }
 .update-notice { animation: sheet-in 260ms ease-out both; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 html[data-motion="reduce"] .update-backdrop, html[data-motion="reduce"] .update-card, html[data-motion="reduce"] .update-notice { animation: none; }
