@@ -17,7 +17,7 @@ export default defineConfig({
       manifest: {
         name: "Stoga.study",
         short_name: "Stoga",
-        description: "Free, calm study help from your own notes.",
+        description: "The free study app made for Conestoga High School.",
         start_url: "/",
         scope: "/",
         display: "standalone",

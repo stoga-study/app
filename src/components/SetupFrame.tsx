@@ -7,7 +7,7 @@ import { cn } from "@/lib/cn";
  * The frame for getting started (welcome, sign-in, onboarding). Phones: one column, as before. Tablets: a roomier
  * column with the brand on top. Desktop: a split screen, with the brand and where you are on the left.
  */
-export function SetupFrame({ children, steps, current, title = "Study from your own notes.", note }: {
+export function SetupFrame({ children, steps, current, title = "Made for Conestoga, down to your schedule.", note }: {
   children: ReactNode;
   /** The setup steps, shown on desktop with the current one marked. */
   steps?: string[];

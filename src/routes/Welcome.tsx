@@ -3,19 +3,19 @@ import { SetupFrame } from "@/components/SetupFrame";
 import { Button } from "@/components/ui/button";
 
 const POINTS: [string, string][] = [
-  ["Your own notes", "Add a PDF, a Word file, slides or a photo of your notes."],
-  ["Hints before answers", "The tutor helps you get there yourself, citing your pages."],
-  ["Review at the right time", "Flashcards come back just before you'd forget them."],
+  ["Your CHS classes, already in", "Every core course from the Conestoga Program of Studies. Pick yours and you're set up."],
+  ["Synced with Schoology", "Link your calendar once. Tests and due dates show up, and your plan moves when they do."],
+  ["Studies from your teacher's material", "Add your notes or slides. Cards, quizzes and tutor answers come from what your class actually covered."],
 ];
 
 export default function Welcome() {
   return (
-    <SetupFrame title="Turn your notes into flashcards and quizzes.">
+    <SetupFrame>
       <section className="flex flex-col gap-4 md:pt-6 lg:pt-12" aria-labelledby="welcome-title">
         <p className="eyebrow">Free for every Conestoga student</p>
-        <h1 id="welcome-title" className="text-[2.5rem] leading-[1.03] tracking-[-0.02em] md:text-[3.5rem] lg:text-[3rem]">Study smarter from your own notes.</h1>
+        <h1 id="welcome-title" className="text-[2.5rem] leading-[1.03] tracking-[-0.02em] md:text-[3.5rem] lg:text-[3rem]">The study app that already knows Stoga.</h1>
         <p className="max-w-[46ch] text-[1.0625rem] text-ink-2">
-          Upload a PDF or class notes. Get hints first, then flashcards, quizzes and a study guide, all linked back to your pages.
+          Your classes, your Schoology due dates, your next test and your own notes, in one place. It plans your week and helps you get there yourself, without doing the work for you.
         </p>
       </section>
 

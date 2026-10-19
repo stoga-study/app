@@ -91,7 +91,7 @@ export default function Subject() {
             </div>
             <div className="card flex flex-col gap-2 p-5">
               <span className="font-display text-[1.1875rem] font-medium">AI tutor</span>
-              <span className="text-muted">Hints first, from your own notes.</span>
+              <span className="text-muted">Knows this class and your notes.</span>
               <Button asChild size="sm" variant="secondary" className="mt-auto self-start"><Link to={`/tutor/${subject.id}`}>Ask a question</Link></Button>
             </div>
           </div>
