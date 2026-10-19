@@ -10,6 +10,7 @@ import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { useFaces } from "@/lib/queries/profile";
 import { Face } from "./Face";
 import { FeedbackHost } from "./FeedbackHost";
+import { Tour } from "./Tour";
 import { openFeedback } from "@/lib/feedback";
 
 type Item = { to: string; label: string; icon: ReactNode; end?: boolean };
@@ -118,6 +119,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
         <main id="main" tabIndex={-1} className="mx-auto w-full max-w-[70rem] flex-1 px-5 pb-28 pt-5 outline-none md:px-8 lg:px-12 lg:pb-12 lg:pt-8">
           <OfflineBanner />
           <FeedbackHost />
+          <Tour />
           <KeyboardShortcuts />
           <Outlet />
         </main>

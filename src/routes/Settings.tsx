@@ -10,6 +10,7 @@ import { AllowanceMeters } from "@/components/Allowance";
 import { DataExport } from "@/components/DataExport";
 import { PrivacySettings } from "@/components/PrivacySettings";
 import { SupportAccess } from "@/components/SupportAccess";
+import { openTour } from "@/components/Tour";
 import { useFaces } from "@/lib/queries/profile";
 import { appLocale, dateFormat, LOCALES, localeSetting, setLocale } from "@/lib/locale";
 import { Button } from "@/components/ui/button";
@@ -317,6 +318,9 @@ export default function Settings() {
       <LinkRow to="/plans" icon={<Heart />} title="Plans and funding" sub={profile.data?.plan === "independent" ? "Independent, your own key" : profile.data?.plan === "unlimited" ? "Unlimited" : "Essential, free"} />
       <LinkRow to="/feedback?from=settings" icon={<MessageSquare />} title="Send feedback" sub="Report a problem or suggest an idea" />
       <LinkRow to="/requests" icon={<Sparkles />} title="Ideas board" sub="Vote for what Stoga.study does next" />
+      <button type="button" onClick={openTour} className="card mt-4 flex w-full items-center gap-4 p-5 text-left text-ink">
+        <span className="flex-1"><b className="block">Take the tour again</b><span className="text-[0.875rem] text-muted">A one-minute look at what Stoga.study does</span></span>
+      </button>
       <LinkRow to="/changelog" icon={<Sparkles />} title="What's new" sub="Every update, in plain words" />
 
       <Section title="Account">
