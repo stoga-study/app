@@ -33,10 +33,12 @@ export async function seedSample(uid, wh) {
     { user_id: uid, quiz_id: qz.id, position: 0, prompt: "A population has σ = 12. What is the standard error of the mean for samples of n = 36?", options: ["12", "6", "2", "0.33"], answer_index: 2, explanation: "Divide σ by the square root of n: 12 ÷ 6 = 2.", topic: "Standard error", pages: [2] },
     { user_id: uid, quiz_id: qz.id, position: 1, prompt: "Which condition makes sample draws close to independent?", options: ["Large counts", "10% condition", "Random sampling", "Normal population"], answer_index: 1, explanation: "Sampling at most 10% of the population.", topic: "Conditions", pages: [3] },
   ]);
+  // Dates relative to today (New York), so the example stays current: homework tomorrow, the midterm in 3 days, a quiz in a week.
+  const inDays = (n) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(new Date(Date.now() + n * 86400_000));
   const ev = (await admin.from("events").insert([
-    { user_id: uid, subject_id: wh.id, kind: "test", title: "AP Statistics midterm", due_on: "2026-10-19" },
-    { user_id: uid, subject_id: anat.id, kind: "homework", title: "Read chapter 7", due_on: "2026-10-17" },
-    { user_id: uid, subject_id: anat.id, kind: "quiz", title: "Bones of the skull quiz", due_on: "2026-10-23" },
+    { user_id: uid, subject_id: wh.id, kind: "test", title: "AP Statistics midterm", due_on: inDays(3) },
+    { user_id: uid, subject_id: anat.id, kind: "homework", title: "Read chapter 7", due_on: inDays(1) },
+    { user_id: uid, subject_id: anat.id, kind: "quiz", title: "Bones of the skull quiz", due_on: inDays(7) },
   ]).select()).data;
   await admin.from("event_units").insert({ user_id: uid, event_id: ev[0].id, unit_id: unit.id });
 
