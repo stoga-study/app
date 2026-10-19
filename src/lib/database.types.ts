@@ -635,6 +635,65 @@ export type Database = {
           },
         ]
       }
+      feature_requests: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          note: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          note?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      feature_votes: {
+        Row: {
+          created_at: string
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          request_id: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feature_votes_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "feature_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       feedback: {
         Row: {
           body: string
@@ -2177,6 +2236,20 @@ export type Database = {
       duplicate_source: {
         Args: { p_source: string; p_subject: string }
         Returns: string
+      }
+      feature_board: {
+        Args: never
+        Returns: {
+          body: string
+          created_at: string
+          id: string
+          mine: boolean
+          note: string
+          status: string
+          title: string
+          voted: boolean
+          votes: number
+        }[]
       }
       funding_ledger: {
         Args: { p_months?: number }
