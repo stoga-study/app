@@ -1070,6 +1070,39 @@ export type Database = {
           },
         ]
       }
+      known_issues: {
+        Row: {
+          body: string
+          created_at: string
+          fixed_at: string | null
+          fixed_in: string | null
+          id: string
+          status: string
+          title: string
+          workaround: string | null
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          fixed_at?: string | null
+          fixed_in?: string | null
+          id?: string
+          status?: string
+          title: string
+          workaround?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          fixed_at?: string | null
+          fixed_in?: string | null
+          id?: string
+          status?: string
+          title?: string
+          workaround?: string | null
+        }
+        Relationships: []
+      }
       ledger_entries: {
         Row: {
           amount_usd: number
