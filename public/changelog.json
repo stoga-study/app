@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.9.2",
+      "date": "2026-10-19",
+      "title": "A quick tour for new students",
+      "intro": "New to Stoga.study? A one-minute look at what it does, right after you set up.",
+      "highlights": [
+        {
+          "icon": "continue",
+          "title": "Four short steps",
+          "text": "Your Conestoga classes, plans around your real test dates, answers from your own notes, and how to tell us what's off."
+        },
+        {
+          "icon": "repeat",
+          "title": "Take it again any time",
+          "text": "It's in Settings, if you want a refresher."
+        }
+      ]
+    },
+    {
       "version": "1.9.1",
       "date": "2026-10-19",
       "title": "The ideas board",
