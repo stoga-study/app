@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRegisterSW } from "virtual:pwa-register/react";
 import { compareVersions, type Release } from "@/lib/changelog";
 import { ReleaseIcon } from "@/components/ReleaseIcon";
@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 /** Screens where a reload would interrupt something (a review, a quiz, writing, an upload). */
 const BUSY = /^\/(review\/session|quiz\/|notes\/|upload|practice)/;
 const CHECK_EVERY = 30 * 60 * 1000;
+
+/** Desktop-sized windows get a quiet corner notice; phones get the full card. */
+const WIDE = "(min-width: 768px)";
+const useWide = () => useSyncExternalStore(
+  (on) => { const mq = window.matchMedia(WIDE); mq.addEventListener("change", on); return () => mq.removeEventListener("change", on); },
+  () => window.matchMedia(WIDE).matches,
+);
 
 // A light card when a new version is ready, naming what's in it. It waits until the student isn't in the
 // middle of something. If they choose Not now, the update is put in quietly the next time they switch
@@ -23,6 +30,7 @@ export function UpdatePrompt() {
     },
   });
   const [release, setRelease] = useState<Release | null>(null);
+  const wide = useWide();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
@@ -59,7 +67,10 @@ export function UpdatePrompt() {
   }, []);
 
   if (!needRefresh || !show) return null;
-  return <UpdateCard release={release} onUpdate={() => updateServiceWorker()} onLater={() => { setShow(false); setNeedRefresh(false); }} />;
+  const later = () => { setShow(false); setNeedRefresh(false); };
+  return wide
+    ? <UpdateNotice release={release} onUpdate={() => updateServiceWorker()} onLater={later} />
+    : <UpdateCard release={release} onUpdate={() => updateServiceWorker()} onLater={later} />;
 }
 
 function UpdateCard({ release, onUpdate, onLater }: { release: Release | null; onUpdate: () => void; onLater: () => void }) {
@@ -127,5 +138,33 @@ function UpdateCard({ release, onUpdate, onLater }: { release: Release | null; o
         </div>
       </section>
     </div>
+  );
+}
+
+/** On desktop: a small notice in the corner. Nothing is covered or blocked, and focus stays where it was. */
+function UpdateNotice({ release, onUpdate, onLater }: { release: Release | null; onUpdate: () => void; onLater: () => void }) {
+  const [updating, setUpdating] = useState(false);
+  return (
+    <section
+      role="region"
+      aria-label="Update ready"
+      className="update-notice card fixed right-6 bottom-6 z-[60] flex w-[22rem] flex-col gap-3 p-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[0.8125rem] font-bold text-brand">{release ? `Version ${release.version} is ready` : "An update is ready"}</p>
+          <h2 className="mt-1 text-[1.125rem] leading-snug">{release?.title ?? "A new version of Stoga.study"}</h2>
+        </div>
+        <button type="button" onClick={onLater} aria-label="Close" className="-mt-1 -mr-2 grid size-9 flex-none place-items-center rounded-full text-muted hover:bg-soft hover:text-ink">
+          <X className="size-4" />
+        </button>
+      </div>
+      {release?.intro && <p className="text-[0.9375rem] text-ink-2">{release.intro}</p>}
+      <div className="flex items-center gap-2">
+        <Button size="sm" disabled={updating} onClick={() => { setUpdating(true); onUpdate(); }}>{updating ? "Updating…" : "Update now"}</Button>
+        <Button size="sm" variant="ghost" onClick={onLater}>Later</Button>
+      </div>
+      <p className="text-[0.8125rem] text-muted">Later puts it in next time you close the app.</p>
+    </section>
   );
 }

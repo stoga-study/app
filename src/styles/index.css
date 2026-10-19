@@ -239,6 +239,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 .update-backdrop { background: color-mix(in srgb, var(--ink-panel) 55%, transparent); animation: fade-in 200ms ease-out both; }
 .update-card { animation: sheet-in 260ms ease-out both; }
 .update-tile { background: #FFFFFF; color: #720D19; box-shadow: 0 4px 0 #E8C9CF; }
+.update-notice { animation: sheet-in 260ms ease-out both; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-html[data-motion="reduce"] .update-backdrop, html[data-motion="reduce"] .update-card { animation: none; }
-@media (prefers-reduced-motion: reduce) { .update-backdrop, .update-card { animation: none; } }
+html[data-motion="reduce"] .update-backdrop, html[data-motion="reduce"] .update-card, html[data-motion="reduce"] .update-notice { animation: none; }
+@media (prefers-reduced-motion: reduce) { .update-backdrop, .update-card, .update-notice { animation: none; } }
