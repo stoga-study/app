@@ -39,11 +39,14 @@ import Welcome from "./routes/Welcome";
 import WhatsNew, { Changelog } from "./routes/WhatsNew";
 import Privacy from "./routes/Privacy";
 import Donate from "./routes/Donate";
+import SupportView from "./routes/SupportView";
 
 export const router = createBrowserRouter([
   {
     errorElement: <RouteError />,
     children: [
+  // Opened by a parent, guardian, tutor or counselor from a student's link: no account needed.
+  { path: "support/:token", element: <SupportView /> },
   {
     element: <RedirectIfSignedIn />,
     children: [
