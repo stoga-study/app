@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.8.5",
+      "date": "2026-10-18",
+      "title": "A new AI model, with firmer rules",
+      "intro": "The tutor and coach now run on Mercury, with new checks that hold whatever model is answering.",
+      "highlights": [
+        {
+          "icon": "check",
+          "title": "Rules the server enforces",
+          "text": "The tutor won't write work you hand in, and its hints never give away a multiple-choice answer. These are checked on every answer before you see it."
+        },
+        {
+          "icon": "calendar",
+          "title": "A coach that does what you asked",
+          "text": "Days like \"next Monday\" are worked out exactly, actions go in the class you named, and nothing is added that you didn't ask for."
+        },
+        {
+          "icon": "explain",
+          "title": "Always an answer",
+          "text": "If the main model is ever down, your question is answered by a backup model instead."
+        }
+      ]
+    },
+    {
       "version": "1.8.4",
       "date": "2026-10-16",
       "title": "A clearer update card",
