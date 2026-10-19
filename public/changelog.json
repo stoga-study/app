@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.8.7",
+      "date": "2026-10-18",
+      "title": "A calmer, cleaner look",
+      "intro": "Stoga.study has a new design: easier to read, quieter, and made to feel like a well-made school publication.",
+      "highlights": [
+        {
+          "icon": "type",
+          "title": "Easier to read",
+          "text": "New type: a serif for titles and big numbers, a clean font for everything you read and tap, in warm, quiet colours."
+        },
+        {
+          "icon": "focus",
+          "title": "Less clutter",
+          "text": "Far fewer icons and decorations, so what matters on each screen stands out."
+        },
+        {
+          "icon": "columns",
+          "title": "Getting started on any screen",
+          "text": "Signing up and setting up your classes now has a proper layout on laptops and iPads, not just phones."
+        }
+      ]
+    },
+    {
       "version": "1.8.6",
       "date": "2026-10-18",
       "title": "A quieter update notice on computers",
