@@ -3,6 +3,8 @@
 // POST { token } → { summary, label, expires_at }   or 404 { error: "not_found" } if the link is unknown,
 //                                                    expired or turned off.
 //
+// Embedded lookups name their foreign key: several tables also have a same-owner key to the same table.
+//
 // Read with server rights, but only for the one student whose working link this is, and only counts,
 // dates, class names, calendar titles and readiness: never notes, chats, files, cards, quizzes or mistakes.
 import { createClient } from "npm:@supabase/supabase-js@2.117.3";
@@ -42,14 +44,14 @@ Deno.serve(async (req) => {
 
     const [subjects, reviews, attempts, tests, asked, events, cards, quizzes, mistakes] = await Promise.all([
       rows<{ id: string; name: string }>(admin.from("subjects").select("id, name").eq("user_id", me).eq("archived", false).order("created_at")),
-      rows(admin.from("card_reviews").select("reviewed_at, rating, cards(subject_id)").eq("user_id", me).gte("reviewed_at", since).limit(20000)),
-      rows(admin.from("quiz_attempts").select("created_at, finished_at, total, correct, answers, quizzes(subject_id)").eq("user_id", me).gte("created_at", since).limit(5000)),
+      rows(admin.from("card_reviews").select("reviewed_at, rating, cards!card_reviews_card_id_fkey(subject_id)").eq("user_id", me).gte("reviewed_at", since).limit(20000)),
+      rows(admin.from("quiz_attempts").select("created_at, finished_at, total, correct, answers, quizzes!quiz_attempts_quiz_id_fkey(subject_id)").eq("user_id", me).gte("created_at", since).limit(5000)),
       rows(admin.from("practice_tests").select("finished_at, subject_id, total, points").eq("user_id", me).gte("finished_at", since).limit(1000)),
-      rows(admin.from("chat_messages").select("created_at, chat_threads(subject_id)").eq("user_id", me).eq("role", "user").gte("created_at", since).limit(5000)),
+      rows(admin.from("chat_messages").select("created_at, chat_threads!chat_messages_thread_id_fkey(subject_id)").eq("user_id", me).eq("role", "user").gte("created_at", since).limit(5000)),
       rows(admin.from("events").select("id, subject_id, kind, title, due_on, done_at, event_units(unit_id)").eq("user_id", me).gte("due_on", today).lte("due_on", end).limit(200)),
       rows(admin.from("cards").select("subject_id, state, sources(unit_id)").eq("user_id", me).eq("hidden", false).eq("archived", false).limit(20000)),
       rows(admin.from("quizzes").select("id, subject_id, sources(unit_id), quiz_questions!quiz_questions_quiz_id_fkey(count)").eq("user_id", me).eq("archived", false)),
-      rows(admin.from("mistakes").select("quiz_questions(quizzes(subject_id, sources(unit_id)))").eq("user_id", me).is("resolved_at", null).limit(5000)),
+      rows(admin.from("mistakes").select("quiz_questions!mistakes_question_id_fkey(quizzes!quiz_questions_quiz_id_fkey(subject_id, sources(unit_id)))").eq("user_id", me).is("resolved_at", null).limit(5000)),
     ]);
     const finished = await rows<{ quiz_id: string; correct: number; total: number }>(
       admin.from("quiz_attempts").select("quiz_id, correct, total").eq("user_id", me).not("finished_at", "is", null).order("finished_at", { ascending: false }).limit(5000),
