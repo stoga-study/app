@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.9.5",
+      "date": "2026-10-19",
+      "title": "Updates and known issues, in the open",
+      "intro": "Two public pages anyone can read, no sign-in needed.",
+      "highlights": [
+        {
+          "icon": "history",
+          "title": "Every update",
+          "text": "beta.stoga.study/updates lists every release in plain words."
+        },
+        {
+          "icon": "flag",
+          "title": "What isn't working yet",
+          "text": "beta.stoga.study/known-issues shows the problems we know about, what to do for now, and what was fixed lately."
+        }
+      ]
+    },
+    {
       "version": "1.9.4",
       "date": "2026-10-19",
       "title": "Share what you think",
