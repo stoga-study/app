@@ -16,7 +16,7 @@ await run("look", async ({ p, uid, wh }) => {
   const routes = {
     home: "/", class: `/subjects/${wh.id}`, review: `/review/session?subject=${wh.id}`, quiz: `/quiz/${s.qz.id}`, calendar: "/calendar",
     progress: "/progress", settings: "/settings", tutor: "/tutor", coach: "/coach", cards: `/subjects/${wh.id}/cards`, upload: "/upload",
-    plans: "/plans", exam: `/exam/${s.ev[0].id}`, source: `/sources/${s.src.id}`, search: "/search?q=sampling", groups: "/groups", review_home: "/review",
+    plans: "/plans", whatsnew: "/whats-new", changelog: "/changelog", exam: `/exam/${s.ev[0].id}`, source: `/sources/${s.src.id}`, search: "/search?q=sampling", groups: "/groups", review_home: "/review",
   };
   for (const scheme of ["light", "dark"]) {
     await p.emulateMedia({ colorScheme: scheme });
