@@ -17,6 +17,8 @@ import { createClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
 import { llmJson, LLMError, setUsageLogger, type OwnProvider } from "../_lib/llm.ts";
+import { readyMessage } from "../_lib/notify.ts";
+import { notifyStudent } from "../_lib/push.ts";
 import { ownProvider } from "../_lib/byok.ts";
 import { checkOptions, optionsKey, planTasks, splitAcross, suggestAmounts, type GenOptions, type Part, type Task } from "../_lib/options.ts";
 import {
@@ -322,7 +324,12 @@ async function runTask(sourceId: string, userId: string, index: number, attempt:
     delete next.failed;
     const last = index + 1 >= tasks.length;
     await admin.from("sources").update({ steps: next, status: last ? "ready" : "generating" }).eq("id", sourceId);
-    if (last && steps.first) await saveShared(sourceId, userId, optionsKey(options));
+    if (last && steps.first) {
+      await saveShared(sourceId, userId, optionsKey(options));
+      // A study set that took more than a minute: tell their phone, so they can leave the processing screen.
+      const { data: src } = await admin.from("sources").select("filename, created_at").eq("id", sourceId).maybeSingle();
+      if (src && Date.now() - Date.parse(src.created_at) > 60_000) await notifyStudent(admin, userId, "ready", `ready:${sourceId}`, readyMessage(src.filename, sourceId));
+    }
     if (!last) await dispatch({ source_id: sourceId, user_id: userId, task: index + 1, attempt: 0 });
   } catch (e) {
     const status = e instanceof LLMError ? e.status : 0;

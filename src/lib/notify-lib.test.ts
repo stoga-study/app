@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PREFS, eveningMessage, inWindow, isQuiet, localNow, minutesOf, toPrefs } from "../../supabase/functions/_lib/notify";
+import { DEFAULT_PREFS, eveningMessage, groupMessage, inWindow, isQuiet, localNow, minutesOf, readyMessage, toPrefs } from "../../supabase/functions/_lib/notify";
 
 describe("notification rules", () => {
   it("reads settings safely", () => {
@@ -26,7 +26,7 @@ describe("notification rules", () => {
     expect(isQuiet(minutesOf("13:00"), minutesOf("12:00"), minutesOf("14:00"))).toBe(true);
   });
 
-  const base = { firstName: "Sam", coachName: "Juno", due: 12, testTomorrow: null, testSoon: null, studiedToday: false, daysSinceStudy: 1, worstScoreToday: null, sent: {}, prefs: DEFAULT_PREFS };
+  const base = { firstName: "Sam", coachName: "Juno", due: 12, testTomorrow: null, homeworkTomorrow: null, testSoon: null, studiedToday: false, daysSinceStudy: 1, worstScoreToday: null, sent: {}, prefs: DEFAULT_PREFS };
 
   it("picks one message: a test tomorrow first, then due cards if nothing was studied", () => {
     expect(eveningMessage(base)).toMatchObject({ kind: "study", title: "Sam, 12 cards ready", url: "/review/session?size=10" });
@@ -56,5 +56,27 @@ describe("notification rules", () => {
     expect(eveningMessage({ ...base, due: 0, daysSinceStudy: 5, sent: { quiet: { daysAgo: 3, variant: 0 } } })).toBeNull();
     expect(eveningMessage({ ...base, due: 0, daysSinceStudy: 5, prefs: { ...DEFAULT_PREFS, checkins: false } })).toBeNull();
     expect(eveningMessage({ ...base, due: 0, daysSinceStudy: null })).toBeNull();
+  });
+});
+
+describe("more notification types", () => {
+  const base = { firstName: "Sam", coachName: "Juno", due: 12, testTomorrow: null, homeworkTomorrow: null, testSoon: null, studiedToday: false, daysSinceStudy: 1, worstScoreToday: null, sent: {}, prefs: DEFAULT_PREFS };
+
+  it("homework due tomorrow comes after a test, before everything else, and has its own switch", () => {
+    const hw = { title: "Read chapter 7", count: 1 };
+    expect(eveningMessage({ ...base, homeworkTomorrow: hw })).toMatchObject({ kind: "homework", title: "Read chapter 7 is due tomorrow", url: "/calendar" });
+    expect(eveningMessage({ ...base, homeworkTomorrow: { title: "Read chapter 7", count: 3 } })).toMatchObject({ title: "3 things are due tomorrow", body: "Including Read chapter 7. Still on your list." });
+    expect(eveningMessage({ ...base, homeworkTomorrow: hw, testTomorrow: { id: "e1", title: "Bio test" } })?.kind).toBe("test");
+    expect(eveningMessage({ ...base, homeworkTomorrow: hw, prefs: { ...DEFAULT_PREFS, homework: false } })?.kind).toBe("study");
+  });
+
+  it("new switches default to on, and saved choices are kept", () => {
+    expect(toPrefs({})).toMatchObject({ homework: true, ready: true, groups: true });
+    expect(toPrefs({ groups: false, ready: "x" })).toMatchObject({ groups: false, ready: true });
+  });
+
+  it("study set ready and group activity read plainly, with first names only", () => {
+    expect(readyMessage("Cell structure notes", "s1")).toEqual({ title: "Your study set is ready", body: "Cell structure notes: notes, cards and quiz are waiting.", url: "/sources/s1", tag: "ready-s1" });
+    expect(groupMessage("Maya", "Unit 4 review", "Bio crew", "g1")).toEqual({ title: "Bio crew", body: "Maya shared “Unit 4 review”. Add it to your class if it helps.", url: "/groups/g1", tag: "group-g1" });
   });
 });
