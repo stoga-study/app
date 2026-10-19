@@ -24,10 +24,12 @@ export function deviceSummary() {
 /** A picture of what's on screen right now, leaving out anything marked data-feedback-exclude (the sheet itself). */
 export async function captureScreen(): Promise<Blob | null> {
   try {
-    const { toJpeg } = await import("html-to-image");
+    // toBlob draws straight to a file: no data: URL to fetch, which the site's security policy would block.
+    const { toBlob } = await import("html-to-image");
     const node = document.getElementById("root") ?? document.body;
     const bg = getComputedStyle(document.body).backgroundColor;
-    const url = await toJpeg(node, {
+    return await toBlob(node, {
+      type: "image/jpeg",
       quality: 0.72,
       pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
       backgroundColor: bg,
@@ -36,7 +38,6 @@ export async function captureScreen(): Promise<Blob | null> {
       style: { transform: `translateY(-${window.scrollY}px)` },
       filter: (el) => !(el instanceof HTMLElement && el.dataset.feedbackExclude !== undefined),
     });
-    return await (await fetch(url)).blob();
   } catch (e) {
     console.warn("screenshot failed", e);
     return null;
