@@ -638,29 +638,41 @@ export type Database = {
       feedback: {
         Row: {
           body: string
+          build: string | null
           consent_to_publish: boolean
           created_at: string
+          device: string | null
           id: string
           kind: string
           page: string | null
+          screenshot_path: string | null
+          status: string
           user_id: string | null
         }
         Insert: {
           body: string
+          build?: string | null
           consent_to_publish?: boolean
           created_at?: string
+          device?: string | null
           id?: string
           kind: string
           page?: string | null
+          screenshot_path?: string | null
+          status?: string
           user_id?: string | null
         }
         Update: {
           body?: string
+          build?: string | null
           consent_to_publish?: boolean
           created_at?: string
+          device?: string | null
           id?: string
           kind?: string
           page?: string | null
+          screenshot_path?: string | null
+          status?: string
           user_id?: string | null
         }
         Relationships: []
