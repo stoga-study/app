@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.8.11",
+      "date": "2026-10-19",
+      "title": "Support access",
+      "intro": "Share how your studying is going with a parent, guardian, tutor or counselor.",
+      "highlights": [
+        {
+          "icon": "group",
+          "title": "A private, read-only link",
+          "text": "In Settings, make a link for someone. They see your practice, what's coming up and how ready you are, without an account."
+        },
+        {
+          "icon": "check",
+          "title": "Your notes stay yours",
+          "text": "They never see your notes, files, chats or flashcards. You can see when the link was opened, and turn it off any time."
+        }
+      ]
+    },
+    {
       "version": "1.8.10",
       "date": "2026-10-19",
       "title": "Where the money goes",
