@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.9.0",
+      "date": "2026-10-19",
+      "title": "Feedback from anywhere",
+      "intro": "Tell us what's wrong or what you'd like, right from the screen you're on.",
+      "highlights": [
+        {
+          "icon": "explain",
+          "title": "One tap from any screen",
+          "text": "The feedback button is in the top bar on phones and in the sidebar on computers. It opens right over what you're doing."
+        },
+        {
+          "icon": "photo",
+          "title": "Show us with a screenshot",
+          "text": "Add a picture of your screen if it helps. Only the Stoga.study team sees it, and it's off unless you choose it."
+        }
+      ]
+    },
+    {
       "version": "1.8.11",
       "date": "2026-10-19",
       "title": "Support access",
