@@ -41,6 +41,7 @@ import Privacy from "./routes/Privacy";
 import Donate from "./routes/Donate";
 import SupportView from "./routes/SupportView";
 import Requests from "./routes/Requests";
+import Testimonial from "./routes/Testimonial";
 
 export const router = createBrowserRouter([
   {
@@ -109,6 +110,7 @@ export const router = createBrowserRouter([
           { path: "privacy", element: <Privacy /> },
           { path: "donate", element: <Donate /> },
           { path: "requests", element: <Requests /> },
+          { path: "testimonial", element: <Testimonial /> },
           { path: "*", element: <NotFound /> },
         ],
       },

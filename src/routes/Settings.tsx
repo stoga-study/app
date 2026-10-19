@@ -318,6 +318,7 @@ export default function Settings() {
       <LinkRow to="/plans" icon={<Heart />} title="Plans and funding" sub={profile.data?.plan === "independent" ? "Independent, your own key" : profile.data?.plan === "unlimited" ? "Unlimited" : "Essential, free"} />
       <LinkRow to="/feedback?from=settings" icon={<MessageSquare />} title="Send feedback" sub="Report a problem or suggest an idea" />
       <LinkRow to="/requests" icon={<Sparkles />} title="Ideas board" sub="Vote for what Stoga.study does next" />
+      <LinkRow to="/testimonial" icon={<Heart />} title="Say something about Stoga.study" sub="An optional quote for the website" />
       <button type="button" onClick={openTour} className="card mt-4 flex w-full items-center gap-4 p-5 text-left text-ink">
         <span className="flex-1"><b className="block">Take the tour again</b><span className="text-[0.875rem] text-muted">A one-minute look at what Stoga.study does</span></span>
       </button>
