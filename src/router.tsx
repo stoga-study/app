@@ -38,7 +38,6 @@ import SignIn from "./routes/SignIn";
 import Welcome from "./routes/Welcome";
 import WhatsNew, { Changelog } from "./routes/WhatsNew";
 import Privacy from "./routes/Privacy";
-import BrandPreview from "./routes/BrandPreview";
 
 export const router = createBrowserRouter([
   {
@@ -103,7 +102,6 @@ export const router = createBrowserRouter([
           { path: "settings", element: <Settings /> },
           { path: "changelog", element: <Changelog /> },
           { path: "privacy", element: <Privacy /> },
-          { path: "preview/brand", element: <BrandPreview /> },
           { path: "*", element: <NotFound /> },
         ],
       },
