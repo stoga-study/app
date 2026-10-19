@@ -1371,6 +1371,7 @@ export type Database = {
           share_study_sets: boolean
           streak_days: number | null
           streak_pauses: string[]
+          tour_seen_at: string | null
           tutor_depth: Database["public"]["Enums"]["tutor_depth"]
           updated_at: string
           user_id: string
@@ -1395,6 +1396,7 @@ export type Database = {
           share_study_sets?: boolean
           streak_days?: number | null
           streak_pauses?: string[]
+          tour_seen_at?: string | null
           tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
           updated_at?: string
           user_id: string
@@ -1419,6 +1421,7 @@ export type Database = {
           share_study_sets?: boolean
           streak_days?: number | null
           streak_pauses?: string[]
+          tour_seen_at?: string | null
           tutor_depth?: Database["public"]["Enums"]["tutor_depth"]
           updated_at?: string
           user_id?: string
