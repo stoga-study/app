@@ -1,4 +1,4 @@
-import { BookOpen, CalendarDays, HeartHandshake, Users, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, TrendingUp, Upload } from "lucide-react";
+import { Lightbulb, BookOpen, CalendarDays, HeartHandshake, Users, Heart, Home, Layers, MessageCircle, MessageSquare, Search, Settings, TrendingUp, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import { NavLink, Outlet } from "react-router";
 import { cn } from "@/lib/cn";
@@ -30,6 +30,7 @@ const TABS = MAIN.filter((i) => i.to !== "/subjects" && i.to !== "/progress" && 
 
 const SECONDARY: Item[] = [
   { to: "/search", label: "Search", icon: <Search /> },
+  { to: "/requests", label: "Ideas board", icon: <Lightbulb /> },
   { to: "/plans", label: "Plans and funding", icon: <Heart /> },
   { to: "/settings", label: "Settings", icon: <Settings /> },
 ];

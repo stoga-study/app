@@ -1,6 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { useLocation } from "react-router";
+import { Link, useLocation } from "react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { captureScreen, sendFeedback, type FeedbackKind } from "@/lib/feedback";
@@ -85,6 +85,7 @@ function FeedbackSheet({ initial, onClose }: { initial: FeedbackKind; onClose: (
             </span>
           </label>
           {shotUrl && <img src={shotUrl} alt="Screenshot that will be sent" className="max-h-48 self-start rounded-[0.625rem] border border-line object-contain" />}
+          {kind === "idea" && <p className="text-[0.875rem]"><Link to="/requests" onClick={onClose} className="underline">See what others have suggested, and vote</Link></p>}
           <p className="text-[0.8125rem] text-muted">We'll also see which screen you were on ({page.length > 40 ? `${page.slice(0, 40)}…` : page}), the app version and your device type.</p>
           <Button type="submit" disabled={body.trim().length < 3 || sending || capturing} className="self-start">{sending ? "Sending…" : "Send"}</Button>
         </form>

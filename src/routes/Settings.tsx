@@ -316,6 +316,7 @@ export default function Settings() {
 
       <LinkRow to="/plans" icon={<Heart />} title="Plans and funding" sub={profile.data?.plan === "independent" ? "Independent, your own key" : profile.data?.plan === "unlimited" ? "Unlimited" : "Essential, free"} />
       <LinkRow to="/feedback?from=settings" icon={<MessageSquare />} title="Send feedback" sub="Report a problem or suggest an idea" />
+      <LinkRow to="/requests" icon={<Sparkles />} title="Ideas board" sub="Vote for what Stoga.study does next" />
       <LinkRow to="/changelog" icon={<Sparkles />} title="What's new" sub="Every update, in plain words" />
 
       <Section title="Account">
