@@ -999,6 +999,33 @@ export type Database = {
           },
         ]
       }
+      ledger_entries: {
+        Row: {
+          amount_usd: number
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          month: string
+        }
+        Insert: {
+          amount_usd: number
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          month: string
+        }
+        Update: {
+          amount_usd?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          month?: string
+        }
+        Relationships: []
+      }
       mistakes: {
         Row: {
           attempt_id: string | null
@@ -2138,6 +2165,17 @@ export type Database = {
       duplicate_source: {
         Args: { p_source: string; p_subject: string }
         Returns: string
+      }
+      funding_ledger: {
+        Args: { p_months?: number }
+        Returns: {
+          ai_cost: number
+          funding: number
+          items: Json
+          month: string
+          other_costs: number
+          students: number
+        }[]
       }
       increment_share_copies: { Args: { p_link: string }; Returns: undefined }
       is_archived: {
