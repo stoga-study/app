@@ -38,6 +38,7 @@ import SignIn from "./routes/SignIn";
 import Welcome from "./routes/Welcome";
 import WhatsNew, { Changelog } from "./routes/WhatsNew";
 import Privacy from "./routes/Privacy";
+import Donate from "./routes/Donate";
 
 export const router = createBrowserRouter([
   {
@@ -102,6 +103,7 @@ export const router = createBrowserRouter([
           { path: "settings", element: <Settings /> },
           { path: "changelog", element: <Changelog /> },
           { path: "privacy", element: <Privacy /> },
+          { path: "donate", element: <Donate /> },
           { path: "*", element: <NotFound /> },
         ],
       },
