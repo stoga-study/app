@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.9.1",
+      "date": "2026-10-19",
+      "title": "The ideas board",
+      "intro": "Vote for what Stoga.study does next, or suggest something new.",
+      "highlights": [
+        {
+          "icon": "browse",
+          "title": "See what others want",
+          "text": "Most wanted, newest, and what's planned or shipped. One vote each, and you can take it back."
+        },
+        {
+          "icon": "type",
+          "title": "Suggest an idea",
+          "text": "New ideas show up once they've been checked. No names are shown on the board."
+        }
+      ]
+    },
+    {
       "version": "1.9.0",
       "date": "2026-10-19",
       "title": "Feedback from anywhere",
