@@ -214,3 +214,94 @@ export function cleanCards(raw: unknown): { front: string; back: string }[] {
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------
+// Checks on the planner's actions, before anything is saved. They hold whatever the model: an action runs
+// only if the student's message asks for that kind of thing, in the class they named, on the day they named,
+// with as many cards as they asked for. A skipped action goes back to the planner with the reason, so it can
+// correct itself next round.
+// ---------------------------------------------------------------------------
+
+const DAY_WORDS: [RegExp, number][] = [["sun(day)?", 0], ["mon(day)?", 1], ["tue(s|sday)?", 2], ["wed(nesday)?", 3], ["thu(rs|rsday)?", 4], ["fri(day)?", 5], ["sat(urday)?", 6]].map(([w, n]) => [new RegExp(`\\b(next |this |on )?(${w})\\b`, "i"), n as number]);
+
+/** The days a message names ("tomorrow", "friday", "next monday"), each with its date. A weekday is the coming one. */
+export function datesInMessage(message: string, today: string): { words: string; date: string }[] {
+  const out: { words: string; date: string }[] = [];
+  if (/\btomorrow\b/i.test(message)) out.push({ words: "tomorrow", date: addDays(today, 1) });
+  if (/\b(today|tonight)\b/i.test(message)) out.push({ words: "today", date: today });
+  for (const [re, n] of DAY_WORDS) {
+    const m = re.exec(message);
+    if (!m) continue;
+    const ahead = ((n - dayOf(today) + 7) % 7) || 7;
+    out.push({ words: m[0].trim().toLowerCase(), date: addDays(today, ahead) });
+  }
+  return out;
+}
+export const datesNote = (dates: { words: string; date: string }[]) =>
+  dates.length ? `Days in the student's message, already worked out: ${dates.map((d) => `"${d.words}" = ${WEEKDAY[dayOf(d.date)]} ${d.date}`).join("; ")}. Use these dates.` : "";
+
+/** Classes the message names ("chem", "bio test", "english"), by ref. */
+export function classesInMessage(message: string, classes: { ref: string; name: string }[]) {
+  const words = message.toLowerCase().match(/[a-z]{3,}/g) ?? [];
+  return classes.filter((c) => {
+    const names = c.name.toLowerCase().match(/[a-z]{3,}/g)?.filter((w) => !["honors", "the", "and", "intro", "introduction"].includes(w)) ?? [];
+    return names.some((n) => words.some((w) => (w.length >= 3 && n.startsWith(w)) || (n.length >= 4 && w.startsWith(n))));
+  }).map((c) => c.ref);
+}
+
+const ASKS: Partial<Record<Tool, RegExp>> = {
+  make_cards: /\b(flash ?cards?|cards?|deck|quiz me)\b/i,
+  write_note: /\b(note|notes|write|save|jot|down|summar\w*|checklist|list)\b/i,
+  complete_event: /\b(done|finished|finish|completed?|submitted|turned (it )?in|handed (it )?in|did (it|the|my))\b/i,
+  uncomplete_event: /\b(not (done|finished)|didn'?t|haven'?t|undo|unfinished|reopen|still need)\b/i,
+  delete_event: /\b(delete|remove|cancel+(ed)?|no longer|not happening|scrap|drop)\b/i,
+  update_event: /\b(mov(e|ed|ing)|chang\w*|reschedul\w*|postpon\w*|push(ed)?|delay\w*|now (on|due|is)|instead|earlier|later|renam\w*|switch\w*|actually)\b/i,
+};
+const KIND_WORD: [RegExp, string][] = [[/\b(test|exam|midterm|final)\b/i, "test"], [/\bquiz\b/i, "quiz"]];
+
+/** Why an action should not run, or null when it fits what the student asked. */
+export function actionProblem(c: Call, message: string, ctx: Pick<Ctx, "today" | "classes">, lookedUp = false): string | null {
+  const asks = ASKS[c.tool];
+  if (asks && !asks.test(message)) return `the student did not ask for this (${c.tool}). Only do what their message asks.`;
+  const a = c.args;
+  if (c.tool === "add_event") {
+    for (const [re, kind] of KIND_WORD) if (re.test(message) && a.kind !== kind && !/(homework|project|assignment|due)/i.test(message)) return `they told you about a ${kind}: add the ${kind} itself, with kind "${kind}" and its real date, not a study session.`;
+  }
+  if ((c.tool === "add_event" || c.tool === "update_event") && typeof a.date === "string") {
+    const days = datesInMessage(message, ctx.today);
+    if (days.length === 1 && a.date !== days[0].date && !/\bweek\b|\d/.test(message.replace(/unit \d+/gi, ""))) return `they said "${days[0].words}", which is ${days[0].date}. Use that date.`;
+  }
+  if (["add_event", "make_cards", "write_note"].includes(c.tool) && typeof a.class === "string") {
+    const named = classesInMessage(message, ctx.classes);
+    if (named.length === 1 && a.class !== named[0]) return `they named ${ctx.classes.find((x) => x.ref === named[0])?.name} (${named[0]}): use that class.`;
+  }
+  // Cards or a summary "from my notes" are made from what was found in them, not from memory.
+  if ((c.tool === "make_cards" || (c.tool === "write_note" && /summar/i.test(message))) && /\b(notes?|files?|handouts?|slides|reading|my material)\b/i.test(message) && !lookedUp) {
+    return `they asked for this from their own material, and you haven't looked at it yet. Call search (or read_file) first, then make it from what you find.`;
+  }
+  if (c.tool === "make_cards" && Array.isArray(a.cards)) {
+    const n = Number(/\b(\d{1,2})\s+(?:\w+\s+)?(?:flash ?)?cards?\b/i.exec(message)?.[1]);
+    if (n && n <= MAX_CARDS && a.cards.length !== n) return `they asked for exactly ${n} cards; you gave ${a.cards.length}. Make ${n}.`;
+  }
+  return null;
+}
+
+/**
+ * The coach's internal labels (C1, U2, F1, E3) never reach the student: a label next to a name is dropped,
+ * a label on its own becomes the name. Only labels in this student's context are touched, so text like
+ * "the F1 generation" is left alone.
+ */
+export function withoutRefs(text: string, names: Map<string, string>) {
+  const known = (r: string) => names.has(r);
+  return text
+    .replace(/\s*[(\[]([CUFE]\d{1,3})[)\]]/g, (m, r) => (known(r) ? "" : m))
+    .replace(/\b([CUFE]\d{1,3})(?::|,)?\s+(?=["“'‘*])/g, (m, r) => (known(r) ? "" : m))
+    .replace(/\b([CUFE]\d{1,3})\b(?!\s+generation)/g, (m, r) => (known(r) ? `“${names.get(r)}”` : m))
+    .replace(/“([^”]+)”\s+“\1”/g, "“$1”")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
+/** For a stressed student: one honest sentence and one small step, not a list. */
+export const listLines = (text: string) => text.split("\n").filter((l) => /^\s*([-•*]|\d+[.)])\s+/.test(l)).length;
+export const STRESSED_FIX = `Rewrite your reply: they are stressed. One genuine sentence that acknowledges how they feel, then ONE small concrete step they can do now. No list, no bullets, under 60 words.`;
+export const withoutLists = (text: string) => text.split("\n").filter((l) => !/^\s*([-•*]|\d+[.)])\s+/.test(l) && !/:\s*$/.test(l.trim())).join("\n").replace(/\n{3,}/g, "\n\n").trim();

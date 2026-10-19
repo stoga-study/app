@@ -12,13 +12,13 @@
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.117.3";
 import { studentClient } from "../_lib/auth.ts";
 import { corsHeaders, json } from "../_lib/cors.ts";
-import { llmJson, llmStream, recordUsage, setUsageLogger } from "../_lib/llm.ts";
+import { LLM_MODEL, llmJson, llmStream, recordUsage, setUsageLogger } from "../_lib/llm.ts";
 import { ownProvider } from "../_lib/byok.ts";
 import { cleanText } from "../_lib/study.ts";
 import { wellbeing } from "../_lib/tutor.ts";
 import {
   addDays, answerSystem, cleanCards, cleanTitle, contextText, crisisReply, isIsoDate, isTime, MAX_ROUNDS, parseCalls, READ_TOOLS, STEP_SCHEMA, stepLabel,
-  stepSystem, toLanguage, toPersona, validKind, type Call, type Ctx,
+  stepSystem, toLanguage, toPersona, validKind, type Call, type Ctx, actionProblem, datesInMessage, datesNote, withoutRefs, listLines, STRESSED_FIX, withoutLists
 } from "../_lib/coach.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
@@ -387,21 +387,43 @@ Deno.serve(async (req) => {
       const seen = new Set<string>();
       const rounds: { role: "assistant" | "user"; content: string }[] = [];
       let step = 0;
+      // Days in the message are worked out here, so the planner never counts. Models that need more thought
+      // to plan well (Mercury) get it; GPT plans fine at the lightest setting.
+      const dates = datesNote(datesInMessage(message, loaded.ctx.today));
+      const planEffort = !own && /mercury/i.test(LLM_MODEL) ? "normal" : "light";
       for (let round = 0; round < MAX_ROUNDS; round++) {
         const out = await llmJson<{ calls: { tool: string; args: string }[] }>({
-          schemaName: "coach_step", schema: STEP_SCHEMA, own, effort: "light", maxTokens: 2500, timeoutMs: 40_000,
+          schemaName: "coach_step", schema: STEP_SCHEMA, own, effort: planEffort, maxTokens: 2500, timeoutMs: 40_000,
           usage: { feature: "coach_step", userId: student.userId, byok: !!own },
           messages: [
             { role: "system", content: stepSystem() },
             { role: "system", content: context },
             ...history,
             { role: "user", content: message },
+            ...(dates ? [{ role: "system" as const, content: dates }] : []),
             ...rounds,
           ],
         });
-        const calls = parseCalls(out.calls, seen);
-        if (!calls.length) break;
+        const planned = parseCalls(out.calls, seen);
+        if (!planned.length) break;
         const results: string[] = [];
+        // Actions that don't fit what the student asked are skipped (never shown) and explained to the planner.
+        // Looking something up this round counts: reads run before writes.
+        const looked = lookedUp.length > 0 || planned.some((c) => c.tool === "search" || c.tool === "read_file");
+        const extra: Call[] = [];
+        const calls = planned.filter((c) => {
+          const problem = (READ_TOOLS as readonly string[]).includes(c.tool) ? null : actionProblem(c, message, loaded.ctx, looked);
+          if (!problem) return true;
+          if (!looked && /haven't looked/.test(problem) && !extra.length) {
+            // Do the lookup for them, so the planner can make it from their material next round.
+            extra.push({ tool: "search", args: { query: message.slice(0, 200), ...(typeof c.args.class === "string" ? { class: c.args.class } : {}) } } as Call);
+            results.push(`${c.tool}: SKIPPED, nothing was saved. The student's material was searched for you (results below): now call ${c.tool} again, made from those results.`);
+          } else {
+            results.push(`${c.tool} ${JSON.stringify(c.args).slice(0, 200)}: SKIPPED, nothing was saved. Reason: ${problem}`);
+          }
+          return false;
+        });
+        calls.unshift(...extra);
         // Reads run together; writes run in order, so "add the test, then make a button for it" works.
         const reads = calls.filter((c) => (READ_TOOLS as readonly string[]).includes(c.tool));
         const writes = calls.filter((c) => !(READ_TOOLS as readonly string[]).includes(c.tool));
@@ -426,7 +448,7 @@ Deno.serve(async (req) => {
           }
           if (c.tool !== "link") send("step", { id: ids.get(c), status: r.action?.ok === false ? "failed" : "done" });
         }
-        rounds.push({ role: "assistant", content: JSON.stringify({ calls: calls.map((c) => ({ tool: c.tool, args: c.args })) }) });
+        rounds.push({ role: "assistant", content: JSON.stringify({ calls: planned.map((c) => ({ tool: c.tool, args: c.args })) }) });
         rounds.push({ role: "user", content: `Results:\n${results.join("\n\n")}\n\nCall more tools if you still need something; otherwise return no calls.` });
       }
 
@@ -435,43 +457,70 @@ Deno.serve(async (req) => {
         `Done:\n${done.length ? done.map((d) => `- ${d}`).join("\n") : "- nothing"}`,
         buttons.length ? `Buttons:\n${buttons.map((b) => `- ${b}`).join("\n")}` : "",
       ].filter(Boolean).join("\n\n");
-      const { res, model } = await llmStream({
-        own, effort: "light", maxTokens: 900,
-        messages: [
-          { role: "system", content: answerSystem(feeling, loaded.persona, language) },
-          { role: "system", content: context },
-          ...history,
-          { role: "user", content: message },
-          { role: "system", content: summary },
-        ],
-      });
-      let full = "";
-      // deno-lint-ignore no-explicit-any
-      let usage: any = null;
-      const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
-      let buf = "";
-      for (;;) {
-        const { value, done: end } = await reader.read();
-        if (end) break;
-        buf += value;
-        let nl;
-        while ((nl = buf.indexOf("\n")) >= 0) {
-          const line = buf.slice(0, nl).trim();
-          buf = buf.slice(nl + 1);
-          if (!line.startsWith("data:")) continue;
-          const payload = line.slice(5).trim();
-          if (payload === "[DONE]") continue;
-          const chunk = JSON.parse(payload);
-          if (chunk?.usage) usage = chunk.usage;
-          const delta = chunk?.choices?.[0]?.delta?.content;
-          if (typeof delta !== "string" || !delta) continue;
-          full += delta;
-          answered = true;
-          send("delta", { text: delta });
+      const answerMessages = [
+        { role: "system" as const, content: answerSystem(feeling, loaded.persona, language) },
+        { role: "system" as const, content: context },
+        ...history,
+        { role: "user" as const, content: message },
+        { role: "system" as const, content: summary },
+      ];
+      // Read a streamed answer to the end, passing pieces to onDelta as they arrive.
+      const readAll = async (res: Response, onDelta?: (t: string) => void) => {
+        let text = "";
+        // deno-lint-ignore no-explicit-any
+        let usage: any = null;
+        const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+        let buf = "";
+        for (;;) {
+          const { value, done: end } = await reader.read();
+          if (end) break;
+          buf += value;
+          let nl;
+          while ((nl = buf.indexOf("\n")) >= 0) {
+            const line = buf.slice(0, nl).trim();
+            buf = buf.slice(nl + 1);
+            if (!line.startsWith("data:")) continue;
+            const payload = line.slice(5).trim();
+            if (payload === "[DONE]") continue;
+            const chunk = JSON.parse(payload);
+            if (chunk?.usage) usage = chunk.usage;
+            const delta = chunk?.choices?.[0]?.delta?.content;
+            if (typeof delta !== "string" || !delta) continue;
+            text += delta;
+            onDelta?.(delta);
+          }
         }
+        return { text, usage };
+      };
+      // Internal labels (C1, F1, E2) are replaced with names before the reply is final.
+      const refNames = new Map<string, string>();
+      for (const [r, id] of loaded.byRef.class) refNames.set(r, loaded.subjectName.get(id) ?? r);
+      for (const [r, u] of loaded.byRef.unit) refNames.set(r, loaded.unitName.get(u.id) ?? r);
+      for (const [r, f] of loaded.byRef.file) refNames.set(r, f.filename);
+      for (const [r, e] of loaded.byRef.event) refNames.set(r, e.title);
+
+      const { res, model } = await llmStream({ own, effort: "light", maxTokens: 900, messages: answerMessages });
+      // A stressed student's reply is checked before they see it: one honest sentence and one step, not a list.
+      const guarded = feeling === "stressed";
+      const first = await readAll(res, guarded ? undefined : (d) => { answered = true; send("delta", { text: d }); });
+      await recordUsage({ feature: "coach", userId: student.userId, byok: !!own }, model, first.usage);
+      let full = first.text;
+      if (guarded) {
+        if (listLines(full) > 1) {
+          try {
+            const again = await llmStream({ own, effort: "light", maxTokens: 300, messages: [...answerMessages, { role: "assistant", content: full }, { role: "user", content: STRESSED_FIX }] });
+            const second = await readAll(again.res);
+            await recordUsage({ feature: "coach_guard", userId: student.userId, byok: !!own }, again.model, second.usage);
+            if (second.text.trim()) full = second.text;
+          } catch (e) {
+            console.error("coach guard rewrite", e instanceof Error ? e.message : e);
+          }
+          if (listLines(full) > 1) full = withoutLists(full) || full;
+        }
+        answered = true;
+        send("delta", { text: withoutRefs(full, refNames) });
       }
-      await recordUsage({ feature: "coach", userId: student.userId, byok: !!own }, model, usage);
-      send("done", { reply: full.trim() || "Done." });
+      send("done", { reply: withoutRefs(full, refNames).trim() || "Done." });
     } catch (e) {
       console.error("coach", e instanceof Error ? e.message.slice(0, 300) : e);
       if (!answered) await refund();
