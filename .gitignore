@@ -12,3 +12,4 @@ __pycache__/
 *.pyc
 .wrangler/
 tutor-eval-report.md
+coach-eval-report.md
