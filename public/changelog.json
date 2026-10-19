@@ -1,6 +1,24 @@
 {
   "releases": [
     {
+      "version": "1.8.10",
+      "date": "2026-10-19",
+      "title": "Where the money goes",
+      "intro": "The real costs of running Stoga.study, published every month.",
+      "highlights": [
+        {
+          "icon": "summary",
+          "title": "A real ledger",
+          "text": "Plans now shows what the app costs each month (AI and hosting), how many students it helped, and how it's paid for. No sample figures."
+        },
+        {
+          "icon": "free",
+          "title": "About donating",
+          "text": "A page explaining optional donations. Giving never unlocks anything. Donations open once payments are set up."
+        }
+      ]
+    },
+    {
       "version": "1.8.9",
       "date": "2026-10-19",
       "title": "More useful notifications",
