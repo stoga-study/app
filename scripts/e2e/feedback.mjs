@@ -23,6 +23,7 @@ await run("feedback", async ({ p, uid }) => {
   await p.getByText("Thanks. It went straight to the people building Stoga.study").waitFor({ timeout: 5000 }).then(() => ok("thanks the student", true), () => ok("thanks the student", false));
   // Clean up the stored picture (the account deletion removes the row).
   if (row?.screenshot_path) await admin.storage.from("feedback").remove([row.screenshot_path]);
+  await admin.from("feedback").delete().eq("user_id", uid); // the row would outlive the test account
 
   // Desktop: the sidebar opens the same sheet.
   await p.setViewportSize({ width: 1280, height: 860 });

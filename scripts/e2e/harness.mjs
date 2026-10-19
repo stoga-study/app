@@ -92,8 +92,14 @@ export async function otherStudent(name = "other", { width = 390, height = 844 }
   await admin.from("profiles").update({ onboarded: true, graduation_year: 2029, first_name: "Other", last_seen_version: "9.9.9" }).eq("user_id", uid);
   const subject = (await admin.from("subjects").insert({ user_id: uid, name: "Biology", area: "Science", school_year: "2026-27", color_index: 1 }).select().single()).data;
   const browser = await chromium.launch({ executablePath: CHROME });
-  const p = await (await browser.newContext({ viewport: { width, height } })).newPage();
-  await p.goto(data.properties.action_link, { waitUntil: "networkidle" });
+  const ctx = await browser.newContext({ viewport: { width, height } });
+  const p = await ctx.newPage();
+  if (LOCAL) {
+    await signInLocally(ctx, data.properties.hashed_token);
+    await p.goto(APP + "/", { waitUntil: "networkidle" });
+  } else {
+    await p.goto(data.properties.action_link, { waitUntil: "networkidle" });
+  }
   await p.waitForURL((x) => !x.pathname.includes("verify") && !x.pathname.includes("welcome"));
   return { p, uid, subject, cleanup: async () => { await browser.close(); await admin.auth.admin.deleteUser(uid); } };
 }
