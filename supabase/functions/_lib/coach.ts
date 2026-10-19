@@ -293,7 +293,8 @@ export function actionProblem(c: Call, message: string, ctx: Pick<Ctx, "today" |
  */
 export function withoutRefs(text: string, names: Map<string, string>) {
   const known = (r: string) => names.has(r);
-  return text
+  // The coach answers in words: any code block is dropped.
+  return text.replace(/```[\s\S]*?(```|$)/g, "")
     .replace(/\s*[(\[]([CUFE]\d{1,3})[)\]]/g, (m, r) => (known(r) ? "" : m))
     .replace(/\b([CUFE]\d{1,3})(?::|,)?\s+(?=["“'‘*])/g, (m, r) => (known(r) ? "" : m))
     .replace(/\b([CUFE]\d{1,3})\b(?!\s+generation)/g, (m, r) => (known(r) ? `“${names.get(r)}”` : m))

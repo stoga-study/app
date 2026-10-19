@@ -37,3 +37,30 @@ describe("tutor guards", () => {
     expect(wordCount("One two [S1 p.2] three.")).toBe(3);
   });
 });
+
+import { asksForCode, hasCode, isCodeClass, withoutCode } from "../../supabase/functions/_lib/tutor";
+
+describe("no code outside computer science", () => {
+  it("knows which classes are about code", () => {
+    expect(isCodeClass("AP Computer Science A")).toBe(true);
+    expect(isCodeClass("Intro to Programming")).toBe(true);
+    expect(isCodeClass("Literary Foundations")).toBe(false);
+    expect(isCodeClass("AP Statistics")).toBe(false);
+  });
+  it("spots a request for code", () => {
+    expect(asksForCode("Write me a code in HTML about my essay.")).toBe(true);
+    expect(asksForCode("can you make my notes into a website")).toBe(true);
+    expect(asksForCode("What's the theme of chapter 3?")).toBe(false);
+    expect(asksForCode("Help me write the script for our skit")).toBe(false);
+  });
+  it("finds code in an answer, but not in ordinary maths or prose", () => {
+    expect(hasCode("Here you go:\n```html\n<!DOCTYPE html>\n```")).toBe(true);
+    expect(hasCode("<div class=\"note\">Thesis</div>")).toBe(true);
+    expect(hasCode("If p < 0.05 and the sample > 30, reject. SE = σ/√n = 2.")).toBe(false);
+    expect(hasCode("Jay matures; Gilgamesh accepts his limits.")).toBe(false);
+  });
+  it("removes code and keeps the words", () => {
+    expect(withoutCode("Here's a planner.\n\n```html\n<h1>Plan</h1>\n```\n\nFill in your quotes.")).toBe("Here's a planner.\n\nFill in your quotes.");
+    expect(withoutCode("<p>Topic sentence</p>")).toBe("Topic sentence");
+  });
+});

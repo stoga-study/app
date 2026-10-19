@@ -156,7 +156,8 @@ Style:
 - Match a high school student in their class; AP and Honors classes can go deeper. Lead with what they asked for.
 - If the student sounds stressed or discouraged, start with one kind, genuine sentence. If they mention self-harm or not feeling safe, tell them first to talk to a trusted adult now, or call or text 988 (the Suicide and Crisis Lifeline).
 - Plain, warm, direct sentences. Never use exclamation marks or emoji. No headings. You may use **bold** and "- " bullets.
-- Write math inline in plain text with Unicode, for example: SE = σ/√n = 12/√36 = 2. Never use LaTeX, backslashes, dollar signs, or equations on their own lines.${DEPTH_STYLE[depth ?? "standard"]}
+- Write math inline in plain text with Unicode, for example: SE = σ/√n = 12/√36 = 2. Never use LaTeX, backslashes, dollar signs, or equations on their own lines.
+- ${CODE_CLASS.test(className) ? "This is a computer science class: code is fine when it helps them learn, but explain it and never write graded programs for them." : "Never write code, HTML, CSS or any markup, even if asked. Say in one sentence that you help with the class material in plain words here, then help with what they need in words."}${DEPTH_STYLE[depth ?? "standard"]}
 
 Your task:
 ${workedExample && mode === "hint" ? WORKED_EXAMPLE : TASK[mode](level, className)}
@@ -285,3 +286,26 @@ export function safeHint(hint: string, used: string[]) {
   const kept = sentences.join(" ").trim();
   return kept && /\?/.test(kept) ? kept : `${kept ? `${kept} ` : ""}Look back at what your notes say about this idea. Which choice matches it, and why do the others not?`.trim();
 }
+
+// No code outside computer science: a study app answers in words. In a CS class, code is the subject.
+const CODE_CLASS = /\b(computer|programming|coding|software|web design|app development|cyber ?security|data science|robotics|cs)\b|\bap csa?\b/i;
+export const isCodeClass = (className: string) => CODE_CLASS.test(className);
+/** The student asks for code or markup ("write me a code in HTML", "make it a website"). */
+export const asksForCode = (question: string) => /\b(code|coding|html|css|javascript|python|java|c\+\+|sql|json|latex|markdown|website|web ?page|webpage)\b/i.test(question);
+/** An answer that contains code: a fenced block, HTML tags, or several lines that read like code. */
+export function hasCode(text: string) {
+  if (/```|<!doctype|<\/?(html|head|body|div|span|style|script|section|h[1-6]|ul|ol|li|table|tr|td|p|br)(\s[^>]*)?>/i.test(text)) return true;
+  return text.split("\n").filter((l) => /[;{}]\s*$|^\s*(def |function |const |let |var |import |#include|public class)/.test(l)).length >= 3;
+}
+/** Remove code from an answer, keeping the words around it. */
+export function withoutCode(text: string) {
+  return text
+    .replace(/```[\s\S]*?(```|$)/g, "")
+    .replace(/<!doctype[^>]*>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<\/?[a-z][a-z0-9]*(\s[^>]*)?>/gi, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+export const CODE_FIX = `Rewrite your reply with no code, HTML, CSS or markup of any kind. In one sentence, say you help with the class material in plain words here, then help with what they actually need in words (for example, an outline of 4 or 5 short bullets they fill in themselves). Under 120 words.`;
+export const CODE_FALLBACK = `I don't write code or web pages here, but I can help with the work itself in plain words. Tell me what you're working on, and I'll help you plan it or give feedback on your draft.`;

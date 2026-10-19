@@ -10,7 +10,7 @@ import { corsHeaders, json } from "../_lib/cors.ts";
 import { LLM_FAST_MODEL, llmJson, llmStream, LLMError, recordUsage, setUsageLogger, type Effort, type OwnProvider } from "../_lib/llm.ts";
 import { ownProvider } from "../_lib/byok.ts";
 import { cleanText } from "../_lib/study.ts";
-import { asksForGradedWork, checkCitations, CRISIS_LINE, givingAwayPhrases, GRADED_FALLBACK, GRADED_FIX, GRADED_LIMIT, guessMode, hintFix, MODES, obviousMode, phrasesUsed, ROUTER_SCHEMA, safeHint, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, wordCount, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
+import { asksForCode, asksForGradedWork, checkCitations, CODE_FALLBACK, CODE_FIX, hasCode, isCodeClass, withoutCode, CRISIS_LINE, givingAwayPhrases, GRADED_FALLBACK, GRADED_FIX, GRADED_LIMIT, guessMode, hintFix, MODES, obviousMode, phrasesUsed, ROUTER_SCHEMA, safeHint, wellbeing, routerMessages, searchTerms, systemPrompt, userTurn, wordCount, type Depth, type Mode, type Src, type Turn } from "../_lib/tutor.ts";
 
 const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 setUsageLogger((row) => admin.from("ai_usage").insert(row));
@@ -287,7 +287,9 @@ Deno.serve(async (req) => {
     const gradedWork = feeling !== "crisis" && asksForGradedWork(question);
     const problemText = body.followup ? [...history].reverse().find((t) => t.role === "user" && givingAwayPhrases(t.content).length)?.content ?? question : question;
     const banned = mode === "hint" && level < 3 && !wantsWorked ? givingAwayPhrases(problemText) : [];
-    const guarded = gradedWork || banned.length > 0;
+    const codeClass = isCodeClass(subject.name);
+    const codeAsked = !codeClass && asksForCode(question);
+    const guarded = gradedWork || codeAsked || banned.length > 0;
 
     // Small talk is quick; a full worked explanation gets more thinking.
     const effort: Effort = feeling === "crisis" ? "normal" : mode === "chat" ? "light" : mode === "hint" && level === 3 ? "deep" : "normal";
@@ -326,10 +328,10 @@ Deno.serve(async (req) => {
             const first = await readAnswer(res);
             await recordUsage({ feature: "tutor", userId: student.userId, byok: !!own }, model, first.usage);
             full = first.text;
-            const broken = (text: string) => !text.trim() || (gradedWork ? wordCount(text) > GRADED_LIMIT : phrasesUsed(text, banned).length > 0);
+            const broken = (text: string) => !text.trim() || (codeAsked && hasCode(text)) || (gradedWork && wordCount(text) > GRADED_LIMIT) || (banned.length > 0 && phrasesUsed(text, banned).length > 0);
             if (broken(full)) {
               // One rewrite with the exact correction, then a safe answer if the rule is still broken.
-              const fix = gradedWork ? GRADED_FIX : hintFix(phrasesUsed(full, banned));
+              const fix = codeAsked && hasCode(full) ? CODE_FIX : gradedWork ? GRADED_FIX : hintFix(phrasesUsed(full, banned));
               try {
                 const again = await llmStream({ messages: [...messages, { role: "assistant", content: full }, { role: "user", content: fix }] as { role: "system" | "user" | "assistant"; content: string }[], effort: "normal", maxTokens: 400, own });
                 const second = await readAnswer(again.res);
@@ -338,10 +340,18 @@ Deno.serve(async (req) => {
               } catch (e) {
                 console.error("tutor guard rewrite", e instanceof Error ? e.message : e);
               }
-              if (broken(full)) full = gradedWork ? GRADED_FALLBACK : safeHint(full, phrasesUsed(full, banned));
+              if (broken(full)) {
+                const plain = codeAsked ? withoutCode(full) : full;
+                full = codeAsked && (!plain || (gradedWork && wordCount(plain) > GRADED_LIMIT)) ? CODE_FALLBACK
+                  : gradedWork && wordCount(plain) > GRADED_LIMIT ? GRADED_FALLBACK
+                  : banned.length > 0 && phrasesUsed(plain, banned).length > 0 ? safeHint(plain, phrasesUsed(plain, banned))
+                  : plain || CODE_FALLBACK;
+              }
             }
             send(controller, "delta", { text: full });
           }
+          // Safety net for every answer: outside computer science, no code is ever saved (the app shows the saved version).
+          if (!codeClass && hasCode(full)) full = withoutCode(full) || CODE_FALLBACK;
           const checked = checkCitations(full, sources);
           // The crisis line is never left to chance.
           const cleaned = feeling === "crisis" && !/\b988\b/.test(checked.cleaned) ? `${checked.cleaned}\n\n${CRISIS_LINE}` : checked.cleaned;
