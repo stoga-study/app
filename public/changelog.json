@@ -1,6 +1,29 @@
 {
   "releases": [
     {
+      "version": "1.8.9",
+      "date": "2026-10-19",
+      "title": "More useful notifications",
+      "intro": "Three new kinds of notification, each with its own switch in Settings.",
+      "highlights": [
+        {
+          "icon": "checklist",
+          "title": "Homework due tomorrow",
+          "text": "The evening before, if it isn't ticked off yet. Still at most one evening reminder a day."
+        },
+        {
+          "icon": "check",
+          "title": "Study set ready",
+          "text": "When a study set takes a while, your phone tells you when it's done, so you don't have to wait on the screen."
+        },
+        {
+          "icon": "group",
+          "title": "Study group activity",
+          "text": "When a classmate shares a study set in one of your groups. First names only, at most once a day per group."
+        }
+      ]
+    },
+    {
       "version": "1.8.8",
       "date": "2026-10-18",
       "title": "Fixes from your reports",
