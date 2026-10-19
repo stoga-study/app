@@ -40,8 +40,8 @@ function SideLink({ item }: { item: Item }) {
       end={item.end}
       className={({ isActive }) =>
         cn(
-          "flex min-h-11 items-center gap-3 rounded-[0.875rem] px-3 text-[0.9375rem] font-bold text-ink-2 no-underline [&_svg]:size-5",
-          isActive ? "bg-tint text-brand" : "hover:bg-card",
+          "flex min-h-10 items-center gap-3 rounded-[0.625rem] px-3 text-[0.9375rem] font-medium text-ink-2 no-underline [&_svg]:size-[1.125rem] [&_svg]:text-muted",
+          isActive ? "bg-card font-semibold text-ink shadow-[inset_0_0_0_1px_var(--line)] [&_svg]:!text-brand" : "hover:bg-soft",
         )
       }
     >
@@ -82,21 +82,21 @@ export function Shell({ aside }: { aside?: ReactNode }) {
             <NavLink
               to="/progress"
               aria-label="Progress"
-              className="grid size-11 place-items-center rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
+              className="grid size-10 place-items-center rounded-full border border-line bg-card text-ink-2 [&_svg]:size-[1.125rem]"
             >
               <TrendingUp />
             </NavLink>
             <NavLink
               to="/search"
               aria-label="Search"
-              className="grid size-11 place-items-center rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
+              className="grid size-10 place-items-center rounded-full border border-line bg-card text-ink-2 [&_svg]:size-[1.125rem]"
             >
               <Search />
             </NavLink>
             <NavLink
               to="/settings"
               aria-label="Settings"
-              className="grid size-11 place-items-center overflow-hidden rounded-full border-2 border-line bg-card text-ink [&_svg]:size-5"
+              className="grid size-10 place-items-center overflow-hidden rounded-full border border-line bg-card text-ink-2 [&_svg]:size-[1.125rem]"
             >
               <MeFace />
             </NavLink>
@@ -111,7 +111,7 @@ export function Shell({ aside }: { aside?: ReactNode }) {
         {/* Phone and tablet tab bar. */}
         <nav
           aria-label="Main"
-          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 print:hidden border-t border-line bg-card px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] lg:hidden"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 print:hidden border-t border-line bg-bg/95 px-1 pt-1.5 pb-[calc(0.5rem+env(safe-area-inset-bottom))] backdrop-blur-sm lg:hidden"
         >
           {TABS.map((i) => (
             <NavLink
@@ -120,8 +120,8 @@ export function Shell({ aside }: { aside?: ReactNode }) {
               end={i.end}
               className={({ isActive }) =>
                 cn(
-                  "flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[0.8125rem] no-underline [&_svg]:size-5",
-                  isActive ? "font-bold text-brand" : "text-muted",
+                  "flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl text-[0.75rem] no-underline [&_svg]:size-5",
+                  isActive ? "font-semibold text-ink" : "text-muted",
                 )
               }
             >
@@ -138,5 +138,5 @@ export function Shell({ aside }: { aside?: ReactNode }) {
 /** The student's face in the top bar (the settings icon until the profile loads). */
 function MeFace() {
   const faces = useFaces();
-  return faces.ready ? <Face face={faces.me} size={40} mood="still" /> : <Settings />;
+  return faces.ready ? <Face face={faces.me} size={36} mood="still" /> : <Settings />;
 }
