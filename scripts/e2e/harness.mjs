@@ -12,7 +12,19 @@ import path from "node:path";
 
 const env = Object.fromEntries(fs.readFileSync(new URL("../../../admin-dashboard/.env", import.meta.url), "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-export const APP = "https://beta.stoga.study";
+// E2E_APP=http://localhost:5199 runs against a local dev server (same database) instead of the beta.
+export const APP = process.env.E2E_APP ?? "https://beta.stoga.study";
+const LOCAL = /^http:\/\/(localhost|127\.0\.0\.1)/.test(APP);
+const appEnv = Object.fromEntries(fs.readFileSync(new URL("../../.env.local", import.meta.url), "utf8").split("\n").filter((l) => l.includes("=")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
+
+/** A sign-in link can't land on localhost, so locally the student is signed in here and the session handed to the page. */
+async function signInLocally(ctx, hashedToken) {
+  const anon = createClient(env.SUPABASE_URL, appEnv.VITE_SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false } });
+  const { data, error } = await anon.auth.verifyOtp({ token_hash: hashedToken, type: "email" });
+  if (error) throw error;
+  const ref = new URL(env.SUPABASE_URL).hostname.split(".")[0];
+  await ctx.addInitScript(([k, v]) => { try { localStorage.setItem(k, v); } catch { /* storage blocked */ } }, [`sb-${ref}-auth-token`, JSON.stringify(data.session)]);
+}
 export const FUNCTIONS = `${env.SUPABASE_URL}/functions/v1`;
 export const SHOTS = process.env.E2E_SHOTS ?? fs.mkdtempSync(path.join(os.tmpdir(), "stoga-shots-"));
 fs.mkdirSync(SHOTS, { recursive: true });
@@ -39,7 +51,12 @@ export async function run(name, body, { width = 390, height = 844, scale = 1, pe
     const p = ctx.pages()[0] ?? (await ctx.newPage());
     p.on("pageerror", (e) => errs.push(String(e)));
     p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("cloudflareinsights")) errs.push("console: " + m.text().slice(0, 500)); });
-    await p.goto(data.properties.action_link, { waitUntil: "networkidle" });
+    if (LOCAL) {
+      await signInLocally(ctx, data.properties.hashed_token);
+      await p.goto(APP + "/", { waitUntil: "networkidle" });
+    } else {
+      await p.goto(data.properties.action_link, { waitUntil: "networkidle" });
+    }
     await p.waitForURL((u) => !u.pathname.includes("verify") && !u.pathname.includes("welcome"));
     await body({ p, uid, wh, errs });
     // A test that cuts the connection on purpose passes a pattern for the errors it causes.
