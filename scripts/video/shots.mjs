@@ -1,5 +1,7 @@
 // Real app screens for the updates video: the example student with a few weeks of realistic activity.
 //   node scripts/video/shots.mjs <outdir>        (E2E_APP=http://localhost:5199 to use a local dev server)
+//   THEME=dark for the dark-mode cut. Phone screens are an iPhone Pro's 402-point width, minus the status bar and
+//   home-indicator strips the device frame draws itself.
 // Everything seeded belongs to throwaway accounts that are deleted at the end. Ideas-board requests are visible to
 // everyone once approved, so they exist only for the seconds around their screenshot.
 import fs from "node:fs";
@@ -72,6 +74,7 @@ async function showcase(uid, wh) {
   return { ...s, thread, note, g, token, mate };
 }
 
+const DARK = process.env.THEME === "dark";
 const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(",")) : null;
 const shot = async (p, name, url, before) => {
   if (ONLY && !ONLY.has(name)) return;
@@ -87,6 +90,7 @@ const scrollTo = (sel) => async (p) => { await p.locator(sel).first().scrollInto
 await run("video", async ({ p, uid, wh }) => {
   await admin.from("profiles").update({ first_name: "Ava" }).eq("user_id", uid);
   const s = await showcase(uid, wh);
+  await p.emulateMedia({ colorScheme: DARK ? "dark" : "light" });
   try {
     await shot(p, "p-home", "/");
     await shot(p, "p-studyset", `/sources/${s.src.id}`);
@@ -117,8 +121,6 @@ await run("video", async ({ p, uid, wh }) => {
     await admin.from("feature_votes").insert([{ request_id: reqs[0].id, user_id: uid }, { request_id: reqs[0].id, user_id: s.mate }, { request_id: reqs[2].id, user_id: uid }]);
     try { await shot(p, "p-ideas", "/requests"); } finally { await admin.from("feature_requests").delete().in("id", reqs.map((r) => r.id)); }
     await shot(p, "p-updates", "/updates");
-    await shot(p, "p-welcome-dark", "/updates", async (q) => { await q.emulateMedia({ colorScheme: "dark" }); });
-    await p.emulateMedia({ colorScheme: "light" });
 
     await p.setViewportSize({ width: 1440, height: 900 });
     await shot(p, "d-home", "/");
@@ -129,4 +131,4 @@ await run("video", async ({ p, uid, wh }) => {
     await admin.auth.admin.deleteUser(s.mate);
     await admin.from("feedback").delete().eq("user_id", uid);
   }
-}, { width: 390, height: 844, scale: 3 });
+}, { width: 402, height: 798, scale: 3 });
