@@ -8,22 +8,36 @@ const PHONE_W = 441, PHONE_H = 913;
 const THEMES = {
   light: {
     vars: "--bg:#F7F6F5;--card:#FFFFFF;--soft:#F1EEED;--line:#E8E4E3;--ink:#1C1718;--ink2:#3E3739;--muted:#6B6466;--brand:#720D19;--tint:#F5E8EA",
-    metal: "linear-gradient(90deg,#9d9ca1 0%,#e9e8ec 3.5%,#cfced3 9%,#c4c3c8 50%,#cfced3 91%,#efeef1 96.5%,#94939a 100%)",
-    rim: "inset 0 0 0 calc(var(--u)*1) rgba(0,0,0,.28),inset 0 0 0 calc(var(--u)*2) rgba(255,255,255,.55)",
+    // A burgundy iPhone in front of a silver MacBook Pro.
+    metal: "linear-gradient(90deg,#33050b 0%,#a63a4c 3.5%,#7a1323 9%,#6a0e1b 50%,#7a1323 91%,#b0485a 96.5%,#2e040a 100%)",
+    rim: "inset 0 0 0 calc(var(--u)*1) rgba(0,0,0,.35),inset 0 0 0 calc(var(--u)*2) rgba(255,190,200,.28)",
+    macRim: "linear-gradient(180deg,#e6e7ea,#c4c5ca)",
+    macBase: "linear-gradient(180deg,#f3f4f6 0%,#d9dade 35%,#b4b6bb 80%,#9a9ca1 100%)",
+    macScoop: "linear-gradient(180deg,#a9abb0,#cfd0d4)",
+    macShadow: "0 calc(var(--m)*30) calc(var(--m)*50) calc(var(--m)*-18) rgba(40,12,16,.32)",
     shadow: "0 1px 2px rgba(28,10,14,.10),0 calc(var(--u)*22) calc(var(--u)*44) calc(var(--u)*-14) rgba(40,12,16,.26),0 calc(var(--u)*70) calc(var(--u)*120) calc(var(--u)*-46) rgba(40,12,16,.34)",
     sheen: "linear-gradient(118deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 40%)",
-    browserShadow: "0 40px 80px -46px rgba(30,7,11,.4)",
   },
   dark: {
     vars: "--bg:#0F0C0D;--card:#181314;--soft:#211A1C;--line:#2B2326;--ink:#F5F0F1;--ink2:#DCD3D5;--muted:#A79C9F;--brand:#EBA3B4;--tint:#2B151B",
+    // Dark grey on dark grey.
     metal: "linear-gradient(90deg,#15161a 0%,#5a5d66 3.5%,#33363d 9%,#2a2c32 50%,#33363d 91%,#61646d 96.5%,#121316 100%)",
     rim: "inset 0 0 0 calc(var(--u)*1) rgba(0,0,0,.6),inset 0 0 0 calc(var(--u)*2) rgba(255,255,255,.14)",
+    macRim: "linear-gradient(180deg,#45474d,#2a2b30)",
+    macBase: "linear-gradient(180deg,#55575d 0%,#36373c 35%,#222327 80%,#151619 100%)",
+    macScoop: "linear-gradient(180deg,#1b1c1f,#2e2f34)",
+    macShadow: "0 calc(var(--m)*30) calc(var(--m)*60) calc(var(--m)*-14) rgba(0,0,0,.8)",
     shadow: "0 0 0 1px rgba(255,255,255,.04),0 calc(var(--u)*22) calc(var(--u)*44) calc(var(--u)*-14) rgba(0,0,0,.6),0 calc(var(--u)*70) calc(var(--u)*120) calc(var(--u)*-40) rgba(0,0,0,.75)",
     sheen: "linear-gradient(118deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.02) 22%,rgba(255,255,255,0) 40%)",
-    browserShadow: "0 40px 90px -40px rgba(0,0,0,.8)",
   },
 };
 const u = (n) => `calc(var(--u)*${n})`;
+// The MacBook Pro in units of 1/1000 of its lid's width: a 3-unit aluminium rim, thin black bezels, a notch in the
+// menu bar, a browser toolbar, then the 1440 x 900 screenshot; the base is a wider slab with the thumb scoop.
+const m = (n) => `calc(var(--m)*${n})`;
+const MAC_SHOT_H = (1000 - 6 - 28) * 900 / 1440;
+const MAC_LID_H = 6 + 14 + 22 + 58 + MAC_SHOT_H;
+const MAC_W = 1160, MAC_H = MAC_LID_H + 20;
 const STATUS = `<div class="status"><span class="time">9:41</span><span class="icons">`
   + `<svg viewBox="0 0 19 12" width="19" height="12"><rect x="0" y="8" width="3.2" height="4" rx=".8"/><rect x="5" y="5.5" width="3.2" height="6.5" rx=".8"/><rect x="10" y="3" width="3.2" height="9" rx=".8"/><rect x="15" y="0" width="3.2" height="12" rx=".8"/></svg>`
   + `<svg viewBox="0 0 17 12" width="17" height="12"><path d="M8.5 2.2c2.4 0 4.6.9 6.3 2.5l1.2-1.2C14 1.6 11.4.5 8.5.5S3 1.6 1 3.5l1.2 1.2C3.9 3.1 6.1 2.2 8.5 2.2Zm0 3.4c1.5 0 2.8.6 3.9 1.5l1.2-1.2C12.2 4.6 10.4 3.9 8.5 3.9S4.8 4.6 3.4 5.9l1.2 1.2c1.1-.9 2.4-1.5 3.9-1.5Zm0 3.4c.6 0 1.1.2 1.5.6L8.5 11.1 7 9.6c.4-.4.9-.6 1.5-.6Z"/></svg>`
@@ -87,13 +101,23 @@ html,body{width:${w}px;height:${h}px;overflow:hidden;background:var(--bg);font-s
 .phone .island::after{content:"";position:absolute;right:${u(11)};top:50%;width:${u(11)};height:${u(11)};margin-top:${u(-5.5)};border-radius:50%;background:radial-gradient(circle at 35% 35%,#2a3550 0%,#0b0f18 55%,#000 100%)}
 .phone .home{position:absolute;bottom:${u(8)};left:50%;width:${u(140)};height:${u(5)};margin-left:${u(-70)};border-radius:${u(3)};background:var(--ink);opacity:.85}
 .phone .sheen{position:absolute;inset:0;border-radius:${u(55)};background:${T.sheen};pointer-events:none}
-.browser .screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
-.browser{position:absolute;width:${vertical ? 900 : 860}px;border-radius:18px;background:var(--card);border:1px solid var(--line);box-shadow:${T.browserShadow};overflow:hidden}
-.browser .bar{position:relative;height:44px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
-.browser .bar .url{padding:5px 18px;border-radius:8px;background:var(--soft)}
-.browser .bar .dots{position:absolute;left:18px;top:50%;margin-top:-6px;display:flex;gap:8px}
-.browser .bar .dots i{width:12px;height:12px;border-radius:50%;background:var(--line)}
-.browser .screen{position:relative;width:100%;aspect-ratio:1440/900;background:var(--bg)}
+/* MacBook Pro */
+.mac{position:absolute;--m:1px;width:${m(MAC_W)};height:${m(MAC_H)}}
+.mac .lid{position:absolute;left:${m(80)};top:0;width:${m(1000)};height:${m(MAC_LID_H)};padding:${m(3)};border-radius:${m(28)} ${m(28)} ${m(6)} ${m(6)};background:${T.macRim}}
+.mac .bezel{width:100%;height:100%;padding:${m(14)} ${m(14)} ${m(22)};border-radius:${m(25)} ${m(25)} ${m(4)} ${m(4)};background:#050505}
+.mac .display{position:relative;width:100%;height:100%;border-radius:${m(12)} ${m(12)} ${m(2)} ${m(2)};overflow:hidden;background:var(--bg)}
+.mac .menubar{position:absolute;left:0;right:0;top:0;height:${m(22)};display:flex;align-items:center;justify-content:flex-end;gap:${m(12)};padding:0 ${m(16)};background:var(--soft);color:var(--ink);font-size:${m(10.5)};font-weight:500}
+.mac .menubar i{width:${m(15)};height:${m(8)};border-radius:${m(2)};border:${m(1.2)} solid currentColor;opacity:.75}
+.mac .notch{position:absolute;top:0;left:50%;width:${m(120)};height:${m(22)};margin-left:${m(-60)};border-radius:0 0 ${m(8)} ${m(8)};background:#050505}
+.mac .toolbar{position:absolute;left:0;right:0;top:${m(22)};height:${m(36)};display:flex;align-items:center;justify-content:center;background:var(--card);border-bottom:1px solid var(--line)}
+.mac .toolbar .dots{position:absolute;left:${m(16)};display:flex;gap:${m(7)}}
+.mac .toolbar .dots i{width:${m(10)};height:${m(10)};border-radius:50%;background:var(--line)}
+.mac .toolbar .url{padding:${m(4)} ${m(60)};border-radius:${m(7)};background:var(--soft);color:var(--muted);font-size:${m(11)}}
+.mac .shots{position:absolute;left:0;right:0;top:${m(58)};bottom:0;overflow:hidden}
+.mac .shots img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top}
+.mac .sheen{position:absolute;inset:0;background:${T.sheen};pointer-events:none}
+.mac .base{position:absolute;left:0;top:${m(MAC_LID_H)};width:${m(MAC_W)};height:${m(20)};border-radius:${m(3)} ${m(3)} ${m(40)} ${m(40)} / ${m(3)} ${m(3)} ${m(16)} ${m(16)};background:${T.macBase};box-shadow:${T.macShadow}}
+.mac .scoop{position:absolute;top:0;left:50%;width:${m(170)};height:${m(8)};margin-left:${m(-85)};border-radius:0 0 ${m(10)} ${m(10)};background:${T.macScoop}}
 /* Progress rail */
 .rail{position:absolute;left:${vertical ? 90 : 140}px;right:${vertical ? 90 : 140}px;bottom:${vertical ? 80 : 56}px;display:grid;grid-template-columns:repeat(9,1fr);gap:${vertical ? 10 : 14}px}
 .rail div{display:flex;flex-direction:column;gap:10px}
@@ -137,7 +161,7 @@ const chapters = D.CHAPTERS.map((c) => {
   const desks = c.screens.filter((s) => s.startsWith("d-"));
   let browser = null, phone = null;
   if (desks.length) {
-    browser = el("div", "browser", \`<div class="bar mono"><span class="dots"><i></i><i></i><i></i></span><span class="url">beta.stoga.study</span></div><div class="screen">\${desks.map(img).join("")}</div>\`);
+    browser = el("div", "mac", \`<div class="lid"><div class="bezel"><div class="display"><div class="shots">\${desks.map(img).join("")}</div><div class="menubar"><span>Mon 9:41</span><i></i></div><div class="notch"></div><div class="toolbar"><span class="dots"><i></i><i></i><i></i></span><span class="url mono">beta.stoga.study</span></div><div class="sheen"></div></div></div></div><div class="base"><div class="scoop"></div></div>\`);
     visual.append(browser);
   }
   if (phones.length) {
@@ -154,20 +178,19 @@ const rail = el("div", "rail");
 const railItems = D.CHAPTERS.map((c) => { const d = el("div", "", \`<div class="bar"><i></i></div><span class="mono">\${c.v}</span>\`); rail.append(d); return d; });
 stage.append(rail);
 
-// Layout of the visual area: a phone alone, a browser alone, or a browser with a phone in front.
 const sizePhone = (ph, width) => { ph.style.setProperty("--u", (width / ${PHONE_W}) + "px"); return width * ${PHONE_H} / ${PHONE_W}; };
+const sizeMac = (mac, lid) => { mac.style.setProperty("--m", (lid / 1000) + "px"); return [lid * ${MAC_W} / 1000, lid * ${MAC_H} / 1000]; };
+// The MacBook behind, the iPhone in front of its corner.
 function placeVisual(ch) {
   const V = D.vertical;
-  if (ch.browser && ch.phone) {
-    if (V) { ch.browser.style.left = "90px"; ch.browser.style.top = "0px"; ch.phone.style.right = "110px"; ch.phone.style.bottom = "0px"; sizePhone(ch.phone, 410); }
-    else { ch.browser.style.right = "0px"; ch.browser.style.top = "190px"; ch.phone.style.left = "0px"; ch.phone.style.bottom = "120px"; sizePhone(ch.phone, 340); }
-  } else if (ch.browser) {
-    if (V) { ch.browser.style.left = "90px"; ch.browser.style.top = "260px"; }
-    else { ch.browser.style.right = "0px"; ch.browser.style.top = "260px"; }
-  } else if (ch.phone) {
-    const pw = V ? 480 : 410, ph = sizePhone(ch.phone, pw);
-    ch.phone.style.left = "50%"; ch.phone.style.marginLeft = -pw / 2 + "px";
-    if (V) ch.phone.style.top = "0px"; else { ch.phone.style.top = "50%"; ch.phone.style.marginTop = -ph / 2 + "px"; }
+  if (ch.browser) {
+    const [mw] = sizeMac(ch.browser, V ? 800 : 760);
+    if (V) { ch.browser.style.left = (1080 - mw) / 2 + "px"; ch.browser.style.top = "20px"; }
+    else { ch.browser.style.right = "-70px"; ch.browser.style.top = "230px"; }
+  }
+  if (ch.phone) {
+    if (V) { sizePhone(ch.phone, 390); ch.phone.style.right = "100px"; ch.phone.style.bottom = "0px"; }
+    else { sizePhone(ch.phone, 330); ch.phone.style.left = "-20px"; ch.phone.style.bottom = "130px"; }
   }
 }
 chapters.forEach(placeVisual);

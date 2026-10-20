@@ -119,11 +119,21 @@ await run("video", async ({ p, uid, wh }) => {
       { user_id: s.mate, title: "Import from Google Docs", body: "My notes are in Docs.", status: "open" },
     ]).select()).data;
     await admin.from("feature_votes").insert([{ request_id: reqs[0].id, user_id: uid }, { request_id: reqs[0].id, user_id: s.mate }, { request_id: reqs[2].id, user_id: uid }]);
-    try { await shot(p, "p-ideas", "/requests"); } finally { await admin.from("feature_requests").delete().in("id", reqs.map((r) => r.id)); }
+    try {
+      await shot(p, "p-ideas", "/requests");
+      await p.setViewportSize({ width: 1440, height: 900 });
+      await shot(p, "d-requests", "/requests");
+      await p.setViewportSize({ width: 402, height: 798 });
+    } finally { await admin.from("feature_requests").delete().in("id", reqs.map((r) => r.id)); }
     await shot(p, "p-updates", "/updates");
 
     await p.setViewportSize({ width: 1440, height: 900 });
+    // One desktop screen per chapter, for the MacBook behind the phone.
     await shot(p, "d-home", "/");
+    await shot(p, "d-studyset", `/sources/${s.src.id}`);
+    await shot(p, "d-tutor", `/tutor/${wh.id}?thread=${s.thread.id}`, (q) => q.getByText("That's how far a sample mean").waitFor({ timeout: 20000 }));
+    await shot(p, "d-search", "/search", async (q) => { await q.locator("main input").first().fill("standard error"); await q.keyboard.press("Enter"); await q.waitForTimeout(2500); });
+    await shot(p, "d-group", `/groups/${s.g.id}`);
     await shot(p, "d-calendar", "/calendar");
     await shot(p, "d-plans", "/plans", scrollTo("#funding"));
     await shot(p, "d-progress", "/progress");
